@@ -1,6 +1,4 @@
-import Config from "react-native-config";
-
-const BASE_URL = `${Config.BASE_URL}:${Config.PORT}`;
+const BASE_URL = "http://localhost:3000";
 
 export async function apiGet<T>(endpoint: string): Promise<T> {
   const res = await fetch(`${BASE_URL}/${endpoint}`);
