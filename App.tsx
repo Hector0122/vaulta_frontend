@@ -6,6 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { HomeScreen } from './pages/Home';
 import UploadScreen from './pages/Upload';
+import PhotoPreview from './pages/PhotoPreview';
 
 type TabParamList = {
   Timeline: undefined;
@@ -14,6 +15,7 @@ type TabParamList = {
 type StackParamList = {
   Main: undefined;
   Upload: undefined;
+  PhotoPreview: { thumbnailUri: string; filename: string };
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -52,6 +54,7 @@ function App() {
         <Stack.Navigator>
           <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
           <Stack.Screen name="Upload" component={UploadScreen} options={{ title: 'Subir foto' }} />
+          <Stack.Screen name="PhotoPreview" component={PhotoPreview} options={{ title: 'Foto', headerTintColor: '#fff', headerStyle: { backgroundColor: '#000' } }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

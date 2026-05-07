@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Button, Image, ActivityIndicator, Alert } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
-import RNFS from 'react-native-fs';
+import { View, Text, Button, Image, ActivityIndicator, Alert, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { BASE_URL } from '../../api/server';
 
 export default function UploadScreen() {
+  const navigation = useNavigation();
   const [image, setImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(false);
 
   const pickImage = async () => {
     const result = await launchImageLibrary({
@@ -14,7 +17,19 @@ export default function UploadScreen() {
     });
 
     if (result.assets && result.assets[0]) {
-      setImage(result.assets[0].uri);
+      if (result.assets[0].uri) setImage(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 1,
+      saveToPhotos: true,
+    });
+
+    if (result.assets && result.assets[0]) {
+      if (result.assets[0].uri) setImage(result.assets[0].uri);
     }
   };
 
@@ -24,17 +39,21 @@ export default function UploadScreen() {
     setUploading(true);
     try {
       const filename = image.split('/').pop() || `photo-${Date.now()}.jpg`;
-      const base64 = await RNFS.readFile(image, 'base64');
+      const formData = new FormData();
+      formData.append('file', {
+        uri: Platform.OS === 'android' ? image : image.replace('file://', ''),
+        type: 'image/jpeg',
+        name: filename,
+      } as any);
 
-      const response = await fetch('http://localhost:3000/photos/upload', {
+      const response = await fetch(`${BASE_URL}/photos/upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, filename }),
+        body: formData,
       });
 
       if (response.ok) {
-        Alert.alert('Éxito', 'Foto subida correctamente');
-        setImage(null);
+        setSuccessMsg(true);
+        setTimeout(() => navigation.goBack(), 800);
       } else {
         throw new Error('Error al subir');
       }
@@ -47,14 +66,24 @@ export default function UploadScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+      {successMsg && (
+        <View style={{ position: 'absolute', top: 10, left: 0, right: 0, alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#4CAF50', padding: 12, borderRadius: 8 }}>
+            <Text style={{ color: '#fff', fontSize: 16 }}>Foto subida correctamente</Text>
+          </View>
+        </View>
+      )}
       {image && <Image source={{ uri: image }} style={{ width: 300, height: 300, marginBottom: 20 }} />}
-      <Button title="Seleccionar foto" onPress={pickImage} disabled={uploading} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Button title="Galería" onPress={pickImage} disabled={uploading || successMsg} />
+        <Button title="Cámara" onPress={takePhoto} disabled={uploading || successMsg} />
+      </View>
       {image && (
         <View style={{ marginTop: 10 }}>
           {uploading ? (
             <ActivityIndicator size="large" />
           ) : (
-            <Button title="Subir foto" onPress={uploadImage} />
+            <Button title="Subir foto" onPress={uploadImage} disabled={successMsg} />
           )}
         </View>
       )}
