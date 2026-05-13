@@ -5,6 +5,7 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -18,16 +19,19 @@ import { useFocusEffect } from '@react-navigation/native';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 
-import { fetchPhotosPage, deletePhoto } from '../../api/server';
+import { fetchPhotosPage, deletePhoto, toggleFavorite } from '../../api/client';
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache';
+import { getCachedIds } from '../../api/offline';
+import { useAuth } from '../../context/AuthContext';
 
 type HomeStackParamList = {
   Main: undefined;
   Upload: undefined;
   PhotoPreview: {
-    photos: { uri: string; filename: string }[];
+    photos: { uri: string; id: string; tags?: string[] }[];
     initialIndex: number;
   };
+  Profile: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList, 'Main'>;
@@ -36,16 +40,9 @@ type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
-type Photo = { uri: string; date: string };
+type Photo = { uri: string; date: string; id: string; favorite: boolean; tags: string[] };
 
 const PHOTO_HEIGHT = 250;
-
-function filenameFromUri(uri: string): string {
-  const path = uri.split('?')[0];
-  const parts = path.split('/');
-  const key = parts[parts.length - 1];
-  return key.startsWith('thumb-') ? key.slice(6) : key;
-}
 
 function groupPhotosByDate(photos: Photo[]) {
   const groups: { [date: string]: Photo[] } = {};
@@ -61,16 +58,32 @@ function ImageWithOverlay({
   source,
   style,
   selectedUris,
+  uriToFav,
+  uriToOffline,
 }: {
   source: any;
   style?: any;
   selectedUris?: string[];
+  uriToFav?: Record<string, boolean>;
+  uriToOffline?: Record<string, boolean>;
 }) {
   const uri = source?.uri;
   const selected = selectedUris?.includes(uri);
+  const isFav = !selected && uriToFav?.[uri];
+  const isOffline = !selected && !isFav && uriToOffline?.[uri];
   return (
     <View>
       <Image source={source} style={style} />
+      {isOffline && (
+        <View style={{ position: 'absolute', bottom: 6, left: 6 }}>
+          <Icon name="cloud-queue" size={16} color="#4fc3f7" />
+        </View>
+      )}
+      {isFav && (
+        <View style={{ position: 'absolute', top: 6, right: 6 }}>
+          <Icon name="favorite" size={20} color="#ff4081" />
+        </View>
+      )}
       {selected && (
         <View
           style={[
@@ -96,6 +109,7 @@ function sectionHeight(count: number, columns: number): number {
 }
 
 export function HomeScreen({ navigation }: Props) {
+  const { logout } = useAuth();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,10 +118,20 @@ export function HomeScreen({ navigation }: Props) {
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [offlineIds, setOfflineIds] = useState<string[]>([]);
   const columns = useRef(2);
   const selecting = selectedUris.length > 0;
 
   const hasCache = useRef(false);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert('Cerrar sesión', '¿Estás seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Salir', style: 'destructive', onPress: () => logout() },
+    ]);
+  }, [logout]);
 
   const clearSelection = useCallback(() => setSelectedUris([]), []);
   const toggleSelection = useCallback((uri: string) => {
@@ -122,7 +146,8 @@ export function HomeScreen({ navigation }: Props) {
     } else {
       const allPhotos = photos.map(p => ({
         uri: p.uri,
-        filename: filenameFromUri(p.uri),
+        id: p.id,
+        tags: p.tags,
       }));
       const idx = allPhotos.findIndex(p => p.uri === data.uri);
       navigation.navigate('PhotoPreview', {
@@ -138,11 +163,15 @@ export function HomeScreen({ navigation }: Props) {
     }
   };
 
-  const selectedFilenames = selectedUris.map(filenameFromUri);
+  const uriToId = Object.fromEntries(photos.map(p => [p.uri, p.id]));
+  const uriToFav = Object.fromEntries(photos.map(p => [p.uri, p.favorite]));
+  const uriToOffline = Object.fromEntries(photos.map(p => [p.uri, offlineIds.includes(p.id)]));
+
+  const selectedIds = selectedUris.map(uri => uriToId[uri]).filter(Boolean);
 
   const handleBatchDelete = () => {
     Alert.alert(
-      `Eliminar ${selectedFilenames.length} foto(s)`,
+      `Eliminar ${selectedIds.length} foto(s)`,
       '¿Estás seguro?',
       [
         { text: 'Cancelar', style: 'cancel' },
@@ -150,7 +179,7 @@ export function HomeScreen({ navigation }: Props) {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            await Promise.allSettled(selectedFilenames.map(deletePhoto));
+            await Promise.allSettled(selectedIds.map(deletePhoto));
             clearSelection();
             loadPhotos();
           },
@@ -172,7 +201,7 @@ export function HomeScreen({ navigation }: Props) {
     }
     Alert.alert(
       'Descargadas',
-      `${selectedFilenames.length} foto(s) guardada(s)`,
+      `${selectedIds.length} foto(s) guardada(s)`,
     );
     clearSelection();
   };
@@ -192,7 +221,7 @@ export function HomeScreen({ navigation }: Props) {
     if (isRefresh) setRefreshing(true);
     else setError(null);
 
-    if (!isRefresh) {
+    if (!isRefresh && !searchQuery) {
       const cached = await loadCachedPhotos();
       if (cached) {
         hasCache.current = true;
@@ -202,11 +231,11 @@ export function HomeScreen({ navigation }: Props) {
     }
 
     try {
-      const data = await fetchPhotosPage();
+      const data = await fetchPhotosPage(undefined, 50, searchQuery || undefined, favoritesOnly);
       setPhotos(data.photos);
       setNextToken(data.nextToken);
       setHasMore(data.nextToken !== null);
-      saveCachedPhotos(data.photos);
+      if (!searchQuery && !favoritesOnly) saveCachedPhotos(data.photos);
       hasCache.current = true;
     } catch {
       if (!hasCache.current) setError('No se pudieron cargar las fotos');
@@ -214,7 +243,7 @@ export function HomeScreen({ navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [searchQuery, favoritesOnly]);
 
   const loadMorePhotos = useCallback(async () => {
     if (loadingMore || !hasMore || !nextToken) return;
@@ -245,6 +274,7 @@ export function HomeScreen({ navigation }: Props) {
     useCallback(() => {
       clearSelection();
       loadPhotos();
+      getCachedIds().then(setOfflineIds);
     }, [loadPhotos, clearSelection]),
   );
 
@@ -282,6 +312,31 @@ export function HomeScreen({ navigation }: Props) {
             <View style={{ width: 70 }} />
           </View>
         )}
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por nombre..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={() => { setNextToken(null); setHasMore(true); loadPhotos(); }}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearchQuery(''); setNextToken(null); setHasMore(true); loadPhotos(); }}>
+              <Icon name="close" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => { setFavoritesOnly(v => !v); setNextToken(null); setHasMore(true); }} style={{ marginHorizontal: 4 }}>
+            <Icon name={favoritesOnly ? 'favorite' : 'favorite-border'} size={22} color="#ff4081" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{ marginLeft: 4 }}>
+            <Icon name="person" size={22} color="#555" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={{ marginLeft: 4 }}>
+            <Icon name="logout" size={22} color="#ff5252" />
+          </TouchableOpacity>
+        </View>
         {error ? (
           <View style={styles.stateContainer}>
             <Icon name="error-outline" size={56} color="#ccc" />
@@ -321,7 +376,7 @@ export function HomeScreen({ navigation }: Props) {
                   onLongPressImage={handleLongPressImage}
                   rerender
                   customImageComponent={ImageWithOverlay}
-                  customImageProps={{ selectedUris }}
+                  customImageProps={{ selectedUris, uriToFav, uriToOffline }}
                   masonryFlatListColProps={{
                     scrollEnabled: false,
                     removeClippedSubviews: false,
@@ -452,4 +507,22 @@ const styles = StyleSheet.create({
   },
   selectionAction: { alignItems: 'center', padding: 6 },
   selectionActionLabel: { color: '#fff', fontSize: 12, marginTop: 4 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    color: '#222',
+  },
 });

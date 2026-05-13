@@ -1,14 +1,29 @@
-import React, { useState } from 'react';
-import { View, Text, Button, Image, ActivityIndicator, Alert, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, Button, Image, ActivityIndicator, Alert, Platform, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import { BASE_URL } from '../../api/server';
+import ImageEditor from '@react-native-community/image-editor';
+import { BASE_URL } from '../../api/server'
+import { getToken } from '../../api/client'
 
 export default function UploadScreen() {
   const navigation = useNavigation();
   const [image, setImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [successMsg, setSuccessMsg] = useState(false);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+
+  const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
+
+  const extractGps = (asset: any) => {
+    const exif = asset?.exif as Record<string, any> | undefined;
+    if (exif?.GPSLatitude && exif?.GPSLongitude) {
+      setGps({ lat: Number(exif.GPSLatitude), lng: Number(exif.GPSLongitude) });
+    } else {
+      setGps(null);
+    }
+  };
 
   const pickImage = async () => {
     const result = await launchImageLibrary({
@@ -18,6 +33,7 @@ export default function UploadScreen() {
 
     if (result.assets && result.assets[0]) {
       if (result.assets[0].uri) setImage(result.assets[0].uri);
+      extractGps(result.assets[0]);
     }
   };
 
@@ -30,6 +46,46 @@ export default function UploadScreen() {
 
     if (result.assets && result.assets[0]) {
       if (result.assets[0].uri) setImage(result.assets[0].uri);
+      extractGps(result.assets[0]);
+    }
+  };
+
+  const handleEdit = () => {
+    if (!image) return;
+    Alert.alert('Edit image', 'Choose an option', [
+      {
+        text: 'Crop square',
+        onPress: () => {
+          Image.getSize(
+            image,
+            (width, height) => {
+              const size = Math.min(width, height);
+              ImageEditor.cropImage(image, {
+                offset: {
+                  x: Math.round((width - size) / 2),
+                  y: Math.round((height - size) / 2),
+                },
+                size: { width: size, height: size },
+                displaySize: { width: 300, height: 300 },
+                resizeMode: 'cover',
+              })
+                .then((result) => setImage(result.uri))
+                .catch(() => Alert.alert('Error', 'Could not crop image'));
+            },
+            () => Alert.alert('Error', 'Could not get image size'),
+          );
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const cancelUpload = () => {
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+      xhrRef.current = null;
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -37,6 +93,7 @@ export default function UploadScreen() {
     if (!image) return;
 
     setUploading(true);
+    setUploadProgress(0);
     try {
       const filename = image.split('/').pop() || `photo-${Date.now()}.jpg`;
       const formData = new FormData();
@@ -46,19 +103,42 @@ export default function UploadScreen() {
         name: filename,
       } as any);
 
-      const response = await fetch(`${BASE_URL}/photos/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      const token = await getToken()
+      let uploadUrl = `${BASE_URL}/photos/upload`
+      if (gps) uploadUrl += `?lat=${gps.lat}&lng=${gps.lng}`
 
-      if (response.ok) {
-        setSuccessMsg(true);
-        setTimeout(() => navigation.goBack(), 800);
-      } else {
-        throw new Error('Error al subir');
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+
+      xhr.onabort = () => xhrRef.current = null;
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4) {
+            xhrRef.current = null;
+            if (xhr.status >= 200 && xhr.status < 300) {
+              setSuccessMsg(true);
+              setTimeout(() => navigation.goBack(), 800);
+              resolve();
+            } else {
+              reject(new Error('Error al subir'));
+            }
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.open('POST', uploadUrl);
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.send(formData);
+      });
+    } catch (error: any) {
+      if (error.message !== 'canceled') {
+        Alert.alert('Error', 'No se pudo subir la foto');
       }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo subir la foto');
     } finally {
       setUploading(false);
     }
@@ -74,19 +154,54 @@ export default function UploadScreen() {
         </View>
       )}
       {image && <Image source={{ uri: image }} style={{ width: 300, height: 300, marginBottom: 20 }} />}
+      {gps && (
+        <Text style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>
+          GPS: {gps.lat.toFixed(4)}, {gps.lng.toFixed(4)}
+        </Text>
+      )}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Button title="Galería" onPress={pickImage} disabled={uploading || successMsg} />
         <Button title="Cámara" onPress={takePhoto} disabled={uploading || successMsg} />
       </View>
       {image && (
-        <View style={{ marginTop: 10 }}>
+        <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
           {uploading ? (
-            <ActivityIndicator size="large" />
+            <View style={{ width: '100%', alignItems: 'center' }}>
+              <View style={progressStyles.barBg}>
+                <View style={[progressStyles.barFill, { width: `${uploadProgress}%` }]} />
+              </View>
+              <Text style={progressStyles.text}>{uploadProgress}%</Text>
+              <Button title="Cancelar" onPress={cancelUpload} color="#ff5252" />
+            </View>
           ) : (
-            <Button title="Subir foto" onPress={uploadImage} disabled={successMsg} />
+            <View style={{ gap: 8 }}>
+              <Button title="Crop square" onPress={handleEdit} disabled={successMsg} />
+              <Button title="Subir foto" onPress={uploadImage} disabled={successMsg} />
+            </View>
           )}
         </View>
       )}
     </View>
   );
 }
+
+const progressStyles = StyleSheet.create({
+  barBg: {
+    width: '80%',
+    height: 20,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+  },
+  text: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 8,
+  },
+});
