@@ -1,14 +1,26 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, Button, Image, ActivityIndicator, Alert, Platform, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Alert,
+  Platform,
+  StyleSheet,
+} from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import ImageEditor from '@react-native-community/image-editor';
-import { BASE_URL } from '../../api/server'
-import { getToken } from '../../api/client'
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useTheme } from '../../theme';
+import { BASE_URL } from '../../api/server';
+import { getToken } from '../../api/client';
 
 export default function UploadScreen() {
   const navigation = useNavigation();
-  const [image, setImage] = useState<string | null>(null);
+  const route = useRoute<RouteProp<{ Upload: { imageUri?: string } }, 'Upload'>>();
+  const { colors } = useTheme();
+  const [image, setImage] = useState<string | null>(route.params?.imageUri || null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [successMsg, setSuccessMsg] = useState(false);
@@ -18,12 +30,24 @@ export default function UploadScreen() {
 
   const extractGps = (asset: any) => {
     const exif = asset?.exif as Record<string, any> | undefined;
-    if (exif?.GPSLatitude && exif?.GPSLongitude) {
-      setGps({ lat: Number(exif.GPSLatitude), lng: Number(exif.GPSLongitude) });
+    const rawLat = exif?.GPSLatitude;
+    const rawLng = exif?.GPSLongitude;
+    const lat =
+      typeof rawLat === 'number'
+        ? rawLat
+        : Number(rawLat?.[0] || 0) + Number(rawLat?.[1] || 0) / 60;
+    const lng =
+      typeof rawLng === 'number'
+        ? rawLng
+        : Number(rawLng?.[0] || 0) + Number(rawLng?.[1] || 0) / 60;
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      setGps({ lat, lng });
     } else {
       setGps(null);
     }
   };
+
+  const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
   const pickImage = async () => {
     const result = await launchImageLibrary({
@@ -32,6 +56,13 @@ export default function UploadScreen() {
     });
 
     if (result.assets && result.assets[0]) {
+      if (
+        result.assets[0].fileSize &&
+        result.assets[0].fileSize > MAX_FILE_SIZE
+      ) {
+        Alert.alert('Archivo muy grande', 'El límite es 20 MB');
+        return;
+      }
       if (result.assets[0].uri) setImage(result.assets[0].uri);
       extractGps(result.assets[0]);
     }
@@ -45,6 +76,13 @@ export default function UploadScreen() {
     });
 
     if (result.assets && result.assets[0]) {
+      if (
+        result.assets[0].fileSize &&
+        result.assets[0].fileSize > MAX_FILE_SIZE
+      ) {
+        Alert.alert('Archivo muy grande', 'El límite es 20 MB');
+        return;
+      }
       if (result.assets[0].uri) setImage(result.assets[0].uri);
       extractGps(result.assets[0]);
     }
@@ -52,9 +90,9 @@ export default function UploadScreen() {
 
   const handleEdit = () => {
     if (!image) return;
-    Alert.alert('Edit image', 'Choose an option', [
+    Alert.alert('Editar imagen', 'Elige una opción', [
       {
-        text: 'Crop square',
+        text: 'Recortar cuadrado',
         onPress: () => {
           Image.getSize(
             image,
@@ -69,14 +107,14 @@ export default function UploadScreen() {
                 displaySize: { width: 300, height: 300 },
                 resizeMode: 'cover',
               })
-                .then((result) => setImage(result.uri))
-                .catch(() => Alert.alert('Error', 'Could not crop image'));
+                .then(result => setImage(result.uri))
+                .catch(() => Alert.alert('Error', 'No se pudo recortar'));
             },
-            () => Alert.alert('Error', 'Could not get image size'),
+            () => Alert.alert('Error', 'No se pudo obtener el tamaño'),
           );
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: 'Cancelar', style: 'cancel' },
     ]);
   };
 
@@ -103,15 +141,15 @@ export default function UploadScreen() {
         name: filename,
       } as any);
 
-      const token = await getToken()
-      let uploadUrl = `${BASE_URL}/photos/upload`
-      if (gps) uploadUrl += `?lat=${gps.lat}&lng=${gps.lng}`
+      const token = await getToken();
+      let uploadUrl = `${BASE_URL}/photos/upload`;
+      if (gps) uploadUrl += `?lat=${gps.lat}&lng=${gps.lng}`;
 
       const xhr = new XMLHttpRequest();
       xhrRef.current = xhr;
 
-      xhr.onabort = () => xhrRef.current = null;
-      xhr.upload.onprogress = (e) => {
+      xhr.onabort = () => (xhrRef.current = null);
+      xhr.upload.onprogress = e => {
         if (e.lengthComputable) {
           setUploadProgress(Math.round((e.loaded / e.total) * 100));
         }
@@ -145,63 +183,251 @@ export default function UploadScreen() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {successMsg && (
-        <View style={{ position: 'absolute', top: 10, left: 0, right: 0, alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#4CAF50', padding: 12, borderRadius: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 16 }}>Foto subida correctamente</Text>
+        <View style={styles.successBannerOuter}>
+          <View style={[styles.successBanner, { backgroundColor: colors.success }]}>
+            <Icon name="check-circle" size={20} color="#fff" />
+            <Text style={styles.successText}>Foto subida correctamente</Text>
           </View>
         </View>
       )}
-      {image && <Image source={{ uri: image }} style={{ width: 300, height: 300, marginBottom: 20 }} />}
-      {gps && (
-        <Text style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>
-          GPS: {gps.lat.toFixed(4)}, {gps.lng.toFixed(4)}
-        </Text>
-      )}
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Button title="Galería" onPress={pickImage} disabled={uploading || successMsg} />
-        <Button title="Cámara" onPress={takePhoto} disabled={uploading || successMsg} />
-      </View>
-      {image && (
-        <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
-          {uploading ? (
-            <View style={{ width: '100%', alignItems: 'center' }}>
-              <View style={progressStyles.barBg}>
-                <View style={[progressStyles.barFill, { width: `${uploadProgress}%` }]} />
-              </View>
-              <Text style={progressStyles.text}>{uploadProgress}%</Text>
-              <Button title="Cancelar" onPress={cancelUpload} color="#ff5252" />
-            </View>
-          ) : (
-            <View style={{ gap: 8 }}>
-              <Button title="Crop square" onPress={handleEdit} disabled={successMsg} />
-              <Button title="Subir foto" onPress={uploadImage} disabled={successMsg} />
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Icon name="arrow-back" size={26} color={colors.text} />
+      </TouchableOpacity>
+
+      {image ? (
+        <>
+          <Image
+            source={{ uri: image }}
+            style={styles.fullPreview}
+            resizeMode="contain"
+          />
+          {gps && (
+            <View style={[styles.gpsChip, { backgroundColor: colors.surfaceAlt }]}>
+              <Icon name="location-on" size={14} color={colors.textTertiary} />
+              <Text style={[styles.gpsText, { color: colors.textTertiary }]}>
+                {gps.lat.toFixed(4)}, {gps.lng.toFixed(4)}
+              </Text>
             </View>
           )}
+        </>
+      ) : (
+        <View style={styles.emptyState}>
+          <Icon name="cloud-upload" size={72} color={colors.textTertiary} />
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            Selecciona una foto
+          </Text>
         </View>
       )}
+
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface }]}>
+        {uploading ? (
+          <View style={styles.uploadingContainer}>
+            <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${uploadProgress}%`, backgroundColor: colors.primary },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+              {uploadProgress}%
+            </Text>
+            <TouchableOpacity style={styles.cancelBtn} onPress={cancelUpload}>
+              <Icon name="close" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        ) : image ? (
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.circleBtn, { borderColor: colors.border }]}
+              onPress={handleEdit}
+              disabled={successMsg}
+            >
+              <Icon name="crop" size={22} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
+              onPress={uploadImage}
+              disabled={successMsg}
+            >
+              <Icon name="cloud-upload" size={22} color="#fff" />
+              <Text style={styles.uploadBtnText}>Subir foto</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.pickerRow}>
+            <TouchableOpacity style={styles.pickerIconBtn} onPress={pickImage}>
+              <View style={[styles.pickerCircle, { backgroundColor: colors.surfaceAlt }]}>
+                <Icon name="photo-library" size={28} color={colors.primary} />
+              </View>
+              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Galería</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pickerIconBtn} onPress={takePhoto}>
+              <View style={[styles.pickerCircle, { backgroundColor: colors.surfaceAlt }]}>
+                <Icon name="camera-alt" size={28} color={colors.primary} />
+              </View>
+              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Cámara</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
 
-const progressStyles = StyleSheet.create({
-  barBg: {
-    width: '80%',
-    height: 20,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 10,
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 12,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullPreview: {
+    flex: 1,
+    width: '100%',
+  },
+  gpsChip: {
+    position: 'absolute',
+    bottom: 100,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  gpsText: {
+    fontSize: 11,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    marginTop: 16,
+  },
+  bottomBar: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  pickerIconBtn: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  pickerCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  circleBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  uploadBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
   },
-  barFill: {
+  progressBarFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
+    borderRadius: 4,
   },
-  text: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 8,
+  progressText: {
+    fontSize: 13,
+    fontWeight: '600',
+    minWidth: 36,
+    textAlign: 'right',
+  },
+  cancelBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ff5252',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successBannerOuter: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  successText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -1,127 +1,162 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Alert,
-} from 'react-native'
-import { useAuth } from '../../context/AuthContext'
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ScrollView,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../theme';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
-  const { login, register } = useAuth()
-  const [isRegister, setIsRegister] = useState(false)
-  const [email, setEmail] = useState('')
-  const [name, setName] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { login, register } = useAuth();
+  const { colors } = useTheme();
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit() {
     if (!email || !password || (isRegister && !name)) {
-      Alert.alert('Error', 'Please fill in all fields')
-      return
+      Alert.alert('Error', 'Completa todos los campos');
+      return;
     }
-    setLoading(true)
+    if (!EMAIL_RE.test(email)) {
+      Alert.alert('Error', 'Correo electrónico inválido');
+      return;
+    }
+    if (isRegister && password.length < 6) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setLoading(true);
     try {
       if (isRegister) {
-        await register(email, name, password)
+        await register(email, name, password);
       } else {
-        await login(email, password)
+        await login(email, password);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Something went wrong')
+      Alert.alert('Error', e.message || 'Algo salió mal');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={styles.title}>MyMega Photos</Text>
-      <Text style={styles.subtitle}>{isRegister ? 'Create account' : 'Sign in'}</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      {isRegister && (
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          placeholderTextColor="#999"
-          value={name}
-          onChangeText={setName}
-        />
-      )}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>{isRegister ? 'Register' : 'Login'}</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setIsRegister(!isRegister)}>
-        <Text style={styles.switchText}>
-          {isRegister ? 'Already have an account? Login' : "Don't have an account? Register"}
+        <Text style={[styles.title, { color: colors.text }]}>MyMega Photos</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {isRegister ? 'Crear cuenta' : 'Iniciar sesión'}
         </Text>
-      </TouchableOpacity>
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBg }]}
+          placeholder="Email"
+          placeholderTextColor={colors.textTertiary}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoFocus
+        />
+
+        {isRegister && (
+          <TextInput
+            style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBg }]}
+            placeholder="Nombre"
+            placeholderTextColor={colors.textTertiary}
+            value={name}
+            onChangeText={setName}
+          />
+        )}
+
+        <View style={[styles.passwordRow, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
+          <TextInput
+            style={[styles.passwordInput, { color: colors.text }]}
+            placeholder="Contraseña"
+            placeholderTextColor={colors.textTertiary}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeBtn}
+            onPress={() => setShowPassword(v => !v)}
+          >
+            <Icon name={showPassword ? 'visibility-off' : 'visibility'} size={22} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {isRegister ? 'Registrarse' : 'Entrar'}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setIsRegister(!isRegister)}>
+          <Text style={[styles.switchText, { color: colors.textSecondary }]}>
+            {isRegister
+              ? '¿Ya tienes cuenta? Inicia sesión'
+              : '¿Sin cuenta? Regístrate'}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
+  scroll: { flexGrow: 1, justifyContent: 'center' },
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 4,
-    color: '#222',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 32,
-    color: '#666',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
     marginBottom: 16,
-    color: '#222',
   },
   button: {
-    backgroundColor: '#222',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -135,10 +170,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 16,
+  },
+  eyeBtn: { paddingHorizontal: 12 },
   switchText: {
     textAlign: 'center',
     marginTop: 24,
-    color: '#666',
     fontSize: 14,
   },
-})
+});

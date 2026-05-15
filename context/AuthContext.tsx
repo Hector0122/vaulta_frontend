@@ -6,29 +6,18 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-
-function decodeBase64(str: string): string {
-  const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-  const bytes: number[] = [];
-  for (let i = 0; i < str.length; i += 4) {
-    const a = chars.indexOf(str[i]);
-    const b = chars.indexOf(str[i + 1]);
-    const c = chars.indexOf(str[i + 2]);
-    const d = chars.indexOf(str[i + 3]);
-    bytes.push((a << 2) | (b >> 4));
-    if (c !== -1) bytes.push(((b & 15) << 4) | (c >> 2));
-    if (d !== -1) bytes.push(((c & 3) << 6) | d);
-  }
-  for (let i = 0; i < bytes.length; i++) {
-    output += String.fromCharCode(bytes[i]);
-  }
-  return output;
-}
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login as apiLogin, register as apiRegister } from '../api/auth';
-import { getToken, setToken, clearToken } from '../api/client';
+import { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, setOnUnauthorized, clearOnUnauthorized, authenticatedPost } from '../api/client';
+import { clearCachedPhotos } from '../api/cache';
+import { clearAllOffline } from '../api/offline';
+
+function safeAtob(base64: string): string {
+  try {
+    return atob(base64);
+  } catch {
+    return '';
+  }
+}
 
 type User = { id: string; email: string; name: string };
 
@@ -54,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const parts = token.split('.');
             if (parts.length === 3) {
               const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-              const raw = decodeBase64(base64);
+              const raw = safeAtob(base64);
               const json = decodeURIComponent(
                 raw
                   .split('')
@@ -65,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   .join(''),
               );
               const payload = JSON.parse(json);
-              setUser({ id: payload.sub, email: '', name: '' });
+              setUser({ id: payload.sub, email: payload.email || '', name: payload.name || '' });
             }
           } catch {
             await clearToken();
@@ -73,11 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
       .finally(() => setLoading(false));
+
+    setOnUnauthorized(() => {
+      setUser(null)
+    })
+
+    return () => {
+      clearOnUnauthorized()
+    }
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await apiLogin(email, password);
     await setToken(result.token);
+    if (result.refreshToken) await setRefreshToken(result.refreshToken);
     setUser(result.user);
   }, []);
 
@@ -85,15 +83,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, name: string, password: string) => {
       const result = await apiRegister(email, name, password);
       await setToken(result.token);
+      if (result.refreshToken) await setRefreshToken(result.refreshToken);
       setUser(result.user);
     },
     [],
   );
 
   const logout = useCallback(async () => {
+    try {
+      await authenticatedPost('auth/logout')
+    } catch { /* ignore */ }
+    const uid = user?.id
     await clearToken();
+    await clearRefreshToken();
     setUser(null);
-  }, []);
+    if (uid) {
+      clearCachedPhotos(uid)
+      clearAllOffline(uid)
+    }
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout }}>

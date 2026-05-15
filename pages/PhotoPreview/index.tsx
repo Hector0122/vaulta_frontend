@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList, View, Image, StyleSheet, TouchableOpacity, Text, TextInput,
-  ActivityIndicator, Alert, Platform, Dimensions,
+  ActivityIndicator, Alert, Platform, useWindowDimensions,
 } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
+import { useAuth } from '../../context/AuthContext';
+import { SkeletonBox } from '../../components/Skeleton';
+import ZoomableImage from '../../components/ZoomableImage';
 import { getPhotoUrl, deletePhoto, toggleFavorite, getShareLink, addTag, removeTag } from '../../api/client';
 import { isCached, cachePhoto, removeCachedPhoto, offlinePath } from '../../api/offline';
 
@@ -14,13 +17,14 @@ type PhotoItem = { uri: string; id: string; tags?: string[] };
 
 type PhotoPreviewRouteProp = RouteProp<{ PhotoPreview: { photos: PhotoItem[]; initialIndex: number } }, 'PhotoPreview'>;
 
-function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDelete: (f: string) => void; onFavoriteToggle: (id: string) => void }) {
+function PhotoPage({ item, onDelete, onFavoriteToggle, userId }: { item: PhotoItem; onDelete: (f: string) => void; onFavoriteToggle: (id: string) => void; userId: string }) {
   const [fullUri, setFullUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [tags, setTags] = useState<string[]>(item.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [offlineCached, setOfflineCached] = useState(false);
+  const [offlineLoading, setOfflineLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -28,15 +32,17 @@ function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDe
       .then(setFullUri)
       .catch(() => setFullUri(item.uri))
       .finally(() => setLoading(false));
-    isCached(item.id).then(setOfflineCached);
-  }, [item.id, item.uri]);
+    isCached(userId, item.id).then(setOfflineCached);
+  }, [item.id, item.uri, userId]);
 
   const handleToggleFav = async () => {
     try {
       const fav = await toggleFavorite(item.id);
       setIsFav(fav);
       onFavoriteToggle(item.id);
-    } catch {}
+    } catch {
+      Alert.alert('Error', 'No se pudo cambiar favorito');
+    }
   };
 
   const handleDownload = async () => {
@@ -56,7 +62,9 @@ function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDe
     try {
       const url = await getShareLink(item.id);
       await Share.open({ url, message: 'Mira esta foto 📸' });
-    } catch {}
+    } catch {
+      // user cancelled share sheet — not an error
+    }
   };
 
   const handleShare = async () => {
@@ -75,13 +83,21 @@ function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDe
   };
 
   const handleOfflineToggle = async () => {
-    if (offlineCached) {
-      await removeCachedPhoto(item.id);
-      setOfflineCached(false);
-    } else {
-      const uri = fullUri || item.uri;
-      await cachePhoto(item.id, uri);
-      setOfflineCached(true);
+    if (offlineLoading) return;
+    setOfflineLoading(true);
+    try {
+      if (offlineCached) {
+        await removeCachedPhoto(userId, item.id);
+        setOfflineCached(false);
+      } else {
+        const uri = fullUri || item.uri;
+        await cachePhoto(userId, item.id, uri);
+        setOfflineCached(true);
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo gestionar el archivo offline');
+    } finally {
+      setOfflineLoading(false);
     }
   };
 
@@ -109,25 +125,27 @@ function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDe
       const updated = await addTag(item.id, t);
       setTags(updated);
       setTagInput('');
-    } catch {}
+    } catch {
+      Alert.alert('Error', 'No se pudo añadir la etiqueta');
+    }
   };
 
   const handleRemoveTag = async (tag: string) => {
     try {
       const updated = await removeTag(item.id, tag);
       setTags(updated);
-    } catch {}
+    } catch {
+      Alert.alert('Error', 'No se pudo eliminar la etiqueta');
+    }
   };
 
   return (
     <View style={pageStyles.container}>
       {loading ? (
-        <ActivityIndicator size="large" style={pageStyles.loader} />
+        <SkeletonBox width="100%" height="100%" borderRadius={0} />
       ) : (
-        <Image
-          source={{ uri: offlineCached ? `file://${offlinePath(item.id)}` : fullUri || item.uri }}
-          style={pageStyles.image}
-          resizeMode="contain"
+        <ZoomableImage
+          uri={offlineCached ? `file://${offlinePath(userId, item.id)}` : fullUri || item.uri}
         />
       )}
       {tags.length > 0 && (
@@ -156,12 +174,12 @@ function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDe
           <Text style={pageStyles.label}>Descargar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={pageStyles.button} onPress={handleShare}>
-          <Icon name="file-download" size={28} color="#fff" />
-          <Text style={pageStyles.label}>Guardar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={pageStyles.button} onPress={handleShareLink}>
           <Icon name="share" size={28} color="#fff" />
           <Text style={pageStyles.label}>Compartir</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={pageStyles.button} onPress={handleShareLink}>
+          <Icon name="link" size={28} color="#fff" />
+          <Text style={pageStyles.label}>Enlace</Text>
         </TouchableOpacity>
         <TouchableOpacity style={pageStyles.button} onPress={handleOfflineToggle}>
           <Icon name={offlineCached ? 'cloud-download' : 'cloud-off'} size={28} color="#4fc3f7" />
@@ -181,7 +199,7 @@ function PhotoPage({ item, onDelete, onFavoriteToggle }: { item: PhotoItem; onDe
 }
 
 const pageStyles = StyleSheet.create({
-  container: { width: Dimensions.get('window').width, flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#000' },
   loader: { flex: 1 },
   image: { flex: 1 },
   tagRow: {
@@ -229,8 +247,10 @@ const pageStyles = StyleSheet.create({
 });
 
 export default function PhotoPreview() {
+  const { user } = useAuth();
   const route = useRoute<PhotoPreviewRouteProp>();
   const navigation = useNavigation();
+  const { width: screenWidth } = useWindowDimensions();
   const { photos: initialPhotos, initialIndex } = route.params;
   const [items, setItems] = useState(initialPhotos);
   const listRef = useRef<FlatList>(null);
@@ -253,8 +273,8 @@ export default function PhotoPreview() {
   }, []);
 
   const renderItem = useCallback(({ item }: { item: PhotoItem }) => (
-    <PhotoPage item={item} onDelete={handleDelete} onFavoriteToggle={handleFavoriteToggle} />
-  ), [handleDelete, handleFavoriteToggle]);
+    <PhotoPage item={item} onDelete={handleDelete} onFavoriteToggle={handleFavoriteToggle} userId={user?.id || ''} />
+  ), [handleDelete, handleFavoriteToggle, user?.id]);
 
   return (
     <FlatList
@@ -267,8 +287,8 @@ export default function PhotoPreview() {
       showsHorizontalScrollIndicator={false}
       initialScrollIndex={initialIndex}
       getItemLayout={(_, index) => ({
-        length: Dimensions.get('window').width,
-        offset: Dimensions.get('window').width * index,
+        length: screenWidth,
+        offset: screenWidth * index,
         index,
       })}
     />

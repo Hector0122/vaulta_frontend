@@ -1,7 +1,15 @@
 import { BASE_URL } from './server'
 
+const REQUEST_TIMEOUT = 15000
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id))
+}
+
 export async function login(email: string, password: string) {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
+  const res = await fetchWithTimeout(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -12,12 +20,13 @@ export async function login(email: string, password: string) {
   }
   return res.json() as Promise<{
     token: string
+    refreshToken: string
     user: { id: string; email: string; name: string }
   }>
 }
 
 export async function register(email: string, name: string, password: string) {
-  const res = await fetch(`${BASE_URL}/auth/register`, {
+  const res = await fetchWithTimeout(`${BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, name, password }),
@@ -28,6 +37,7 @@ export async function register(email: string, name: string, password: string) {
   }
   return res.json() as Promise<{
     token: string
+    refreshToken: string
     user: { id: string; email: string; name: string }
   }>
 }
