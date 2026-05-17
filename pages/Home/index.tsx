@@ -16,6 +16,7 @@ import { fetchPhotosPage, deletePhoto, authenticatedGet, addPhotosToAlbum } from
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
 import { getCachedIds } from '../../api/offline'
+import { updateWidgetWithRecentPhotos } from '../../api/widget'
 import { useAuth } from '../../context/AuthContext'
 import { impactLight, warning } from '../../utils/haptics'
 import { useTheme } from '../../theme'
@@ -228,6 +229,7 @@ export function HomeScreen({ navigation }: Props) {
     loadPhotos()
     if (user?.id) getCachedIds(user.id).then(setOfflineIds)
     fetchRecuerdos()
+    updateWidgetWithRecentPhotos()
   }, [loadPhotos, clearSelection, user?.id, fetchRecuerdos]))
 
   const listData = useMemo(() => flattenWithHeaders(photos), [photos])

@@ -14,9 +14,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../../theme';
-import { BASE_URL } from '../../api/server';
-import { getToken } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { useNetwork } from '../../context/NetworkContext';
+import { getToken } from '../../api/client';
+import { BASE_URL } from '../../api/server';
+import { addToQueue } from '../../services/UploadQueue';
 import type { StackNavProp, UploadRouteProp } from '../../types/navigation';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024
@@ -26,6 +28,7 @@ export default function UploadScreen() {
   const route = useRoute<UploadRouteProp>();
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
+  const { isConnected } = useNetwork();
   const cameraUri = route.params?.imageUri
   const [images, setImages] = useState<{ uri: string; name: string; type?: string }[]>(
     cameraUri ? [{ uri: cameraUri, name: `photo-${Date.now()}.jpg` }] : []
@@ -85,16 +88,28 @@ export default function UploadScreen() {
 
   async function uploadBatch() {
     if (images.length === 0) return;
+
+    if (!isConnected) {
+      const count = addToQueue(images.map(img => ({
+        uri: img.uri,
+        name: img.name,
+        type: img.type || 'image',
+      })))
+      showToast({ message: `${count} archivo(s) encolados para cuando tengas conexión`, type: 'info', position: 'top-right', duration: 3000 });
+      navigation.goBack();
+      return
+    }
+
     setUploading(true);
 
     const formData = new FormData();
-      for (const img of images) {
-        formData.append('files', {
-          uri: Platform.OS === 'android' ? img.uri : img.uri.replace('file://', ''),
-          type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
-          name: img.name,
-        } as any);
-      }
+    for (const img of images) {
+      formData.append('files', {
+        uri: Platform.OS === 'android' ? img.uri : img.uri.replace('file://', ''),
+        type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
+        name: img.name,
+      } as any);
+    }
 
     showToast({ message: 'Subiendo archivos…', type: 'info', position: 'top-right', duration: 2000 });
     navigation.goBack();
@@ -114,7 +129,12 @@ export default function UploadScreen() {
       }
     } catch (e) {
       console.error('Upload network error:', e)
-      showToast({ message: 'Error de red al subir archivos', type: 'error', position: 'top-right', duration: 3000 });
+      const count = addToQueue(images.map(img => ({
+        uri: img.uri,
+        name: img.name,
+        type: img.type || 'image',
+      })))
+      showToast({ message: `Error de red: ${count} archivo(s) encolados`, type: 'error', position: 'top-right', duration: 3000 });
     }
   }
 
@@ -195,7 +215,9 @@ export default function UploadScreen() {
               onPress={uploadBatch}
             >
               <Icon name="cloud-upload" size={22} color="#fff" />
-              <Text style={styles.uploadBtnText}>Subir todo</Text>
+              <Text style={styles.uploadBtnText}>
+                {isConnected ? 'Subir todo' : 'Subir después (sin WiFi)'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (

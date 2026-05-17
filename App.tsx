@@ -27,7 +27,10 @@ import ProfileScreen from './pages/Profile';
 import DuplicatesScreen from './pages/Duplicates';
 import TrashScreen from './pages/Trash';
 import ConnectionBanner from './components/ConnectionBanner';
+import UploadQueueBanner from './components/UploadQueueBanner';
 import ErrorBoundary from './components/ErrorBoundary';
+import { NetworkProvider } from './context/NetworkContext';
+import { updateWidgetWithRecentPhotos } from './api/widget';
 import { registerFcmToken } from './api/notifications';
 import type { TabParamList, StackParamList } from './types/navigation';
 
@@ -88,7 +91,12 @@ function AppNavigator() {
   const { user, loading } = useAuth();
   const { colors } = useTheme();
 
-  useEffect(() => { if (user) registerFcmToken() }, [user])
+  useEffect(() => {
+    if (user) {
+      registerFcmToken()
+      updateWidgetWithRecentPhotos()
+    }
+  }, [user])
 
   if (loading) {
     return (
@@ -185,15 +193,18 @@ function AppContent() {
   return (
     <>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <ConnectionBanner />
-      <AuthProvider>
-        <ToastProvider>
-          <NotificationHandler />
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
-        </ToastProvider>
-      </AuthProvider>
+      <NetworkProvider>
+        <ConnectionBanner />
+        <AuthProvider>
+          <ToastProvider>
+            <UploadQueueBanner />
+            <NotificationHandler />
+            <NavigationContainer>
+              <AppNavigator />
+            </NavigationContainer>
+          </ToastProvider>
+        </AuthProvider>
+      </NetworkProvider>
     </>
   );
 }

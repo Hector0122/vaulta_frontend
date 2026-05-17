@@ -15,6 +15,7 @@ import { getPhotoUrl, deletePhoto, toggleFavorite, togglePrivate, getShareLink, 
 import { BASE_URL } from '../../api/server';
 import { impactLight, success, warning } from '../../utils/haptics';
 import { isCached, cachePhoto, removeCachedPhoto, offlinePath } from '../../api/offline';
+import { addPhotoToWidget, removePhotoFromWidget, getWidgetPhotoIds } from '../../api/widget';
 
 type PhotoItem = { uri: string; id: string; tags?: string[]; mimeType?: string };
 
@@ -34,9 +35,11 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [containingAlbums, setContainingAlbums] = useState<{ id: string; name: string; vault: boolean }[]>([]);
+  const [inWidget, setInWidget] = useState(false);
 
   useEffect(() => {
     if (!isActive) return;
+    getWidgetPhotoIds().then(ids => setInWidget(ids.includes(item.id)))
     if (item.mimeType?.startsWith('video/')) {
       getToken().then(token => {
         setFullUri(`${BASE_URL}/photos/${item.id}/stream`)
@@ -132,6 +135,22 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
       Alert.alert('Error', 'No se pudo cambiar privacidad');
     }
   };
+
+  const handleToggleWidget = async () => {
+    try {
+      if (inWidget) {
+        await removePhotoFromWidget(item.id)
+        setInWidget(false)
+        warning()
+      } else {
+        await addPhotoToWidget(item.id, item.uri)
+        setInWidget(true)
+        success()
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo actualizar el widget')
+    }
+  }
 
   const handleDelete = () => {
     warning()
@@ -246,6 +265,10 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
         <TouchableOpacity style={pageStyles.button} onPress={handleOfflineToggle}>
           <Icon name={offlineCached ? 'cloud-download' : 'cloud-off'} size={22} color="#4fc3f7" />
           <Text style={pageStyles.label}>{offlineCached ? 'Offline' : 'Guardar'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={pageStyles.button} onPress={handleToggleWidget}>
+          <Icon name={inWidget ? 'smartphone' : 'smartphone'} size={22} color={inWidget ? '#2BD4CE' : '#fff'} />
+          <Text style={pageStyles.label}>{inWidget ? 'Widget' : 'Widget +'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={pageStyles.button} onPress={handleToggleFav}>
           <Icon name={isFav ? 'favorite' : 'favorite-border'} size={22} color="#ff4081" />
