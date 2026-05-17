@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "29573766700",
+    "project_id": "mymega-photos",
+    "storage_bucket": "mymega-photos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:29573766700:android:b2c8bac6faf7b6a1b27b89",
+        "android_client_info": {
+          "package_name": "com.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6gkyRja5S8mb4k5g4snY0TyvewnHNPrY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

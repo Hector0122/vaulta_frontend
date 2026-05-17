@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 const OFFLINE_DIR = `${RNFS.DocumentDirectoryPath}/offline`;
 
 function offlineIdsKey(userId: string): string {
-  return `@mymega_offline_ids_${userId}`;
+  return `@vaulta_offline_ids_${userId}`;
 }
 
 function offlineDir(userId: string): string {

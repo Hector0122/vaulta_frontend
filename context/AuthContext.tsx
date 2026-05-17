@@ -10,6 +10,7 @@ import { login as apiLogin, register as apiRegister } from '../api/auth';
 import { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, setOnUnauthorized, clearOnUnauthorized, authenticatedPost } from '../api/client';
 import { clearCachedPhotos } from '../api/cache';
 import { clearAllOffline } from '../api/offline';
+import { registerFcmToken } from '../api/notifications';
 
 function safeAtob(base64: string): string {
   try {
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setToken(result.token);
     if (result.refreshToken) await setRefreshToken(result.refreshToken);
     setUser(result.user);
+    registerFcmToken().catch(() => {});
   }, []);
 
   const register = useCallback(
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setToken(result.token);
       if (result.refreshToken) await setRefreshToken(result.refreshToken);
       setUser(result.user);
+      registerFcmToken().catch(() => {});
     },
     [],
   );

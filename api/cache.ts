@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type CachedPhoto = { uri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean };
+export type CachedPhoto = { uri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean };
 
 function cacheKey(userId: string): string {
-  return `@mymega_photos_${userId}`;
+  return `@vaulta_photos_${userId}`;
 }
 
 export async function loadCachedPhotos(userId: string): Promise<CachedPhoto[] | null> {

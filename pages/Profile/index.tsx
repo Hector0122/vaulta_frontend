@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Modal,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -15,10 +16,12 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme';
 import { useThemeMode } from '../../context/ThemeContext';
-import { authenticatedPatch, authenticatedGet, authenticatedPost } from '../../api/client';
-
+import '../../utils/calendarLocales'
+import LazyCalendar from '../../components/LazyCalendar';
+import { authenticatedPatch, authenticatedGet, authenticatedPost, exportAllPhotos, exportByDate } from '../../api/client';
+import { useToast } from '../../context/ToastContext';
 export default function ProfileScreen() {
-  const navigation = useNavigation<StackNavigationProp<{ Duplicates: undefined }>>();
+  const navigation = useNavigation<StackNavigationProp<{ Duplicates: undefined; Trash: undefined }>>();
   const { user, logout } = useAuth();
   const { colors } = useTheme();
   const { themeMode, setThemeMode } = useThemeMode();
@@ -33,6 +36,11 @@ export default function ProfileScreen() {
     favoriteCount: number;
     blurryCount: number;
   } | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateFrom, setDateFrom] = useState<string | null>(null);
+  const [dateTo, setDateTo] = useState<string | null>(null);
+  const [selectingEnd, setSelectingEnd] = useState(false);
+  const { showToast } = useToast()
 
   useEffect(() => {
     authenticatedGet<{
@@ -83,6 +91,7 @@ export default function ProfileScreen() {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
@@ -172,20 +181,121 @@ export default function ProfileScreen() {
       </View>
       <View style={[styles.analysisRow, { gap: 8, marginTop: 8 }]}>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+          style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
+          onPress={() => navigation.navigate('Trash')}
+        >
+          <Icon name="delete-sweep" size={18} color={colors.text} />
+          <Text style={[styles.actionBtnText, { color: colors.text }]}>Papelera</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.primary, flex: 1 }]}
           onPress={async () => {
             try {
-              const res = await authenticatedPost<{ message: string }>('photos/export');
-              Alert.alert('Exportación', res.message);
+              await exportAllPhotos()
+              showToast({ message: 'Exportación iniciada', type: 'info' })
             } catch {
-              Alert.alert('Error', 'No se pudo exportar');
+              showToast({ message: 'No se pudo exportar', type: 'error' })
             }
           }}
         >
           <Icon name="file-download" size={18} color="#fff" />
           <Text style={styles.actionBtnText}>Exportar todo</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Icon name="date-range" size={18} color={colors.text} />
+          <Text style={[styles.actionBtnText, { color: colors.text }]}>Por fecha</Text>
+        </TouchableOpacity>
       </View>
+
+      <Modal visible={showDatePicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {selectingEnd ? 'Selecciona fecha fin' : 'Selecciona fecha inicio'}
+              </Text>
+              <TouchableOpacity onPress={() => { setShowDatePicker(false); setDateFrom(null); setDateTo(null); setSelectingEnd(false) }}>
+                <Icon name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {dateFrom && (
+              <Text style={[styles.dateRangeInfo, { color: colors.textSecondary }]}>
+                Desde: {dateFrom}{dateTo ? `  Hasta: ${dateTo}` : ''}
+              </Text>
+            )}
+            <LazyCalendar
+              onDayPress={(day: { dateString: string }) => {
+                if (!selectingEnd) {
+                  setDateFrom(day.dateString)
+                  setSelectingEnd(true)
+                } else {
+                  setDateTo(day.dateString)
+                }
+              }}
+              markedDates={{
+                ...(dateFrom ? { [dateFrom]: { selected: true, startingDay: true, color: colors.primary } } : {}),
+                ...(dateTo ? { [dateTo]: { selected: true, endingDay: true, color: colors.primary } } : {}),
+                ...(dateFrom && dateTo ? Object.fromEntries(
+                  (() => {
+                    const dates: [string, any][] = []
+                    const start = new Date(dateFrom)
+                    const end = new Date(dateTo)
+                    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                      const ds = d.toISOString().slice(0, 10)
+                      if (ds !== dateFrom && ds !== dateTo) {
+                        dates.push([ds, { selected: true, color: colors.primary + '44' }])
+                      }
+                    }
+                    return dates
+                  })()
+                ) : {})
+              }}
+              markingType="period"
+              theme={{
+                todayTextColor: colors.primary,
+                selectedDayBackgroundColor: colors.primary,
+                arrowColor: colors.primary,
+                calendarBackground: colors.background,
+                dayTextColor: colors.text,
+                monthTextColor: colors.text,
+                textDisabledColor: colors.textTertiary,
+              }}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
+                onPress={() => { setDateFrom(null); setDateTo(null); setSelectingEnd(false) }}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>Limpiar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                onPress={async () => {
+                  if (!dateFrom || !dateTo) {
+                    Alert.alert('Selecciona fecha inicio y fin')
+                    return
+                  }
+                  setShowDatePicker(false)
+                  try {
+                    await exportByDate(dateFrom, dateTo)
+                    showToast({ message: 'Exportación iniciada', type: 'info' })
+                  } catch {
+                    showToast({ message: 'No se pudieron exportar las fotos', type: 'error' })
+                  }
+                  setDateFrom(null)
+                  setDateTo(null)
+                  setSelectingEnd(false)
+                }}
+              >
+                <Text style={[styles.modalBtnText, { color: '#fff' }]}>Exportar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
         Nombre
@@ -298,7 +408,9 @@ export default function ProfileScreen() {
           Cerrar sesión
         </Text>
       </TouchableOpacity>
+
     </ScrollView>
+    </View>
   );
 }
 
@@ -356,4 +468,26 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    padding: 20, paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 8,
+  },
+  modalTitle: { fontSize: 17, fontWeight: '600' },
+  dateRangeInfo: { fontSize: 13, marginBottom: 8, textAlign: 'center' },
+  modalActions: {
+    flexDirection: 'row', gap: 12, marginTop: 16,
+  },
+  modalBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalBtnText: { fontSize: 15, fontWeight: '600' },
 });

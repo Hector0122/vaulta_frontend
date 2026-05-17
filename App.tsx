@@ -1,4 +1,5 @@
 import { StatusBar, ActivityIndicator, View } from 'react-native';
+import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -10,34 +11,25 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import { useTheme } from './theme';
+import { onMessageForeground } from './api/notifications';
+import { useToast } from './context/ToastContext';
 import { HomeScreen } from './pages/Home';
 import UploadScreen from './pages/Upload';
 import PhotoPreview from './pages/PhotoPreview';
 import LoginScreen from './pages/Login';
+import VaultaLogo from './components/VaultaLogo';
 import AlbumsScreen from './pages/Albums';
-import MapScreen from './pages/Map';
+import AlbumView from './pages/Albums/AlbumView';
+import VaultView from './pages/Albums/VaultView';
 import ProfileScreen from './pages/Profile';
 import DuplicatesScreen from './pages/Duplicates';
+import TrashScreen from './pages/Trash';
 import ConnectionBanner from './components/ConnectionBanner';
-
-type TabParamList = {
-  Timeline: undefined;
-  Albums: undefined;
-  Map: undefined;
-};
-
-type StackParamList = {
-  Login: undefined;
-  Main: { screen?: keyof TabParamList };
-  Upload: { imageUri?: string };
-  PhotoPreview: {
-    photos: { uri: string; id: string }[];
-    initialIndex: number;
-  };
-  Profile: undefined;
-  Duplicates: undefined;
-};
+import ErrorBoundary from './components/ErrorBoundary';
+import { registerFcmToken } from './api/notifications';
+import type { TabParamList, StackParamList } from './types/navigation';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createStackNavigator<StackParamList>();
@@ -49,7 +41,6 @@ function tabBarIcon(
   let iconName = '';
   if (routeName === 'Timeline') iconName = 'home';
   if (routeName === 'Albums') iconName = 'photo-album';
-  if (routeName === 'Map') iconName = 'map';
   return <Icon name={iconName} size={size} color={color} />;
 }
 
@@ -59,7 +50,7 @@ function TabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }): BottomTabNavigationOptions => ({
         tabBarIcon: props =>
-          tabBarIcon(props, route.name as keyof TabParamList),
+          tabBarIcon(props, route.name),
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
@@ -89,16 +80,6 @@ function TabNavigator() {
           headerTintColor: colors.text,
         }}
       />
-      <Tab.Screen
-        name="Map"
-        component={MapScreen}
-        options={{
-          tabBarLabel: 'Mapa',
-          title: 'Mapa',
-          headerStyle: { backgroundColor: colors.surface },
-          headerTintColor: colors.text,
-        }}
-      />
     </Tab.Navigator>
   );
 }
@@ -107,17 +88,13 @@ function AppNavigator() {
   const { user, loading } = useAuth();
   const { colors } = useTheme();
 
+  useEffect(() => { if (user) registerFcmToken() }, [user])
+
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <VaultaLogo color={colors.text} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 32 }} />
       </View>
     );
   }
@@ -163,12 +140,44 @@ function AppNavigator() {
         options={{ title: 'Mi Perfil' }}
       />
       <Stack.Screen
+        name="AlbumView"
+        component={AlbumView}
+        options={{ title: 'Álbum' }}
+      />
+      <Stack.Screen
+        name="VaultView"
+        component={VaultView}
+        options={{ title: 'Caja Fuerte' }}
+      />
+      <Stack.Screen
         name="Duplicates"
         component={DuplicatesScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="Trash"
+        component={TrashScreen}
+        options={{ title: 'Papelera' }}
+      />
     </Stack.Navigator>
   );
+}
+
+function NotificationHandler() {
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    const unsubscribe = onMessageForeground(message => {
+      const body = message.notification?.body
+      if (!body) return
+      console.log('Push notification:', body)
+      const isError = body.toLowerCase().includes('fall')
+      showToast({ message: body, type: isError ? 'error' : 'success' })
+    })
+    return unsubscribe
+  }, [showToast])
+
+  return null
 }
 
 function AppContent() {
@@ -178,9 +187,12 @@ function AppContent() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <ConnectionBanner />
       <AuthProvider>
-        <NavigationContainer>
-          <AppNavigator />
-        </NavigationContainer>
+        <ToastProvider>
+          <NotificationHandler />
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+        </ToastProvider>
       </AuthProvider>
     </>
   );
@@ -191,7 +203,9 @@ function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppContent />
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

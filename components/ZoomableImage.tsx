@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { Animated, Image, StyleSheet, useWindowDimensions } from 'react-native';
+import { Animated, StyleSheet, useWindowDimensions } from 'react-native';
+import { NitroImage } from 'react-native-nitro-image';
 import {
   Gesture,
   GestureDetector,
@@ -76,8 +77,8 @@ export default function ZoomableImage({ uri }: Props) {
           { transform: [{ translateX }, { translateY }, { scale }] },
         ]}
       >
-        <Image
-          source={{ uri }}
+        <NitroImage
+          image={{ url: uri }}
           style={{ width, height }}
           resizeMode="contain"
         />

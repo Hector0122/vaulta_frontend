@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- VAULTA shield icon foreground — white on transparent background -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+  <!-- Full shield with border -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:strokeColor="#0F0F0F"
+      android:strokeWidth="1.5"
+      android:strokeAlpha="0.68"
+      android:pathData="M54,14 L82,26 L82,60 Q82,84 54,94 Q26,84 26,60 L26,26 Z"/>
+
+  <!-- Diagonal hatching on right half -->
+  <path
+      android:strokeColor="#0F0F0F"
+      android:strokeWidth="2"
+      android:pathData="M58,14 L82,38
+                        M62,14 L82,34
+                        M66,18 L82,34
+                        M54,16 L82,44
+                        M58,20 L82,44
+                        M62,24 L82,44
+                        M66,28 L82,44
+                        M70,32 L82,44
+                        M54,26 L78,50
+                        M54,34 L76,56
+                        M54,42 L72,60
+                        M54,50 L68,64
+                        M54,58 L64,68
+                        M56,66 L62,72
+                        M66,38 L82,54
+                        M68,44 L82,58
+                        M70,50 L82,62
+                        M72,56 L82,66
+                        M74,62 L82,70
+                        M76,68 L81,73"/>
+
+  <!-- Center vertical divider -->
+  <path
+      android:strokeColor="#0F0F0F"
+      android:strokeWidth="1.5"
+      android:pathData="M54,14 L54,94"/>
+
+  <!-- Keyhole: circle -->
+  <path
+      android:fillColor="#0F0F0F"
+      android:pathData="M54,50 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0"/>
+
+  <!-- Keyhole: body (trapezoid) -->
+  <path
+      android:fillColor="#0F0F0F"
+      android:pathData="M48,57 L60,57 L57,74 L51,74 Z"/>
+
+</vector>

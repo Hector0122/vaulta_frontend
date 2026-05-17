@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,260 +7,200 @@ import {
   Alert,
   Platform,
   StyleSheet,
+  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import ImageEditor from '@react-native-community/image-editor';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../../theme';
 import { BASE_URL } from '../../api/server';
 import { getToken } from '../../api/client';
+import { useToast } from '../../context/ToastContext';
+import type { StackNavProp, UploadRouteProp } from '../../types/navigation';
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024
 
 export default function UploadScreen() {
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<{ Upload: { imageUri?: string } }, 'Upload'>>();
+  const navigation = useNavigation<StackNavProp>();
+  const route = useRoute<UploadRouteProp>();
   const { colors } = useTheme();
-  const [image, setImage] = useState<string | null>(route.params?.imageUri || null);
+  const { width: screenWidth } = useWindowDimensions();
+  const cameraUri = route.params?.imageUri
+  const [images, setImages] = useState<{ uri: string; name: string; type?: string }[]>(
+    cameraUri ? [{ uri: cameraUri, name: `photo-${Date.now()}.jpg` }] : []
+  );
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [successMsg, setSuccessMsg] = useState(false);
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const { showToast } = useToast();
 
-  const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
+  const colCount = 3;
+  const gap = 4;
+  const thumbSize = (screenWidth - 32 - gap * (colCount - 1)) / colCount;
 
-  const extractGps = (asset: any) => {
-    const exif = asset?.exif as Record<string, any> | undefined;
-    const rawLat = exif?.GPSLatitude;
-    const rawLng = exif?.GPSLongitude;
-    const lat =
-      typeof rawLat === 'number'
-        ? rawLat
-        : Number(rawLat?.[0] || 0) + Number(rawLat?.[1] || 0) / 60;
-    const lng =
-      typeof rawLng === 'number'
-        ? rawLng
-        : Number(rawLng?.[0] || 0) + Number(rawLng?.[1] || 0) / 60;
-    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-      setGps({ lat, lng });
-    } else {
-      setGps(null);
-    }
-  };
-
-  const MAX_FILE_SIZE = 20 * 1024 * 1024;
-
-  const pickImage = async () => {
+  const pickImages = useCallback(async () => {
     const result = await launchImageLibrary({
-      mediaType: 'photo',
+      mediaType: 'mixed',
       quality: 1,
+      selectionLimit: 0,
     });
 
-    if (result.assets && result.assets[0]) {
-      if (
-        result.assets[0].fileSize &&
-        result.assets[0].fileSize > MAX_FILE_SIZE
-      ) {
-        Alert.alert('Archivo muy grande', 'El límite es 20 MB');
-        return;
-      }
-      if (result.assets[0].uri) setImage(result.assets[0].uri);
-      extractGps(result.assets[0]);
+    if (!result.assets) return;
+    const valid = result.assets
+      .filter(a => !a.fileSize || a.fileSize <= MAX_FILE_SIZE)
+      .map(a => ({ uri: a.uri!, name: a.fileName || `file-${Date.now()}.${a.type?.startsWith('video') ? 'mp4' : 'jpg'}`, type: a.type || 'image' }));
+
+    if (valid.length !== result.assets.length) {
+      Alert.alert('Algunos archivos se omitieron', 'El límite es 500 MB por archivo');
     }
-  };
+    if (valid.length > 0) setImages(prev => [...prev, ...valid]);
+  }, []);
 
-  const takePhoto = async () => {
-    const result = await launchCamera({
-      mediaType: 'photo',
-      quality: 1,
-      saveToPhotos: true,
-    });
-
-    if (result.assets && result.assets[0]) {
-      if (
-        result.assets[0].fileSize &&
-        result.assets[0].fileSize > MAX_FILE_SIZE
-      ) {
-        Alert.alert('Archivo muy grande', 'El límite es 20 MB');
-        return;
-      }
-      if (result.assets[0].uri) setImage(result.assets[0].uri);
-      extractGps(result.assets[0]);
+  const takePhoto = useCallback(async () => {
+    const result = await launchCamera({ mediaType: 'photo', quality: 1, saveToPhotos: true })
+    if (result.assets?.[0]?.uri) {
+      const asset = result.assets[0]
+      setImages(prev => [...prev, {
+        uri: asset.uri!,
+        name: asset.fileName || `capture-${Date.now()}.jpg`,
+        type: asset.type || 'image',
+      }])
     }
-  };
+  }, [])
 
-  const handleEdit = () => {
-    if (!image) return;
-    Alert.alert('Editar imagen', 'Elige una opción', [
-      {
-        text: 'Recortar cuadrado',
-        onPress: () => {
-          Image.getSize(
-            image,
-            (width, height) => {
-              const size = Math.min(width, height);
-              ImageEditor.cropImage(image, {
-                offset: {
-                  x: Math.round((width - size) / 2),
-                  y: Math.round((height - size) / 2),
-                },
-                size: { width: size, height: size },
-                displaySize: { width: 300, height: 300 },
-                resizeMode: 'cover',
-              })
-                .then(result => setImage(result.uri))
-                .catch(() => Alert.alert('Error', 'No se pudo recortar'));
-            },
-            () => Alert.alert('Error', 'No se pudo obtener el tamaño'),
-          );
-        },
-      },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
-  };
-
-  const cancelUpload = () => {
-    if (xhrRef.current) {
-      xhrRef.current.abort();
-      xhrRef.current = null;
-      setUploading(false);
-      setUploadProgress(0);
+  const takeVideo = useCallback(async () => {
+    const result = await launchCamera({ mediaType: 'video', videoQuality: 'high', saveToPhotos: true })
+    if (result.assets?.[0]?.uri) {
+      const asset = result.assets[0]
+      setImages(prev => [...prev, {
+        uri: asset.uri!,
+        name: asset.fileName || `capture-${Date.now()}.mp4`,
+        type: asset.type || 'video',
+      }])
     }
-  };
+  }, [])
 
-  const uploadImage = async () => {
-    if (!image) return;
+  const removeImage = useCallback((uri: string) => {
+    setImages(prev => prev.filter(i => i.uri !== uri));
+  }, []);
 
+  async function uploadBatch() {
+    if (images.length === 0) return;
     setUploading(true);
-    setUploadProgress(0);
-    try {
-      const filename = image.split('/').pop() || `photo-${Date.now()}.jpg`;
-      const formData = new FormData();
-      formData.append('file', {
-        uri: Platform.OS === 'android' ? image : image.replace('file://', ''),
-        type: 'image/jpeg',
-        name: filename,
-      } as any);
 
-      const token = await getToken();
-      let uploadUrl = `${BASE_URL}/photos/upload`;
-      if (gps) uploadUrl += `?lat=${gps.lat}&lng=${gps.lng}`;
-
-      const xhr = new XMLHttpRequest();
-      xhrRef.current = xhr;
-
-      xhr.onabort = () => (xhrRef.current = null);
-      xhr.upload.onprogress = e => {
-        if (e.lengthComputable) {
-          setUploadProgress(Math.round((e.loaded / e.total) * 100));
-        }
-      };
-
-      await new Promise<void>((resolve, reject) => {
-        xhr.onreadystatechange = () => {
-          if (xhr.readyState === 4) {
-            xhrRef.current = null;
-            if (xhr.status >= 200 && xhr.status < 300) {
-              setSuccessMsg(true);
-              setTimeout(() => navigation.goBack(), 800);
-              resolve();
-            } else {
-              reject(new Error('Error al subir'));
-            }
-          }
-        };
-        xhr.onerror = () => reject(new Error('Network error'));
-        xhr.open('POST', uploadUrl);
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        xhr.send(formData);
-      });
-    } catch (error: any) {
-      if (error.message !== 'canceled') {
-        Alert.alert('Error', 'No se pudo subir la foto');
+    const formData = new FormData();
+      for (const img of images) {
+        formData.append('files', {
+          uri: Platform.OS === 'android' ? img.uri : img.uri.replace('file://', ''),
+          type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
+          name: img.name,
+        } as any);
       }
-    } finally {
-      setUploading(false);
+
+    showToast({ message: 'Subiendo archivos…', type: 'info', position: 'top-right', duration: 2000 });
+    navigation.goBack();
+
+    try {
+      const token = await getToken();
+      const res = await fetch(`${BASE_URL}/photos/upload-batch`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const text = await res.text()
+        console.error(`Upload failed (${res.status}): ${text}`)
+        showToast({ message: 'Error al iniciar la subida', type: 'error', position: 'top-right', duration: 3000 });
+      }
+    } catch (e) {
+      console.error('Upload network error:', e)
+      showToast({ message: 'Error de red al subir archivos', type: 'error', position: 'top-right', duration: 3000 });
     }
-  };
+  }
+
+  const rows: ({ uri: string; name: string; type?: string } | null)[][] = [];
+  if (images.length > 0 && !cameraUri) {
+    const allItems = !uploading ? [...images, null] : images;
+    for (let i = 0; i < allItems.length; i += colCount) {
+      rows.push(allItems.slice(i, i + colCount));
+    }
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {successMsg && (
-        <View style={styles.successBannerOuter}>
-          <View style={[styles.successBanner, { backgroundColor: colors.success }]}>
-            <Icon name="check-circle" size={20} color="#fff" />
-            <Text style={styles.successText}>Foto subida correctamente</Text>
+
+      {images.length > 0 ? (
+        cameraUri ? (
+          <View style={styles.cameraPreviewWrap}>
+            <Image source={{ uri: cameraUri }} style={styles.cameraPreview} resizeMode="contain" />
           </View>
-        </View>
-      )}
-
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-back" size={26} color={colors.text} />
-      </TouchableOpacity>
-
-      {image ? (
-        <>
-          <Image
-            source={{ uri: image }}
-            style={styles.fullPreview}
-            resizeMode="contain"
-          />
-          {gps && (
-            <View style={[styles.gpsChip, { backgroundColor: colors.surfaceAlt }]}>
-              <Icon name="location-on" size={14} color={colors.textTertiary} />
-              <Text style={[styles.gpsText, { color: colors.textTertiary }]}>
-                {gps.lat.toFixed(4)}, {gps.lng.toFixed(4)}
-              </Text>
+        ) : (
+          <ScrollView contentContainerStyle={styles.gridContainer}>
+            <View style={styles.grid}>
+              {rows.map((row, ri) => (
+                <View key={ri} style={styles.gridRow}>
+                  {row.map((item, ci) => {
+                    const isLast = ci === row.length - 1;
+                    if (item === null) {
+                      return (
+                        <TouchableOpacity
+                          key="add-more"
+                          style={[styles.addMore, { width: thumbSize, height: thumbSize, backgroundColor: colors.surfaceAlt, marginRight: isLast ? 0 : gap }]}
+                          onPress={pickImages}
+                        >
+                          <Icon name="add" size={28} color={colors.primary} />
+                        </TouchableOpacity>
+                      );
+                    }
+                    return (
+                      <View key={`${item.uri}-${ci}`} style={{ width: thumbSize, height: thumbSize, marginRight: isLast ? 0 : gap }}>
+                        <Image source={{ uri: item.uri }} style={styles.thumb} resizeMode="cover" />
+                        {!uploading && (
+                          <TouchableOpacity style={styles.removeBtn} onPress={() => removeImage(item.uri)}>
+                            <Icon name="close" size={14} color="#fff" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
             </View>
-          )}
-        </>
+          </ScrollView>
+        )
       ) : (
         <View style={styles.emptyState}>
           <Icon name="cloud-upload" size={72} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
-            Selecciona una foto
+            Selecciona una o varias fotos
           </Text>
         </View>
       )}
 
       <View style={[styles.bottomBar, { backgroundColor: colors.surface }]}>
         {uploading ? (
-          <View style={styles.uploadingContainer}>
-            <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${uploadProgress}%`, backgroundColor: colors.primary },
-                ]}
-              />
-            </View>
-            <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-              {uploadProgress}%
+          <View style={styles.uploadingInfo}>
+            <Icon name="cloud-upload" size={22} color={colors.primary} />
+            <Text style={[styles.uploadCount, { color: colors.textSecondary }]}>
+              Subiendo {images.length} foto(s)…
             </Text>
-            <TouchableOpacity style={styles.cancelBtn} onPress={cancelUpload}>
-              <Icon name="close" size={20} color="#fff" />
-            </TouchableOpacity>
           </View>
-        ) : image ? (
+        ) : images.length > 0 ? (
           <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.circleBtn, { borderColor: colors.border }]}
-              onPress={handleEdit}
-              disabled={successMsg}
-            >
-              <Icon name="crop" size={22} color={colors.text} />
-            </TouchableOpacity>
+            <Text style={[styles.countText, { color: colors.textSecondary }]}>
+              {images.length} foto{images.length !== 1 ? 's' : ''}
+            </Text>
             <TouchableOpacity
               style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
-              onPress={uploadImage}
-              disabled={successMsg}
+              onPress={uploadBatch}
             >
               <Icon name="cloud-upload" size={22} color="#fff" />
-              <Text style={styles.uploadBtnText}>Subir foto</Text>
+              <Text style={styles.uploadBtnText}>Subir todo</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.pickerRow}>
-            <TouchableOpacity style={styles.pickerIconBtn} onPress={pickImage}>
+            <TouchableOpacity style={styles.pickerIconBtn} onPress={pickImages}>
               <View style={[styles.pickerCircle, { backgroundColor: colors.surfaceAlt }]}>
                 <Icon name="photo-library" size={28} color={colors.primary} />
               </View>
@@ -270,7 +210,13 @@ export default function UploadScreen() {
               <View style={[styles.pickerCircle, { backgroundColor: colors.surfaceAlt }]}>
                 <Icon name="camera-alt" size={28} color={colors.primary} />
               </View>
-              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Cámara</Text>
+              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Foto</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pickerIconBtn} onPress={takeVideo}>
+              <View style={[styles.pickerCircle, { backgroundColor: colors.surfaceAlt }]}>
+                <Icon name="videocam" size={28} color={colors.primary} />
+              </View>
+              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Video</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -280,154 +226,55 @@ export default function UploadScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 16, marginTop: 16 },
+  gridContainer: { padding: 16, paddingTop: 100, paddingBottom: 100 },
+  cameraPreviewWrap: {
+    flex: 1, paddingTop: 100, paddingBottom: 12, paddingHorizontal: 16,
   },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 12,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cameraPreview: {
+    flex: 1, width: '100%', borderRadius: 12,
   },
-  fullPreview: {
-    flex: 1,
-    width: '100%',
+  grid: {},
+  gridRow: { flexDirection: 'row', marginBottom: 4 },
+  thumb: { width: '100%', height: '100%', borderRadius: 6 },
+  removeBtn: {
+    position: 'absolute', top: 2, right: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  gpsChip: {
-    position: 'absolute',
-    bottom: 100,
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
-  },
-  gpsText: {
-    fontSize: 11,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 16,
+  addMore: {
+    borderRadius: 6, borderWidth: 2, borderStyle: 'dashed',
+    justifyContent: 'center', alignItems: 'center', borderColor: '#999',
   },
   bottomBar: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    elevation: 8,
-    shadowColor: '#000',
+    paddingVertical: 12, paddingHorizontal: 20,
+    borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    elevation: 8, shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.1, shadowRadius: 8,
   },
   pickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 4,
+    flexDirection: 'row', justifyContent: 'space-around',
+    alignItems: 'center', paddingVertical: 4,
   },
-  pickerIconBtn: {
-    alignItems: 'center',
-    gap: 6,
-  },
+  pickerIconBtn: { alignItems: 'center', gap: 6 },
   pickerCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 56, height: 56, borderRadius: 28,
+    justifyContent: 'center', alignItems: 'center',
   },
-  pickerLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  pickerLabel: { fontSize: 12, fontWeight: '500' },
   actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
   },
-  circleBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  countText: { fontSize: 14, fontWeight: '500' },
   uploadBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', paddingVertical: 14, borderRadius: 12, gap: 8,
   },
-  uploadBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  uploadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  progressBarBg: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 13,
-    fontWeight: '600',
-    minWidth: 36,
-    textAlign: 'right',
-  },
-  cancelBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#ff5252',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  successBannerOuter: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  successBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 8,
-  },
-  successText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+  uploadBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  uploadingInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  uploadCount: { fontSize: 14, fontWeight: '500' },
+})

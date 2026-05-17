@@ -35,9 +35,9 @@ export function SkeletonPhotoGrid({ colors, count = 6 }: { colors: any; count?: 
   const rows = Array.from({ length: Math.ceil(count / 2) });
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 8 }}>
+    <View style={styles.photoGridRow}>
       {[0, 1].map(col => (
-        <View key={col} style={{ flex: 1, gap: 6 }}>
+        <View key={col} style={styles.photoGridCol}>
           {rows.map((_, i) => (
             <SkeletonBox
               key={`${col}-${i}`}
@@ -53,13 +53,13 @@ export function SkeletonPhotoGrid({ colors, count = 6 }: { colors: any; count?: 
 
 export function SkeletonAlbumList({ colors, count = 4 }: { colors: any; count?: number }) {
   return (
-    <View style={{ padding: 16 }}>
+    <View style={styles.albumListPad}>
       {Array.from({ length: count }).map((_, i) => (
         <View key={i} style={[styles.albumRow, { backgroundColor: colors.cardBg }]}>
           <SkeletonBox width={24} height={24} borderRadius={12} />
-          <View style={{ marginLeft: 12, flex: 1 }}>
+          <View style={styles.albumRowRight}>
             <SkeletonBox width="60%" height={16} borderRadius={4} />
-            <SkeletonBox width="30%" height={12} borderRadius={4} style={{ marginTop: 6 }} />
+            <SkeletonBox width="30%" height={12} borderRadius={4} style={styles.albumBoxSpacer} />
           </View>
         </View>
       ))}
@@ -68,6 +68,9 @@ export function SkeletonAlbumList({ colors, count = 4 }: { colors: any; count?: 
 }
 
 const styles = StyleSheet.create({
+  photoGridRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
+  photoGridCol: { flex: 1, gap: 6 },
+  albumListPad: { padding: 16 },
   albumRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -75,4 +78,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
   },
+  albumRowRight: { marginLeft: 12, flex: 1 },
+  albumBoxSpacer: { marginTop: 6 },
 });

@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeContextType>({
   isDark: false,
 })
 
-const THEME_KEY = '@mymega_theme'
+const THEME_KEY = '@vaulta_theme'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemDark = useColorScheme() === 'dark'

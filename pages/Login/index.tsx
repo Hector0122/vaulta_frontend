@@ -11,13 +11,16 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme';
+import VaultaLogo from '../../components/VaultaLogo';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const { login, register } = useAuth();
   const { colors } = useTheme();
   const [isRegister, setIsRegister] = useState(false);
@@ -47,8 +50,9 @@ export default function LoginScreen() {
       } else {
         await login(email, password);
       }
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Algo salió mal');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Algo salió mal';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
@@ -56,14 +60,17 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.title, { color: colors.text }]}>MyMega Photos</Text>
+        <View style={styles.brandSection}>
+          <VaultaLogo color={colors.text} />
+        </View>
+
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {isRegister ? 'Crear cuenta' : 'Iniciar sesión'}
         </Text>
@@ -136,13 +143,12 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, justifyContent: 'center' },
   container: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
+  brandSection: {
+    alignItems: 'center',
+    marginBottom: 36,
   },
   subtitle: {
     fontSize: 16,

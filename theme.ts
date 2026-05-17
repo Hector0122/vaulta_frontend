@@ -1,5 +1,9 @@
 import { useThemeMode } from './context/ThemeContext'
 
+// VAULTA brand palette
+// Primary teal: #2BD4CE  |  Purple accent: #7B6BF5
+// Dark bg: #0F0F0F       |  Surface: #1A1A1A
+
 const light = {
   background: '#fff',
   surface: '#f8f8f8',
@@ -9,41 +13,43 @@ const light = {
   textTertiary: '#999',
   border: '#ddd',
   borderLight: '#eee',
-  primary: '#007AFF',
+  primary: '#2BD4CE',
+  accent: '#7B6BF5',
   danger: '#ff5252',
-  favorite: '#ff4081',
+  favorite: '#7B6BF5',
   offline: '#4fc3f7',
   success: '#4CAF50',
   tabBarBg: '#fff',
-  tabBarActive: '#007AFF',
+  tabBarActive: '#2BD4CE',
   tabBarInactive: 'gray',
-  overlay: 'rgba(0,122,255,0.25)',
+  overlay: 'rgba(43,212,206,0.25)',
   cardBg: '#f8f8f8',
   inputBg: '#fff',
   skeleton: '#e0e0e0',
 }
 
 const dark = {
-  background: '#121212',
-  surface: '#1e1e1e',
-  surfaceAlt: '#2a2a2a',
-  text: '#e0e0e0',
-  textSecondary: '#aaa',
-  textTertiary: '#888',
-  border: '#333',
-  borderLight: '#2a2a2a',
-  primary: '#007AFF',
+  background: '#0F0F0F',
+  surface: '#1A1A1A',
+  surfaceAlt: '#252525',
+  text: '#FFFFFF',
+  textSecondary: '#AAAAAA',
+  textTertiary: '#777777',
+  border: '#2E2E2E',
+  borderLight: '#1E1E1E',
+  primary: '#2BD4CE',
+  accent: '#7B6BF5',
   danger: '#ff5252',
-  favorite: '#ff4081',
+  favorite: '#7B6BF5',
   offline: '#4fc3f7',
   success: '#4CAF50',
-  tabBarBg: '#1e1e1e',
-  tabBarActive: '#007AFF',
-  tabBarInactive: '#888',
-  overlay: 'rgba(0,122,255,0.35)',
-  cardBg: '#1e1e1e',
-  inputBg: '#2a2a2a',
-  skeleton: '#2a2a2a',
+  tabBarBg: '#1A1A1A',
+  tabBarActive: '#2BD4CE',
+  tabBarInactive: '#555555',
+  overlay: 'rgba(43,212,206,0.25)',
+  cardBg: '#1A1A1A',
+  inputBg: '#252525',
+  skeleton: '#252525',
 }
 
 export function useTheme() {

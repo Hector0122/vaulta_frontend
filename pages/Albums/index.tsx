@@ -1,17 +1,19 @@
 import React, { useState, useCallback } from 'react'
 import {
-  View, Text, FlatList, TouchableOpacity, TextInput,
+  View, Text, FlatList, TouchableOpacity, TextInput, Image,
   StyleSheet, Alert, ActivityIndicator,
 } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
 import { SkeletonAlbumList } from '../../components/Skeleton'
 import { authenticatedGet, authenticatedDelete, authenticatedPost } from '../../api/client'
+import type { StackNavProp } from '../../types/navigation'
 
-type Album = { id: string; name: string; _count: { photos: number }; createdAt: string }
+type Album = { id: string; name: string; _count: { photos: number }; createdAt: string; coverUri: string | null }
 
 export default function AlbumsScreen() {
+  const navigation = useNavigation<StackNavProp>()
   const { colors } = useTheme()
   const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,22 +70,32 @@ export default function AlbumsScreen() {
     ])
   }
 
-  function renderItem({ item }: { item: Album }) {
+  const renderItem = useCallback(({ item }: { item: Album }) => {
     return (
-      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.cardBg }]}
+        onPress={() => navigation.navigate('AlbumView', { albumId: item.id, albumName: item.name })}
+        activeOpacity={0.7}
+      >
         <View style={styles.cardContent}>
-          <Icon name="photo-album" size={24} color={colors.primary} />
+          {item.coverUri ? (
+            <Image source={{ uri: item.coverUri }} style={styles.coverThumb} />
+          ) : (
+            <View style={[styles.coverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
+              <Icon name="photo-album" size={24} color={colors.primary} />
+            </View>
+          )}
           <View style={styles.cardText}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
             <Text style={[styles.cardSubtitle, { color: colors.textTertiary }]}>{item._count?.photos ?? 0} fotos</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={() => handleDelete(item.id)}>
+        <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Icon name="delete-outline" size={22} color={colors.textTertiary} />
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     )
-  }
+  }, [navigation, colors, handleDelete])
 
   if (loading) {
     return (
@@ -95,6 +107,17 @@ export default function AlbumsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Vault entry */}
+      <TouchableOpacity
+        style={[styles.vaultCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
+        onPress={() => navigation.navigate('VaultView')}
+        activeOpacity={0.7}
+      >
+        <Icon name="lock" size={22} color="#ffa726" />
+        <Text style={[styles.vaultText, { color: colors.text }]}>Caja Fuerte</Text>
+        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+      </TouchableOpacity>
+
       {showCreate && (
         <View style={[styles.createRow, { borderBottomColor: colors.borderLight }]}>
           <TextInput
@@ -144,6 +167,12 @@ export default function AlbumsScreen() {
 }
 
 const styles = StyleSheet.create({
+  vaultCard: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginTop: 12, marginBottom: 4,
+    padding: 16, borderRadius: 10, borderWidth: 1, gap: 10,
+  },
+  vaultText: { fontSize: 16, fontWeight: '600', flex: 1 },
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16 },
@@ -156,7 +185,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  cardText: { marginLeft: 12 },
+  coverThumb: { width: 44, height: 44, borderRadius: 8 },
+  coverPlaceholder: { width: 44, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  cardText: { marginLeft: 12, flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: '600' },
   cardSubtitle: { fontSize: 13, marginTop: 2 },
   createRow: {

@@ -18,17 +18,17 @@ describe('Client API', () => {
 
   it('should set and clear access token in AsyncStorage', async () => {
     await setToken('test-token-123');
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@mymega_token', 'test-token-123');
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@vaulta_token', 'test-token-123');
 
     await clearToken();
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@mymega_token');
+    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@vaulta_token');
   });
 
   it('should set and clear refresh token in AsyncStorage', async () => {
     await setRefreshToken('rt-123');
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@mymega_refresh_token', 'rt-123');
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@vaulta_refresh_token', 'rt-123');
 
     await clearRefreshToken();
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@mymega_refresh_token');
+    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@vaulta_refresh_token');
   });
 });

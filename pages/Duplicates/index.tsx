@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { NitroImage } from 'react-native-nitro-image';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import { authenticatedGet, deletePhoto } from '../../api/client';
@@ -86,6 +87,36 @@ export default function DuplicatesScreen() {
     setSelected(all);
   };
 
+  const renderGroup = useCallback(({ item: group }: { item: DuplicateGroup }) => (
+    <View style={[styles.group, { backgroundColor: colors.cardBg }]}>
+      <View style={styles.groupHeader}>
+        <Icon name="content-copy" size={18} color={colors.textTertiary} />
+        <Text style={[styles.groupCount, { color: colors.textSecondary }]}>
+          {group.length} fotos similares
+        </Text>
+      </View>
+      <View style={styles.groupRow}>
+        {group.map(photo => (
+          <TouchableOpacity
+            key={photo.id}
+            style={[
+              styles.thumbWrap,
+              selected.has(photo.id) && { borderColor: colors.primary, borderWidth: 2 },
+            ]}
+            onPress={() => toggleSelect(photo.id)}
+          >
+            <NitroImage
+              image={{ url: photo.uri }}
+              style={styles.thumb}
+              resizeMode="cover"
+              recyclingKey={photo.id}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  ), [colors, selected, toggleSelect]);
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -121,51 +152,8 @@ export default function DuplicatesScreen() {
         data={groups}
         keyExtractor={(_, i) => String(i)}
         contentContainerStyle={styles.list}
-        renderItem={({ item: group }) => (
-          <View style={[styles.group, { backgroundColor: colors.cardBg }]}>
-            <View style={styles.groupHeader}>
-              <Icon name="content-copy" size={18} color={colors.textTertiary} />
-              <Text style={[styles.groupCount, { color: colors.textSecondary }]}>
-                {group.length} fotos similares
-              </Text>
-            </View>
-            <View style={styles.groupRow}>
-              {group.map(photo => (
-                <TouchableOpacity
-                  key={photo.id}
-                  style={[
-                    styles.thumbWrap,
-                    selected.has(photo.id) && { borderColor: colors.primary, borderWidth: 2 },
-                  ]}
-                  onPress={() => toggleSelect(photo.id)}
-                >
-                  <Image
-                    source={{ uri: photo.url }}
-                    style={styles.thumb}
-                    resizeMode="cover"
-                  />
-                  {photo.blurred && (
-                    <View style={[styles.blurryBadge, { backgroundColor: colors.danger }]}>
-                      <Icon name="blur-off" size={10} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
+        renderItem={renderGroup}
       />
-
-      {selected.size > 0 && (
-        <View style={[styles.deleteBar, { backgroundColor: colors.danger }]}>
-          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteSelected}>
-            <Icon name="delete" size={20} color="#fff" />
-            <Text style={styles.deleteText}>
-              Eliminar {selected.size} foto{selected.size > 1 ? 's' : ''}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </View>
   );
 }
