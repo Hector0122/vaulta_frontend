@@ -41,12 +41,21 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
     if (!isActive) return;
     getWidgetPhotoIds().then(ids => setInWidget(ids.includes(item.id)))
     if (item.mimeType?.startsWith('video/')) {
-      getToken().then(token => {
-        setFullUri(`${BASE_URL}/photos/${item.id}/stream`)
-        setVideoHeaders({ Authorization: `Bearer ${token}` })
-        setLoading(false)
-      })
-      getPhotoUrl(item.id).then(setThumbUri).catch(() => {})
+      setThumbUri(item.uri)
+      getPhotoUrl(item.id)
+        .then(url => {
+          setFullUri(url)
+          setLoading(false)
+        })
+        .catch(() => {
+          getToken().then(token => {
+            if (token) {
+              setFullUri(`${BASE_URL}/photos/${item.id}/stream`)
+              setVideoHeaders({ Authorization: `Bearer ${token}` })
+            }
+            setLoading(false)
+          })
+        })
     } else {
       setLoading(false)
       getPhotoUrl(item.id)
@@ -229,7 +238,7 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
   return (
     <View style={pageStyles.container}>
       {item.mimeType?.startsWith('video/') ? (
-        <VideoPlayer uri={offlineCached ? `file://${offlinePath(userId, item.id)}` : fullUri || item.uri} headers={videoHeaders} posterUri={thumbUri || undefined} />
+        <VideoPlayer uri={offlineCached ? `file://${offlinePath(userId, item.id)}` : fullUri} headers={videoHeaders} posterUri={thumbUri || undefined} />
       ) : (
         <ZoomableImage
           uri={offlineCached ? `file://${offlinePath(userId, item.id)}` : fullUri || item.uri}

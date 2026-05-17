@@ -12,14 +12,16 @@ type Props = {
 export default function VideoPlayer({ uri, headers, posterUri }: Props) {
   const [paused, setPaused] = useState(true)
   const [showControl, setShowControl] = useState(true)
-  const [started, setStarted] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
+  const ready = !!uri
+
   const handlePress = () => {
-    if (error) return
-    if (!started) {
-      setStarted(true)
+    if (error || !ready) return
+    if (!mounted) {
+      setMounted(true)
       setPaused(false)
       setShowControl(false)
     } else if (showControl) {
@@ -35,45 +37,56 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
       <View style={styles.center}>
         <Icon name="error-outline" size={48} color="#fff" />
         <Text style={styles.errorText}>Error al cargar el video</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => { setError(false); setLoading(true); setStarted(false); setPaused(true) }}>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => { setError(false); setLoading(true); setMounted(false); setPaused(true) }}>
           <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     )
   }
 
-  const showPlayIcon = paused || !started
-
   return (
     <TouchableOpacity activeOpacity={1} style={styles.container} onPress={handlePress}>
-      {(!started || loading) && posterUri && (
+      {(!mounted || loading) && posterUri && (
         <Image source={{ uri: posterUri }} style={styles.poster} resizeMode="cover" />
       )}
-      <Video
-        source={{ uri, headers }}
-        style={styles.video}
-        paused={paused}
-        resizeMode="contain"
-        onLoad={() => { setLoading(false); setStarted(true) }}
-        onError={() => { setLoading(false); setError(true) }}
-        onBuffer={({ isBuffering }) => setLoading(isBuffering)}
-        bufferConfig={{
-          minBufferMs: 15000,
-          maxBufferMs: 50000,
-          bufferForPlaybackMs: 2500,
-          bufferForPlaybackAfterRebufferMs: 5000,
-        }}
-        progressUpdateInterval={500}
-        repeat
-      />
-      {loading && started && (
+      {mounted && (
+        <Video
+          source={{ uri, headers }}
+          style={styles.video}
+          paused={paused}
+          resizeMode="contain"
+          onLoad={() => { setLoading(false) }}
+          onError={() => { setLoading(false); setError(true) }}
+          onBuffer={({ isBuffering }) => setLoading(isBuffering)}
+          bufferConfig={{
+            minBufferMs: 15000,
+            maxBufferMs: 50000,
+            bufferForPlaybackMs: 2500,
+            bufferForPlaybackAfterRebufferMs: 5000,
+          }}
+          progressUpdateInterval={500}
+          repeat
+        />
+      )}
+      {!ready && (
+        <View style={styles.center} pointerEvents="none">
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.loadingText}>Cargando video…</Text>
+        </View>
+      )}
+      {loading && mounted && ready && (
         <View style={styles.center} pointerEvents="none">
           <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
-      {(!started || (showControl && !loading)) && (
+      {ready && !error && !mounted && (
         <View style={styles.playOverlay} pointerEvents="none">
-          <Icon name={showPlayIcon ? "play-circle-filled" : "pause-circle-filled"} size={64} color="rgba(255,255,255,0.8)" />
+          <Icon name="play-circle-filled" size={64} color="rgba(255,255,255,0.8)" />
+        </View>
+      )}
+      {mounted && showControl && !loading && !error && (
+        <View style={styles.playOverlay} pointerEvents="none">
+          <Icon name={paused ? "play-circle-filled" : "pause-circle-filled"} size={64} color="rgba(255,255,255,0.8)" />
         </View>
       )}
     </TouchableOpacity>
@@ -87,6 +100,7 @@ const styles = StyleSheet.create({
   center: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
   playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: '#fff', fontSize: 16, marginTop: 12 },
+  loadingText: { color: '#fff', fontSize: 14, marginTop: 8 },
   retryBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: '#333', borderRadius: 8 },
   retryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 })
