@@ -1,4 +1,4 @@
-# MyMega Photos — Frontend
+# Vaulta — Frontend
 
 React Native 0.83.1 app for viewing and uploading photos to S3 via the NestJS backend.
 
