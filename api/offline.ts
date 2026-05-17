@@ -42,10 +42,10 @@ export async function getCachedIds(userId: string): Promise<string[]> {
   }
 }
 
-export async function cachePhoto(userId: string, photoId: string, remoteUrl: string): Promise<string> {
+export async function cachePhoto(userId: string, photoId: string, remoteUrl: string, headers?: Record<string, string>): Promise<string> {
   await ensureDir(userId);
   const local = offlinePath(userId, photoId);
-  await RNFS.downloadFile({ fromUrl: remoteUrl, toFile: local }).promise;
+  await RNFS.downloadFile({ fromUrl: remoteUrl, toFile: local, headers }).promise;
   if (Platform.OS === 'android') await RNFS.scanFile(local);
 
   const ids = await getCachedIds(userId);

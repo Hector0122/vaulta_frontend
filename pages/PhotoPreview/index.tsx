@@ -74,7 +74,9 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
     const ext = isVideo ? 'mp4' : (Platform.OS === 'android' ? 'jpg' : 'JPEG');
     try {
       const dest = `${RNFS.DocumentDirectoryPath}/download_${Date.now()}.${ext}`;
-      await RNFS.downloadFile({ fromUrl: uri, toFile: dest }).promise;
+      const token = await getToken()
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+      await RNFS.downloadFile({ fromUrl: uri, toFile: dest, headers }).promise;
       if (Platform.OS === 'android') await RNFS.scanFile(dest);
       success()
       Alert.alert('Descargado', `Archivo guardado en ${dest}`);
@@ -89,7 +91,9 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
     const ext = isVideo ? 'mp4' : (Platform.OS === 'android' ? 'jpg' : 'JPEG');
     try {
       const localPath = `${RNFS.CachesDirectoryPath}/share_${Date.now()}.${ext}`;
-      await RNFS.downloadFile({ fromUrl: uri, toFile: localPath }).promise;
+      const token = await getToken()
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+      await RNFS.downloadFile({ fromUrl: uri, toFile: localPath, headers }).promise;
       await Share.open({
         url: Platform.OS === 'android' ? `file://${localPath}` : localPath,
         type: isVideo ? 'video/mp4' : 'image/jpeg',
@@ -108,7 +112,9 @@ function PhotoPage({ item, onDelete, onFavoriteToggle, userId, isActive }: { ite
         setOfflineCached(false);
       } else {
         const uri = fullUri || item.uri;
-        await cachePhoto(userId, item.id, uri);
+        const token = await getToken()
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+        await cachePhoto(userId, item.id, uri, headers);
         setOfflineCached(true);
       }
     } catch {
