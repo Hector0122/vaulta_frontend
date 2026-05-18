@@ -1,6 +1,6 @@
 # Vaulta — Frontend
 
-React Native 0.83.1 app for viewing and uploading photos to S3 via the NestJS backend.
+React Native 0.83.1 Android app for viewing, uploading, and managing photos with a NestJS backend.
 
 ## Prerequisites
 
@@ -9,50 +9,82 @@ React Native 0.83.1 app for viewing and uploading photos to S3 via the NestJS ba
 - Android SDK (API 36, build-tools 36.0.0)
 - JDK 21
 - Physical Android device or emulator
-- Backend running on `localhost:3000`
+- Backend running (local or Railway)
 
 ## Setup
 
 ```bash
 yarn install
+cp .env.example .env   # configure BACKEND_URL
 ```
 
 ## Start
 
-### 1. Start Metro bundler
-
 ```bash
+# Terminal 1: Metro bundler
 yarn start
-```
 
-### 2. Build & run on Android
-
-```bash
-# Ensure the device is connected via USB
-adb devices
-
-# Run the app
+# Terminal 2: Build & install APK
 yarn android
-```
 
-### 3. Enable device-to-backend communication
-
-```bash
+# Device → backend (local dev)
 adb reverse tcp:3000 tcp:3000
 ```
-
-## Dev notes
-
-- The app expects the backend at `http://localhost:3000` (reachable via `adb reverse`)
-- After editing TS files, reload the app: press `R` twice or open Dev Menu (`Cmd+M`)
-- Thumbnails are generated server-side; the grid displays `thumb-*` versions
 
 ## Project structure
 
 ```
 pages/
-  Home/          — Main grid (masonry list with date grouping)
-  Upload/        — Photo picker + upload
-  PhotoPreview/  — Full-image view, download, share, delete
-api/server/      — API client helpers
+  Login/           - Login / Register with JWT
+  Home/            - Masonry grid, pull-to-refresh, search, filters, FAB
+  Upload/          - Camera, gallery, crop, video, GPS
+  Albums/          - Album list, AlbumView (rename/filter/export), VaultView (PIN)
+  PhotoPreview/    - Full image, zoom, slideshow, download, share, delete, offline
+  Profile/         - Stats, export, duplicates, logout
+  Trash/           - Restore or permanently delete
+  Duplicates/      - Duplicate photo groups by perceptual hash
+  Map/             - Geotagged photo markers
+
+components/        - 17 shared components (Toast, Skeleton, FAB, FilterBar, etc.)
+context/           - Auth, Theme, Network, Toast providers
+api/               - API client (JWT+refresh), cache, offline, notifications, widget
+services/          - Upload queue (MMKV-backed)
 ```
+
+## Key features
+
+- JWT auth with refresh token rotation
+- Pull-to-refresh, infinite scroll, masonry grid
+- Multi-select: batch download, share, delete
+- Albums: create, rename, delete, add/remove photos
+- Vault: PIN-protected private album
+- Trash: soft delete with restore/permanent delete
+- Duplicate detection by perceptual hash
+- Video playback with poster + streaming
+- Offline caching (RNFS)
+- Upload queue (persistent, auto-retry)
+- Push notifications (Firebase)
+- Android home screen widget
+- Dark/light/system theme
+- Skeleton loaders, fade-in animations
+- Toast notifications, error boundaries
+- Export photo ZIP by email (Mailgun)
+- Recuerdos "On this day"
+- Filters: date range, favorites, blurry
+
+## Commands
+
+```bash
+yarn start             # Metro bundler
+yarn android           # Build + install
+npx tsc --noEmit       # Type-check
+yarn test              # Run tests
+```
+
+## Dev notes
+
+- Backend URL from `.env` via `react-native-config`
+- Thumbnails generated server-side; grid displays `thumb-*` versions
+- After editing TS files: `R` twice or Dev Menu (Cmd+M)
+- Native code changes need `yarn android` to recompile
+- `adb reverse` must be re-run after USB disconnect
