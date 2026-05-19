@@ -61,7 +61,10 @@ export default function TrashScreen() {
             const res = await emptyTrash()
             fetchTrash()
             Alert.alert('Hecho', `Se eliminaron ${res.deleted} fotos permanentemente`)
-          } catch { Alert.alert('Error', 'No se pudo vaciar la papelera') }
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Error desconocido'
+            Alert.alert('Error', `No se pudo vaciar la papelera: ${msg}`)
+          }
         },
       },
     ])

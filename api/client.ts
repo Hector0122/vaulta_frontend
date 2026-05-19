@@ -291,7 +291,7 @@ export async function permanentlyDeletePhoto(photoId: string): Promise<void> {
 }
 
 export async function emptyTrash(): Promise<{ deleted: number }> {
-  return authenticatedDelete('photos/trash')
+  return authenticatedDelete<{ deleted: number }>('photos/trash', {})
 }
 
 export async function getPhotoAlbums(photoId: string): Promise<{ id: string; name: string; vault: boolean }[]> {
