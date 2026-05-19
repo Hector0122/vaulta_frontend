@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
-import { getTrash, restorePhoto, permanentlyDeletePhoto } from '../../api/client'
+import { getTrash, restorePhoto, permanentlyDeletePhoto, emptyTrash } from '../../api/client'
 
 type TrashItem = { id: string; uri: string; filename: string; deletedAt: string; size: number }
 
@@ -51,6 +51,22 @@ export default function TrashScreen() {
     ])
   }
 
+  async function handleEmptyTrash() {
+    Alert.alert('Vaciar papelera', 'Se borrarán todas las fotos permanentemente. ¿Estás seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Vaciar', style: 'destructive',
+        onPress: async () => {
+          try {
+            const res = await emptyTrash()
+            fetchTrash()
+            Alert.alert('Hecho', `Se eliminaron ${res.deleted} fotos permanentemente`)
+          } catch { Alert.alert('Error', 'No se pudo vaciar la papelera') }
+        },
+      },
+    ])
+  }
+
   const renderItem = useCallback(({ item }: { item: TrashItem }) => (
     <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
       <Image source={{ uri: item.uri }} style={styles.thumb} />
@@ -87,18 +103,37 @@ export default function TrashScreen() {
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>Papelera vacía</Text>
         </View>
       ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={renderItem}
-        />
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity style={styles.emptyAllBtn} onPress={handleEmptyTrash}>
+            <Icon name="delete-sweep" size={20} color="#fff" />
+            <Text style={styles.emptyAllText}>Vaciar papelera</Text>
+          </TouchableOpacity>
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            renderItem={renderItem}
+          />
+        </View>
       )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  emptyAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#c62828',
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  emptyAllText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   container: { flex: 1 },
   list: { padding: 12 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },

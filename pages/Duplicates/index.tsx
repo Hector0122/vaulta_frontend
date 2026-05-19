@@ -12,8 +12,9 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { NitroImage } from 'react-native-nitro-image';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
-import { authenticatedGet, deletePhoto } from '../../api/client';
+import { authenticatedGet, deletePhoto, bulkDeletePhotos } from '../../api/client';
 
 type DuplicateGroup = {
   id: string;
@@ -28,6 +29,7 @@ type DuplicateGroup = {
 export default function DuplicatesScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const { top } = useSafeAreaInsets();
   const [groups, setGroups] = useState<DuplicateGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -64,10 +66,14 @@ export default function DuplicatesScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            for (const id of selected) {
-              try {
-                await deletePhoto(id);
-              } catch { /* skip */ }
+            const ids = Array.from(selected);
+            try {
+              await bulkDeletePhotos(ids);
+            } catch {
+              // fallback: delete one by one
+              for (const id of ids) {
+                try { await deletePhoto(id); } catch { /* skip */ }
+              }
             }
             setGroups(prev =>
               prev
@@ -87,7 +93,33 @@ export default function DuplicatesScreen() {
     setSelected(all);
   };
 
-  const renderGroup = useCallback(({ item: group }: { item: DuplicateGroup }) => (
+  /** Returns the ID of the best photo in a group (sharpest + most recent). */
+  function pickBestId(group: DuplicateGroup): string {
+    const sorted = [...group].sort((a, b) => {
+      // Prefer non-blurred
+      if (a.blurred !== b.blurred) return a.blurred ? 1 : -1;
+      // Prefer lower blurScore (sharper)
+      const sa = a.blurScore ?? 999;
+      const sb = b.blurScore ?? 999;
+      if (sa !== sb) return sa - sb;
+      // Prefer most recent
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    return sorted[0].id;
+  }
+
+  const selectAllKeepBest = () => {
+    const toDelete = new Set<string>();
+    groups.forEach(g => {
+      const bestId = pickBestId(g);
+      g.forEach(p => { if (p.id !== bestId) toDelete.add(p.id); });
+    });
+    setSelected(toDelete);
+  };
+
+  const renderGroup = useCallback(({ item: group }: { item: DuplicateGroup }) => {
+    const bestId = pickBestId(group);
+    return (
     <View style={[styles.group, { backgroundColor: colors.cardBg }]}>
       <View style={styles.groupHeader}>
         <Icon name="content-copy" size={18} color={colors.textTertiary} />
@@ -101,21 +133,33 @@ export default function DuplicatesScreen() {
             key={photo.id}
             style={[
               styles.thumbWrap,
-              selected.has(photo.id) && { borderColor: colors.primary, borderWidth: 2 },
+              selected.has(photo.id) && { borderColor: colors.danger, borderWidth: 2 },
+              photo.id === bestId && !selected.has(photo.id) && { borderColor: colors.success, borderWidth: 2 },
             ]}
             onPress={() => toggleSelect(photo.id)}
           >
             <NitroImage
-              image={{ url: photo.uri }}
+              image={{ url: photo.url }}
               style={styles.thumb}
               resizeMode="cover"
               recyclingKey={photo.id}
             />
+            {photo.id === bestId && (
+              <View style={[styles.blurryBadge, { backgroundColor: colors.success }]}>
+                <Icon name="star" size={11} color="#fff" />
+              </View>
+            )}
+            {selected.has(photo.id) && (
+              <View style={[styles.blurryBadge, { backgroundColor: colors.danger }]}>
+                <Icon name="delete" size={11} color="#fff" />
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </View>
     </View>
-  ), [colors, selected, toggleSelect]);
+    );
+  }, [colors, selected, toggleSelect]);
 
   if (loading) {
     return (
@@ -138,13 +182,13 @@ export default function DuplicatesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Duplicados</Text>
-        <TouchableOpacity onPress={selectAll}>
-          <Text style={[styles.selectAll, { color: colors.primary }]}>Todo</Text>
+        <TouchableOpacity onPress={selectAllKeepBest}>
+          <Text style={[styles.selectAll, { color: colors.primary }]}>Conservar mejor</Text>
         </TouchableOpacity>
       </View>
 
@@ -154,6 +198,15 @@ export default function DuplicatesScreen() {
         contentContainerStyle={styles.list}
         renderItem={renderGroup}
       />
+
+      {selected.size > 0 && (
+        <View style={[styles.deleteBar, { backgroundColor: colors.danger }]}>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteSelected}>
+            <Icon name="delete" size={22} color="#fff" />
+            <Text style={styles.deleteText}>Eliminar {selected.size} seleccionada(s)</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

@@ -207,6 +207,10 @@ export async function deletePhoto(photoId: string): Promise<void> {
   await authenticatedDelete(`photos/${photoId}`)
 }
 
+export async function bulkDeletePhotos(ids: string[]): Promise<{ deleted: number }> {
+  return authenticatedDelete<{ deleted: number }>('photos/bulk', { ids })
+}
+
 export async function getShareLink(photoId: string, expiresIn: number = 604800): Promise<string> {
   return autoRetry(async () => {
     const headers = await authHeaders()
@@ -284,6 +288,10 @@ export async function restorePhoto(photoId: string): Promise<void> {
 
 export async function permanentlyDeletePhoto(photoId: string): Promise<void> {
   await authenticatedDelete(`photos/trash/${photoId}`)
+}
+
+export async function emptyTrash(): Promise<{ deleted: number }> {
+  return authenticatedDelete('photos/trash')
 }
 
 export async function getPhotoAlbums(photoId: string): Promise<{ id: string; name: string; vault: boolean }[]> {

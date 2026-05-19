@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../theme'
 import { useNetwork } from '../context/NetworkContext'
 import { useToast } from '../context/ToastContext'
-import { getPendingCount, processQueue, getQueue, retryFailed } from '../services/UploadQueue'
+import { getPendingCount, processQueue, getQueue, retryFailed, clearQueue } from '../services/UploadQueue'
 import type { QueueItem } from '../services/UploadQueue'
 
 export default function UploadQueueBanner() {
@@ -61,7 +61,7 @@ export default function UploadQueueBanner() {
         refresh()
       },
       (item, error) => {
-        showToast({ message: `Error al subir ${item.name}`, type: 'error', position: 'top-right', duration: 3000 })
+        showToast({ message: `Error: ${item.name} — ${error}`, type: 'error', position: 'top-right', duration: 5000 })
         refresh()
       },
     )
@@ -80,6 +80,34 @@ export default function UploadQueueBanner() {
       showToast({ message: `Reintentando ${count} archivo(s)`, type: 'info', position: 'top-right', duration: 2000 })
       handleProcess()
     }
+  }
+
+  const handleClearQueue = () => {
+    Alert.alert(
+      'Limpiar cola',
+      '¿Eliminar todos los archivos pendientes de la cola? No se borrarán del dispositivo.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Limpiar',
+          style: 'destructive',
+          onPress: () => {
+            clearQueue()
+            refresh()
+            showToast({ message: 'Cola limpiada', type: 'info', position: 'top-right', duration: 2000 })
+          },
+        },
+      ],
+    )
+  }
+
+  const handleShowErrors = () => {
+    const failed = getQueue().filter(i => i.status === 'failed')
+    if (failed.length === 0) return
+    const lines = failed
+      .map(i => `• ${i.name}\n  ${i.errorMessage || 'Error desconocido'}`)
+      .join('\n\n')
+    Alert.alert(`Fallos (${failed.length})`, lines, [{ text: 'Cerrar' }])
   }
 
   if (pending === 0 && !processing) return null
@@ -110,9 +138,21 @@ export default function UploadQueueBanner() {
       </View>
 
       {failedCount > 0 && !processing && (
-        <TouchableOpacity style={styles.retryBtn} onPress={handleRetryFailed}>
-          <Icon name="refresh" size={18} color="#fff" />
-          <Text style={styles.retryText}>Reintentar</Text>
+        <>
+          <TouchableOpacity style={styles.retryBtn} onPress={handleShowErrors}>
+            <Icon name="info-outline" size={18} color="#fff" />
+            <Text style={styles.retryText}>Ver errores</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.retryBtn} onPress={handleRetryFailed}>
+            <Icon name="refresh" size={18} color="#fff" />
+            <Text style={styles.retryText}>Reintentar</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {!processing && (
+        <TouchableOpacity style={styles.retryBtn} onPress={handleClearQueue}>
+          <Icon name="close" size={18} color="#fff" />
         </TouchableOpacity>
       )}
 
@@ -128,11 +168,17 @@ export default function UploadQueueBanner() {
 
 const styles = StyleSheet.create({
   banner: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 8,
     paddingHorizontal: 16,
+    zIndex: 999,
+    elevation: 10,
   },
   content: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
 
 type ToastType = 'success' | 'error' | 'info'
@@ -24,6 +25,7 @@ const icons: Record<ToastType, string> = {
 
 export default function Toast({ visible, message, type = 'info', position = 'top', onDismiss, duration = 2500 }: Props) {
   const { colors } = useTheme()
+  const { top: topInset } = useSafeAreaInsets()
   const animValue = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
@@ -62,6 +64,8 @@ export default function Toast({ visible, message, type = 'info', position = 'top
         style={[
           styles.banner,
           isRight ? styles.bannerRight : (isTop ? styles.bannerTop : styles.bannerBottom),
+          isTop && { top: topInset + 12 },
+          isRight && { top: topInset + 12 },
           { backgroundColor: bgColor, transform: [{ translateY }], opacity },
         ]}
       >
@@ -89,12 +93,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   bannerTop: {
-    top: 50,
+    top: 60,
     left: 16,
     right: 16,
   },
   bannerRight: {
-    top: 50,
+    top: 60,
     right: 16,
     maxWidth: 280,
   },

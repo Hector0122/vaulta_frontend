@@ -27,7 +27,14 @@ export async function isCached(userId: string, photoId: string): Promise<boolean
     const raw = await AsyncStorage.getItem(offlineIdsKey(userId));
     if (!raw) return false;
     const ids: string[] = JSON.parse(raw);
-    return ids.includes(photoId);
+    if (!ids.includes(photoId)) return false;
+    const exists = await RNFS.exists(offlinePath(userId, photoId));
+    if (!exists) {
+      const filtered = ids.filter((id: string) => id !== photoId);
+      await AsyncStorage.setItem(offlineIdsKey(userId), JSON.stringify(filtered));
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -45,7 +52,11 @@ export async function getCachedIds(userId: string): Promise<string[]> {
 export async function cachePhoto(userId: string, photoId: string, remoteUrl: string, headers?: Record<string, string>): Promise<string> {
   await ensureDir(userId);
   const local = offlinePath(userId, photoId);
-  await RNFS.downloadFile({ fromUrl: remoteUrl, toFile: local, headers }).promise;
+  const result = await RNFS.downloadFile({ fromUrl: remoteUrl, toFile: local, headers }).promise;
+  if (result.statusCode < 200 || result.statusCode >= 300) {
+    try { await RNFS.unlink(local); } catch {}
+    throw new Error(`Download failed with HTTP ${result.statusCode}`);
+  }
   if (Platform.OS === 'android') await RNFS.scanFile(local);
 
   const ids = await getCachedIds(userId);

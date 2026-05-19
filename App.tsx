@@ -1,5 +1,6 @@
-import { StatusBar, ActivityIndicator, View } from 'react-native';
-import { useEffect } from 'react';
+import { StatusBar, ActivityIndicator, View, Text, StyleSheet, AppState, AppStateStatus } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { promptBiometrics } from './services/biometrics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -87,16 +88,59 @@ function TabNavigator() {
   );
 }
 
-function AppNavigator() {
-  const { user, loading } = useAuth();
+function BiometricGate() {
+  const { handleBiometricSuccess, dismissBiometricGate, biometricLabel } = useAuth();
   const { colors } = useTheme();
 
   useEffect(() => {
-    if (user) {
+    ;(async () => {
+      const ok = await promptBiometrics('Desbloquea ' + (biometricLabel || 'Vaulta'))
+      if (ok) {
+        handleBiometricSuccess()
+      } else {
+        dismissBiometricGate()
+      }
+    })()
+  }, [handleBiometricSuccess, dismissBiometricGate, biometricLabel])
+
+  return (
+    <View style={[biometricStyles.container, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={[biometricStyles.text, { color: colors.textSecondary }]}>
+        Verificando identidad…
+      </Text>
+    </View>
+  )
+}
+
+const biometricStyles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  text: { fontSize: 16 },
+})
+
+function AppNavigator() {
+  const { user, loading, biometricNeeded } = useAuth();
+  const { colors } = useTheme();
+
+  const appState = useRef<AppStateStatus>(AppState.currentState)
+
+  useEffect(() => {
+    if (user && !biometricNeeded) {
       registerFcmToken()
       updateWidgetWithRecentPhotos()
     }
-  }, [user])
+  }, [user, biometricNeeded])
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        const { runAutoSync } = require('./api/autoSync')
+        runAutoSync().catch(() => {})
+      }
+      appState.current = nextState
+    })
+    return () => subscription.remove()
+  }, [])
 
   if (loading) {
     return (
@@ -105,6 +149,10 @@ function AppNavigator() {
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 32 }} />
       </View>
     );
+  }
+
+  if (biometricNeeded && user) {
+    return <BiometricGate />
   }
 
   if (!user) {

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Modal,
+  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,13 +17,40 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme';
 import { useThemeMode } from '../../context/ThemeContext';
-import '../../utils/calendarLocales'
+import '../../utils/calendarLocales';
 import LazyCalendar from '../../components/LazyCalendar';
-import { authenticatedPatch, authenticatedGet, authenticatedPost, exportAllPhotos, exportByDate } from '../../api/client';
+import {
+  authenticatedPatch,
+  authenticatedGet,
+  authenticatedPost,
+  exportAllPhotos,
+  exportByDate,
+} from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { promptBiometrics } from '../../services/biometrics';
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const val = bytes / Math.pow(1024, i);
+  return `${val.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 export default function ProfileScreen() {
-  const navigation = useNavigation<StackNavigationProp<{ Duplicates: undefined; Trash: undefined }>>();
-  const { user, logout } = useAuth();
+  const navigation =
+    useNavigation<
+      StackNavigationProp<{ Duplicates: undefined; Trash: undefined }>
+    >();
+  const {
+    user,
+    logout,
+    biometricAvailable,
+    biometricEnabled,
+    biometricLabel,
+    enableBiometric,
+    disableBiometric,
+  } = useAuth();
   const { colors } = useTheme();
   const { themeMode, setThemeMode } = useThemeMode();
   const [name, setName] = useState(user?.name || '');
@@ -35,12 +63,105 @@ export default function ProfileScreen() {
     albumCount: number;
     favoriteCount: number;
     blurryCount: number;
+    totalSize: number;
   } | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateFrom, setDateFrom] = useState<string | null>(null);
   const [dateTo, setDateTo] = useState<string | null>(null);
   const [selectingEnd, setSelectingEnd] = useState(false);
-  const { showToast } = useToast()
+  const { showToast } = useToast();
+  const [autoSyncEnabled, setAutoSyncEnabledState] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncLabel, setLastSyncLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const {
+      isAutoSyncEnabled,
+      getLastSyncTimeFormatted,
+    } = require('../../api/autoSync');
+    setAutoSyncEnabledState(isAutoSyncEnabled());
+    setLastSyncLabel(getLastSyncTimeFormatted());
+  }, []);
+
+  const handleAutoSyncToggle = (value: boolean) => {
+    const { setAutoSyncEnabled } = require('../../api/autoSync');
+    setAutoSyncEnabled(value);
+    setAutoSyncEnabledState(value);
+  };
+
+  const handleCancelSync = () => {
+    const { cancelAutoSync } = require('../../api/autoSync');
+    cancelAutoSync();
+  };
+
+  const handleFullResync = async () => {
+    setSyncing(true);
+    try {
+      const {
+        clearLastSyncTime,
+        runAutoSync,
+        getLastSyncTimeFormatted,
+      } = require('../../api/autoSync');
+      clearLastSyncTime();
+      setLastSyncLabel(null);
+      const count: number = await runAutoSync(true);
+      setLastSyncLabel(getLastSyncTimeFormatted());
+      if (count === -2) {
+        showToast({ message: 'Sincronización cancelada', type: 'info' });
+      } else if (count === -1) {
+        Alert.alert(
+          'Sin permiso',
+          'Otorga permiso de galería en Ajustes del sistema.',
+        );
+      } else if (count === 0) {
+        showToast({ message: 'No hay fotos nuevas', type: 'info' });
+      } else {
+        showToast({
+          message: `${count} foto(s) en cola de subida`,
+          type: 'success',
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[AutoSync] handleFullResync error:', msg);
+      Alert.alert('Error al sincronizar', msg);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    try {
+      const {
+        runAutoSync,
+        getLastSyncTimeFormatted,
+      } = require('../../api/autoSync');
+      const count: number = await runAutoSync(true);
+      setLastSyncLabel(getLastSyncTimeFormatted());
+      if (count === -2) {
+        showToast({ message: 'Sincronización cancelada', type: 'info' });
+      } else if (count === -1) {
+        Alert.alert(
+          'Sin permiso',
+          'Otorga permiso de galería en Ajustes del sistema.',
+        );
+      } else if (count === 0) {
+        showToast({ message: 'No hay fotos nuevas', type: 'info' });
+      } else {
+        showToast({
+          message: `${count} foto(s) en cola de subida`,
+          type: 'success',
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[AutoSync] handleSyncNow error:', msg);
+      Alert.alert('Error al sincronizar', msg);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     authenticatedGet<{
@@ -48,6 +169,7 @@ export default function ProfileScreen() {
       albumCount: number;
       favoriteCount: number;
       blurryCount: number;
+      totalSize: number;
     }>('photos/stats')
       .then(setStats)
       .catch(() => {});
@@ -92,324 +214,573 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      {stats && (
-        <View style={[styles.statsCard, { backgroundColor: colors.cardBg }]}>
-          <View style={styles.statItem}>
-            <Icon name="photo-library" size={24} color={colors.primary} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {stats.photoCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-              Fotos
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statDivider,
-              { backgroundColor: colors.borderLight },
-            ]}
-          />
-          <View style={styles.statItem}>
-            <Icon name="photo-album" size={24} color={colors.primary} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {stats.albumCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-              Álbumes
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statDivider,
-              { backgroundColor: colors.borderLight },
-            ]}
-          />
-          <View style={styles.statItem}>
-            <Icon name="favorite" size={24} color={colors.favorite} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {stats.favoriteCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-              Favoritos
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statDivider,
-              { backgroundColor: colors.borderLight },
-            ]}
-          />
-          <View style={styles.statItem}>
-            <Icon name="blur-off" size={24} color={colors.danger} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {stats.blurryCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-              Borrosas
-            </Text>
-          </View>
-        </View>
-      )}
-      <View style={[styles.analysisRow, { gap: 8 }]}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-          onPress={async () => {
-            try {
-              const res = await authenticatedPost<{ analyzed: number }>('photos/analyze-all');
-              Alert.alert('Análisis completo', `${res.analyzed} foto(s) analizada(s)`);
-              const newStats = await authenticatedGet<{ photoCount: number; albumCount: number; favoriteCount: number; blurryCount: number }>('photos/stats');
-              setStats(newStats);
-            } catch {
-              Alert.alert('Error', 'No se pudo analizar');
-            }
-          }}
-        >
-          <Icon name="auto-fix" size={18} color="#fff" />
-          <Text style={styles.actionBtnText}>Analizar fotos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
-          onPress={() => navigation.navigate('Duplicates')}
-        >
-          <Icon name="content-copy" size={18} color={colors.text} />
-          <Text style={[styles.actionBtnText, { color: colors.text }]}>Duplicados</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={[styles.analysisRow, { gap: 8, marginTop: 8 }]}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
-          onPress={() => navigation.navigate('Trash')}
-        >
-          <Icon name="delete-sweep" size={18} color={colors.text} />
-          <Text style={[styles.actionBtnText, { color: colors.text }]}>Papelera</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.primary, flex: 1 }]}
-          onPress={async () => {
-            try {
-              await exportAllPhotos()
-              showToast({ message: 'Exportación iniciada', type: 'info' })
-            } catch {
-              showToast({ message: 'No se pudo exportar', type: 'error' })
-            }
-          }}
-        >
-          <Icon name="file-download" size={18} color="#fff" />
-          <Text style={styles.actionBtnText}>Exportar todo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Icon name="date-range" size={18} color={colors.text} />
-          <Text style={[styles.actionBtnText, { color: colors.text }]}>Por fecha</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Modal visible={showDatePicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {selectingEnd ? 'Selecciona fecha fin' : 'Selecciona fecha inicio'}
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.content}
+      >
+        {stats && (
+          <View style={[styles.statsCard, { backgroundColor: colors.cardBg }]}>
+            <View style={styles.statItem}>
+              <Icon name="photo-library" size={24} color={colors.primary} />
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {stats.photoCount}
               </Text>
-              <TouchableOpacity onPress={() => { setShowDatePicker(false); setDateFrom(null); setDateTo(null); setSelectingEnd(false) }}>
-                <Icon name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Fotos
+              </Text>
             </View>
-            {dateFrom && (
-              <Text style={[styles.dateRangeInfo, { color: colors.textSecondary }]}>
-                Desde: {dateFrom}{dateTo ? `  Hasta: ${dateTo}` : ''}
-              </Text>
-            )}
-            <LazyCalendar
-              onDayPress={(day: { dateString: string }) => {
-                if (!selectingEnd) {
-                  setDateFrom(day.dateString)
-                  setSelectingEnd(true)
-                } else {
-                  setDateTo(day.dateString)
-                }
-              }}
-              markedDates={{
-                ...(dateFrom ? { [dateFrom]: { selected: true, startingDay: true, color: colors.primary } } : {}),
-                ...(dateTo ? { [dateTo]: { selected: true, endingDay: true, color: colors.primary } } : {}),
-                ...(dateFrom && dateTo ? Object.fromEntries(
-                  (() => {
-                    const dates: [string, any][] = []
-                    const start = new Date(dateFrom)
-                    const end = new Date(dateTo)
-                    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                      const ds = d.toISOString().slice(0, 10)
-                      if (ds !== dateFrom && ds !== dateTo) {
-                        dates.push([ds, { selected: true, color: colors.primary + '44' }])
-                      }
-                    }
-                    return dates
-                  })()
-                ) : {})
-              }}
-              markingType="period"
-              theme={{
-                todayTextColor: colors.primary,
-                selectedDayBackgroundColor: colors.primary,
-                arrowColor: colors.primary,
-                calendarBackground: colors.background,
-                dayTextColor: colors.text,
-                monthTextColor: colors.text,
-                textDisabledColor: colors.textTertiary,
-              }}
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: colors.borderLight },
+              ]}
             />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1 }]}
-                onPress={() => { setDateFrom(null); setDateTo(null); setSelectingEnd(false) }}
+            <View style={styles.statItem}>
+              <Icon name="photo-album" size={24} color={colors.primary} />
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {stats.albumCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Álbumes
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: colors.borderLight },
+              ]}
+            />
+            <View style={styles.statItem}>
+              <Icon name="favorite" size={24} color={colors.favorite} />
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {stats.favoriteCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Favoritos
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: colors.borderLight },
+              ]}
+            />
+            <View style={styles.statItem}>
+              <Icon name="blur-off" size={24} color={colors.danger} />
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {stats.blurryCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Borrosas
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: colors.borderLight },
+              ]}
+            />
+            <View style={styles.statItem}>
+              <Icon name="storage" size={24} color={colors.primary} />
+              <Text
+                style={[
+                  styles.statNumber,
+                  { color: colors.text, fontSize: 18 },
+                ]}
               >
-                <Text style={[styles.modalBtnText, { color: colors.text }]}>Limpiar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: colors.primary }]}
-                onPress={async () => {
-                  if (!dateFrom || !dateTo) {
-                    Alert.alert('Selecciona fecha inicio y fin')
-                    return
-                  }
-                  setShowDatePicker(false)
-                  try {
-                    await exportByDate(dateFrom, dateTo)
-                    showToast({ message: 'Exportación iniciada', type: 'info' })
-                  } catch {
-                    showToast({ message: 'No se pudieron exportar las fotos', type: 'error' })
-                  }
-                  setDateFrom(null)
-                  setDateTo(null)
-                  setSelectingEnd(false)
-                }}
-              >
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>Exportar</Text>
-              </TouchableOpacity>
+                {formatBytes(stats.totalSize)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Almacenamiento
+              </Text>
             </View>
           </View>
-        </View>
-      </Modal>
-
-      <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Nombre
-      </Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            borderColor: colors.border,
-            color: colors.text,
-            backgroundColor: colors.inputBg,
-          },
-        ]}
-        value={name}
-        onChangeText={setName}
-        placeholder="Tu nombre"
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            borderColor: colors.border,
-            color: colors.text,
-            backgroundColor: colors.inputBg,
-          },
-        ]}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="tu@email.com"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-
-      <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Contraseña actual
-      </Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            borderColor: colors.border,
-            color: colors.text,
-            backgroundColor: colors.inputBg,
-          },
-        ]}
-        value={currentPassword}
-        onChangeText={setCurrentPassword}
-        placeholder="Dejar vacío si no cambias"
-        secureTextEntry
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Nueva contraseña
-      </Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            borderColor: colors.border,
-            color: colors.text,
-            backgroundColor: colors.inputBg,
-          },
-        ]}
-        value={newPassword}
-        onChangeText={setNewPassword}
-        placeholder="Mínimo 6 caracteres"
-        secureTextEntry
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.primary }]}
-        onPress={handleSave}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Guardar cambios</Text>
         )}
-      </TouchableOpacity>
-
-      <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-
-      <TouchableOpacity
-        style={styles.themeRow}
-        onPress={() => setThemeMode(nextMode)}
-      >
-        <View style={styles.themeRowLeft}>
-          <Icon name={modeIcons[themeMode]} size={22} color={colors.text} />
-          <Text style={[styles.themeLabel, { color: colors.text }]}>Tema</Text>
+        <View style={[styles.analysisRow, { gap: 8 }]}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+            onPress={async () => {
+              try {
+                const res = await authenticatedPost<{ analyzed: number }>(
+                  'photos/analyze-all',
+                );
+                Alert.alert(
+                  'Análisis completo',
+                  `${res.analyzed} foto(s) analizada(s)`,
+                );
+                const newStats = await authenticatedGet<{
+                  photoCount: number;
+                  albumCount: number;
+                  favoriteCount: number;
+                  blurryCount: number;
+                  totalSize: number;
+                }>('photos/stats');
+                setStats(newStats);
+              } catch {
+                Alert.alert('Error', 'No se pudo analizar');
+              }
+            }}
+          >
+            <Icon name="auto-fix" size={18} color="#fff" />
+            <Text style={styles.actionBtnText}>Analizar fotos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              {
+                backgroundColor: colors.surfaceAlt,
+                borderColor: colors.border,
+                borderWidth: 1,
+              },
+            ]}
+            onPress={() => navigation.navigate('Duplicates')}
+          >
+            <Icon name="content-copy" size={18} color={colors.text} />
+            <Text style={[styles.actionBtnText, { color: colors.text }]}>
+              Duplicados
+            </Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.themeRowRight}>
-          <Text style={[styles.themeValue, { color: colors.textSecondary }]}>
-            {modeLabels[themeMode]}
-          </Text>
-          <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+        <View
+          style={[
+            styles.statsCard,
+            {
+              backgroundColor: colors.cardBg,
+              marginTop: 12,
+              alignItems: 'center',
+            },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}
+            >
+              Sincronización automática
+            </Text>
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: 12,
+                marginTop: 2,
+              }}
+            >
+              {lastSyncLabel
+                ? `Última sync: ${lastSyncLabel}`
+                : 'Sin sincronizar aún (últimos 30 días)'}
+            </Text>
+          </View>
+          <Switch
+            value={autoSyncEnabled}
+            onValueChange={handleAutoSyncToggle}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor="#fff"
+          />
         </View>
-      </TouchableOpacity>
+        {autoSyncEnabled && (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            {syncing ? (
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: '#ef4444', flex: 1 },
+                ]}
+                onPress={handleCancelSync}
+              >
+                <Icon name="close" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.actionBtn,
+                    { backgroundColor: colors.primary, flex: 1 },
+                  ]}
+                  onPress={handleSyncNow}
+                >
+                  <Icon name="sync" size={18} color="#fff" />
+                  <Text style={styles.actionBtnText}>Sync ahora</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.actionBtn,
+                    { backgroundColor: colors.cardBg, flex: 1, borderWidth: 1, borderColor: colors.primary },
+                  ]}
+                  onPress={handleFullResync}
+                >
+                  <Icon name="refresh" size={18} color={colors.primary} />
+                  <Text style={[styles.actionBtnText, { color: colors.primary }]}>
+                    Sincronizar todo
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
 
-      <TouchableOpacity style={styles.logout} onPress={logout}>
-        <Text style={[styles.logoutText, { color: colors.danger }]}>
-          Cerrar sesión
+        <View style={[styles.analysisRow, { gap: 8, marginTop: 8 }]}>
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              {
+                backgroundColor: colors.surfaceAlt,
+                borderColor: colors.border,
+                borderWidth: 1,
+              },
+            ]}
+            onPress={() => navigation.navigate('Trash')}
+          >
+            <Icon name="delete-sweep" size={18} color={colors.text} />
+            <Text style={[styles.actionBtnText, { color: colors.text }]}>
+              Papelera
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              { backgroundColor: colors.primary, flex: 1 },
+            ]}
+            onPress={async () => {
+              try {
+                await exportAllPhotos();
+                showToast({ message: 'Exportación iniciada', type: 'info' });
+              } catch {
+                showToast({ message: 'No se pudo exportar', type: 'error' });
+              }
+            }}
+          >
+            <Icon name="file-download" size={18} color="#fff" />
+            <Text style={styles.actionBtnText}>Exportar todo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              {
+                backgroundColor: colors.surfaceAlt,
+                borderColor: colors.border,
+                borderWidth: 1,
+              },
+            ]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Icon name="date-range" size={18} color={colors.text} />
+            <Text style={[styles.actionBtnText, { color: colors.text }]}>
+              Por fecha
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Modal visible={showDatePicker} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  {selectingEnd
+                    ? 'Selecciona fecha fin'
+                    : 'Selecciona fecha inicio'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowDatePicker(false);
+                    setDateFrom(null);
+                    setDateTo(null);
+                    setSelectingEnd(false);
+                  }}
+                >
+                  <Icon name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              {dateFrom && (
+                <Text
+                  style={[
+                    styles.dateRangeInfo,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Desde: {dateFrom}
+                  {dateTo ? `  Hasta: ${dateTo}` : ''}
+                </Text>
+              )}
+              <LazyCalendar
+                onDayPress={(day: { dateString: string }) => {
+                  if (!selectingEnd) {
+                    setDateFrom(day.dateString);
+                    setSelectingEnd(true);
+                  } else {
+                    setDateTo(day.dateString);
+                  }
+                }}
+                markedDates={{
+                  ...(dateFrom
+                    ? {
+                        [dateFrom]: {
+                          selected: true,
+                          startingDay: true,
+                          color: colors.primary,
+                        },
+                      }
+                    : {}),
+                  ...(dateTo
+                    ? {
+                        [dateTo]: {
+                          selected: true,
+                          endingDay: true,
+                          color: colors.primary,
+                        },
+                      }
+                    : {}),
+                  ...(dateFrom && dateTo
+                    ? Object.fromEntries(
+                        (() => {
+                          const dates: [string, any][] = [];
+                          const start = new Date(dateFrom);
+                          const end = new Date(dateTo);
+                          for (
+                            let d = new Date(start);
+                            d <= end;
+                            d.setDate(d.getDate() + 1)
+                          ) {
+                            const ds = d.toISOString().slice(0, 10);
+                            if (ds !== dateFrom && ds !== dateTo) {
+                              dates.push([
+                                ds,
+                                {
+                                  selected: true,
+                                  color: colors.primary + '44',
+                                },
+                              ]);
+                            }
+                          }
+                          return dates;
+                        })(),
+                      )
+                    : {}),
+                }}
+                markingType="period"
+                theme={{
+                  todayTextColor: colors.primary,
+                  selectedDayBackgroundColor: colors.primary,
+                  arrowColor: colors.primary,
+                  calendarBackground: colors.background,
+                  dayTextColor: colors.text,
+                  monthTextColor: colors.text,
+                  textDisabledColor: colors.textTertiary,
+                }}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.modalBtn,
+                    {
+                      backgroundColor: colors.surfaceAlt,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
+                  onPress={() => {
+                    setDateFrom(null);
+                    setDateTo(null);
+                    setSelectingEnd(false);
+                  }}
+                >
+                  <Text style={[styles.modalBtnText, { color: colors.text }]}>
+                    Limpiar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                  onPress={async () => {
+                    if (!dateFrom || !dateTo) {
+                      Alert.alert('Selecciona fecha inicio y fin');
+                      return;
+                    }
+                    setShowDatePicker(false);
+                    try {
+                      await exportByDate(dateFrom, dateTo);
+                      showToast({
+                        message: 'Exportación iniciada',
+                        type: 'info',
+                      });
+                    } catch {
+                      showToast({
+                        message: 'No se pudieron exportar las fotos',
+                        type: 'error',
+                      });
+                    }
+                    setDateFrom(null);
+                    setDateTo(null);
+                    setSelectingEnd(false);
+                  }}
+                >
+                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>
+                    Exportar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Nombre
         </Text>
-      </TouchableOpacity>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: colors.inputBg,
+            },
+          ]}
+          value={name}
+          onChangeText={setName}
+          placeholder="Tu nombre"
+          placeholderTextColor={colors.textTertiary}
+        />
 
-    </ScrollView>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Email
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: colors.inputBg,
+            },
+          ]}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="tu@email.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholderTextColor={colors.textTertiary}
+        />
+
+        <View
+          style={[styles.divider, { backgroundColor: colors.borderLight }]}
+        />
+
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Contraseña actual
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: colors.inputBg,
+            },
+          ]}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          placeholder="Dejar vacío si no cambias"
+          secureTextEntry
+          placeholderTextColor={colors.textTertiary}
+        />
+
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Nueva contraseña
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: colors.inputBg,
+            },
+          ]}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          placeholder="Mínimo 6 caracteres"
+          secureTextEntry
+          placeholderTextColor={colors.textTertiary}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Guardar cambios</Text>
+          )}
+        </TouchableOpacity>
+
+        <View
+          style={[styles.divider, { backgroundColor: colors.borderLight }]}
+        />
+
+        <TouchableOpacity
+          style={styles.themeRow}
+          onPress={() => setThemeMode(nextMode)}
+        >
+          <View style={styles.themeRowLeft}>
+            <Icon name={modeIcons[themeMode]} size={22} color={colors.text} />
+            <Text style={[styles.themeLabel, { color: colors.text }]}>
+              Tema
+            </Text>
+          </View>
+          <View style={styles.themeRowRight}>
+            <Text style={[styles.themeValue, { color: colors.textSecondary }]}>
+              {modeLabels[themeMode]}
+            </Text>
+            <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+          </View>
+        </TouchableOpacity>
+
+        {biometricAvailable && (
+          <TouchableOpacity
+            style={styles.themeRow}
+            onPress={async () => {
+              if (biometricEnabled) {
+                await disableBiometric();
+              } else {
+                const ok = await promptBiometrics(
+                  'Activar inicio con ' + biometricLabel,
+                );
+                if (ok) await enableBiometric();
+              }
+            }}
+          >
+            <View style={styles.themeRowLeft}>
+              <Icon name="fingerprint" size={22} color={colors.text} />
+              <Text style={[styles.themeLabel, { color: colors.text }]}>
+                Inicio con {biometricLabel}
+              </Text>
+            </View>
+            <View style={styles.themeRowRight}>
+              <Text
+                style={[styles.themeValue, { color: colors.textSecondary }]}
+              >
+                {biometricEnabled ? 'Activado' : 'Desactivado'}
+              </Text>
+              <Icon
+                name="chevron-right"
+                size={22}
+                color={colors.textTertiary}
+              />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={styles.logout} onPress={logout}>
+          <Text style={[styles.logoutText, { color: colors.danger }]}>
+            Cerrar sesión
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -469,24 +840,33 @@ const styles = StyleSheet.create({
   },
   actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: 16, borderTopRightRadius: 16,
-    padding: 20, paddingBottom: 40,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    paddingBottom: 40,
   },
   modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   modalTitle: { fontSize: 17, fontWeight: '600' },
   dateRangeInfo: { fontSize: 13, marginBottom: 8, textAlign: 'center' },
   modalActions: {
-    flexDirection: 'row', gap: 12, marginTop: 16,
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
   },
   modalBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 8,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },

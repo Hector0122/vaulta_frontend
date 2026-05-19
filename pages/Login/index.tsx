@@ -21,7 +21,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { login, register } = useAuth();
+  const { login, register, biometricAvailable, biometricEnabled, biometricLabel, enableBiometric, biometricLogin } = useAuth();
   const { colors } = useTheme();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -49,6 +49,18 @@ export default function LoginScreen() {
         await register(email, name, password);
       } else {
         await login(email, password);
+      }
+      if (biometricAvailable && !biometricEnabled && !isRegister) {
+        setTimeout(() => {
+          Alert.alert(
+            '¿Activar ' + biometricLabel + '?',
+            'Puedes iniciar sesión con tu huella digital en lugar de escribir tu correo y contraseña cada vez.',
+            [
+              { text: 'Ahora no', style: 'cancel' },
+              { text: 'Activar', onPress: () => enableBiometric() },
+            ],
+          )
+        }, 500)
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Algo salió mal';
@@ -127,6 +139,24 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
+        {biometricAvailable && biometricEnabled && !isRegister && (
+          <>
+            <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
+            <TouchableOpacity
+              style={[styles.biometricBtn, { borderColor: colors.border }]}
+              onPress={async () => {
+                const ok = await biometricLogin()
+                if (!ok) Alert.alert('Error', 'No se pudo iniciar sesión. Ingresa manualmente.')
+              }}
+            >
+              <Icon name="fingerprint" size={22} color={colors.primary} />
+              <Text style={[styles.biometricBtnText, { color: colors.primary }]}>
+                Entrar con {biometricLabel}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
         <TouchableOpacity onPress={() => setIsRegister(!isRegister)}>
           <Text style={[styles.switchText, { color: colors.textSecondary }]}>
             {isRegister
@@ -193,5 +223,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     fontSize: 14,
+  },
+  divider: { height: 1, marginVertical: 16 },
+  biometricBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 4,
+  },
+  biometricBtnText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
