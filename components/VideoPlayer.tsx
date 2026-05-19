@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Image } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  Image,
+} from 'react-native'
 import Video from 'react-native-video'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
@@ -37,7 +44,15 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
       <View style={styles.center}>
         <Icon name="error-outline" size={48} color="#fff" />
         <Text style={styles.errorText}>Error al cargar el video</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => { setError(false); setLoading(true); setMounted(false); setPaused(true) }}>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={() => {
+            setError(false)
+            setLoading(true)
+            setMounted(false)
+            setPaused(true)
+          }}
+        >
           <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
@@ -45,9 +60,17 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
   }
 
   return (
-    <TouchableOpacity activeOpacity={1} style={styles.container} onPress={handlePress}>
+    <TouchableOpacity
+      activeOpacity={1}
+      style={styles.container}
+      onPress={handlePress}
+    >
       {(!mounted || loading) && posterUri && (
-        <Image source={{ uri: posterUri }} style={styles.poster} resizeMode="cover" />
+        <Image
+          source={{ uri: posterUri }}
+          style={styles.poster}
+          resizeMode="cover"
+        />
       )}
       {mounted && (
         <Video
@@ -55,8 +78,13 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
           style={styles.video}
           paused={paused}
           resizeMode="contain"
-          onLoad={() => { setLoading(false) }}
-          onError={() => { setLoading(false); setError(true) }}
+          onLoad={() => {
+            setLoading(false)
+          }}
+          onError={() => {
+            setLoading(false)
+            setError(true)
+          }}
           onBuffer={({ isBuffering }) => setLoading(isBuffering)}
           bufferConfig={{
             minBufferMs: 15000,
@@ -81,12 +109,20 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
       )}
       {ready && !error && !mounted && (
         <View style={styles.playOverlay} pointerEvents="none">
-          <Icon name="play-circle-filled" size={64} color="rgba(255,255,255,0.8)" />
+          <Icon
+            name="play-circle-filled"
+            size={64}
+            color="rgba(255,255,255,0.8)"
+          />
         </View>
       )}
       {mounted && showControl && !loading && !error && (
         <View style={styles.playOverlay} pointerEvents="none">
-          <Icon name={paused ? "play-circle-filled" : "pause-circle-filled"} size={64} color="rgba(255,255,255,0.8)" />
+          <Icon
+            name={paused ? 'play-circle-filled' : 'pause-circle-filled'}
+            size={64}
+            color="rgba(255,255,255,0.8)"
+          />
         </View>
       )}
     </TouchableOpacity>
@@ -97,10 +133,25 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   video: { flex: 1 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  center: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
-  playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  center: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   errorText: { color: '#fff', fontSize: 16, marginTop: 12 },
   loadingText: { color: '#fff', fontSize: 14, marginTop: 8 },
-  retryBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: '#333', borderRadius: 8 },
+  retryBtn: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: '#333',
+    borderRadius: 8,
+  },
   retryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 })

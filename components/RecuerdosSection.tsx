@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import type { ThemeColors } from '../theme'
 
 type Recuerdo = {
   year: number
@@ -15,11 +16,15 @@ type Recuerdo = {
 
 type Props = {
   recuerdos: Recuerdo[]
-  colors: any
+  colors: ThemeColors
   onPressRecuerdo: (r: Recuerdo) => void
 }
 
-export default function RecuerdosSection({ recuerdos, colors, onPressRecuerdo }: Props) {
+export default function RecuerdosSection({
+  recuerdos,
+  colors,
+  onPressRecuerdo,
+}: Props) {
   if (recuerdos.length === 0) return null
 
   return (
@@ -48,9 +53,19 @@ export default function RecuerdosSection({ recuerdos, colors, onPressRecuerdo }:
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 10, paddingLeft: 12 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
   title: { fontSize: 15, fontWeight: '600' },
   card: { marginRight: 10, alignItems: 'center', width: 100 },
-  thumb: { width: 100, height: 100, borderRadius: 8, backgroundColor: '#e0e0e0' },
+  thumb: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
+  },
   label: { fontSize: 11, marginTop: 4, textAlign: 'center' },
 })

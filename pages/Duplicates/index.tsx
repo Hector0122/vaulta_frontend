@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -8,165 +8,191 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { NitroImage } from 'react-native-nitro-image';
-import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../theme';
-import { authenticatedGet, deletePhoto, bulkDeletePhotos } from '../../api/client';
+} from 'react-native'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import { NitroImage } from 'react-native-nitro-image'
+import { useNavigation } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTheme } from '../../theme'
+import {
+  authenticatedGet,
+  deletePhoto,
+  bulkDeletePhotos,
+} from '../../api/client'
 
 type DuplicateGroup = {
-  id: string;
-  url: string;
-  filename: string;
-  perceptualHash: string;
-  blurred: boolean;
-  blurScore: number | null;
-  createdAt: string;
-}[];
+  id: string
+  url: string
+  filename: string
+  perceptualHash: string
+  blurred: boolean
+  blurScore: number | null
+  createdAt: string
+}[]
 
 export default function DuplicatesScreen() {
-  const navigation = useNavigation();
-  const { colors } = useTheme();
-  const { top } = useSafeAreaInsets();
-  const [groups, setGroups] = useState<DuplicateGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const navigation = useNavigation()
+  const { colors } = useTheme()
+  const { top } = useSafeAreaInsets()
+  const [groups, setGroups] = useState<DuplicateGroup[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     authenticatedGet<DuplicateGroup[]>('photos/duplicates')
       .then(data => {
-        setGroups(data);
-        setLoading(false);
+        setGroups(data)
+        setLoading(false)
       })
       .catch(() => {
-        Alert.alert('Error', 'No se pudieron cargar los duplicados');
-        setLoading(false);
-      });
-  }, []);
+        Alert.alert('Error', 'No se pudieron cargar los duplicados')
+        setLoading(false)
+      })
+  }, [])
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const handleDeleteSelected = () => {
-    if (selected.size === 0) return;
-    Alert.alert(
-      'Eliminar duplicados',
-      `Eliminar ${selected.size} foto(s)?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            const ids = Array.from(selected);
-            try {
-              await bulkDeletePhotos(ids);
-            } catch {
-              // fallback: delete one by one
-              for (const id of ids) {
-                try { await deletePhoto(id); } catch { /* skip */ }
+    if (selected.size === 0) return
+    Alert.alert('Eliminar duplicados', `Eliminar ${selected.size} foto(s)?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          const ids = Array.from(selected)
+          try {
+            await bulkDeletePhotos(ids)
+          } catch {
+            // fallback: delete one by one
+            for (const id of ids) {
+              try {
+                await deletePhoto(id)
+              } catch {
+                /* skip */
               }
             }
-            setGroups(prev =>
-              prev
-                .map(g => g.filter(p => !selected.has(p.id)))
-                .filter(g => g.length > 1),
-            );
-            setSelected(new Set());
-          },
+          }
+          setGroups(prev =>
+            prev
+              .map(g => g.filter(p => !selected.has(p.id)))
+              .filter(g => g.length > 1),
+          )
+          setSelected(new Set())
         },
-      ],
-    );
-  };
+      },
+    ])
+  }
 
   const selectAll = () => {
-    const all = new Set<string>();
-    groups.forEach(g => g.forEach(p => all.add(p.id)));
-    setSelected(all);
-  };
+    const all = new Set<string>()
+    groups.forEach(g => g.forEach(p => all.add(p.id)))
+    setSelected(all)
+  }
 
   /** Returns the ID of the best photo in a group (sharpest + most recent). */
   function pickBestId(group: DuplicateGroup): string {
     const sorted = [...group].sort((a, b) => {
       // Prefer non-blurred
-      if (a.blurred !== b.blurred) return a.blurred ? 1 : -1;
+      if (a.blurred !== b.blurred) return a.blurred ? 1 : -1
       // Prefer lower blurScore (sharper)
-      const sa = a.blurScore ?? 999;
-      const sb = b.blurScore ?? 999;
-      if (sa !== sb) return sa - sb;
+      const sa = a.blurScore ?? 999
+      const sb = b.blurScore ?? 999
+      if (sa !== sb) return sa - sb
       // Prefer most recent
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-    return sorted[0].id;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+    return sorted[0].id
   }
 
   const selectAllKeepBest = () => {
-    const toDelete = new Set<string>();
+    const toDelete = new Set<string>()
     groups.forEach(g => {
-      const bestId = pickBestId(g);
-      g.forEach(p => { if (p.id !== bestId) toDelete.add(p.id); });
-    });
-    setSelected(toDelete);
-  };
+      const bestId = pickBestId(g)
+      g.forEach(p => {
+        if (p.id !== bestId) toDelete.add(p.id)
+      })
+    })
+    setSelected(toDelete)
+  }
 
-  const renderGroup = useCallback(({ item: group }: { item: DuplicateGroup }) => {
-    const bestId = pickBestId(group);
-    return (
-    <View style={[styles.group, { backgroundColor: colors.cardBg }]}>
-      <View style={styles.groupHeader}>
-        <Icon name="content-copy" size={18} color={colors.textTertiary} />
-        <Text style={[styles.groupCount, { color: colors.textSecondary }]}>
-          {group.length} fotos similares
-        </Text>
-      </View>
-      <View style={styles.groupRow}>
-        {group.map(photo => (
-          <TouchableOpacity
-            key={photo.id}
-            style={[
-              styles.thumbWrap,
-              selected.has(photo.id) && { borderColor: colors.danger, borderWidth: 2 },
-              photo.id === bestId && !selected.has(photo.id) && { borderColor: colors.success, borderWidth: 2 },
-            ]}
-            onPress={() => toggleSelect(photo.id)}
-          >
-            <NitroImage
-              image={{ url: photo.url }}
-              style={styles.thumb}
-              resizeMode="cover"
-              recyclingKey={photo.id}
-            />
-            {photo.id === bestId && (
-              <View style={[styles.blurryBadge, { backgroundColor: colors.success }]}>
-                <Icon name="star" size={11} color="#fff" />
-              </View>
-            )}
-            {selected.has(photo.id) && (
-              <View style={[styles.blurryBadge, { backgroundColor: colors.danger }]}>
-                <Icon name="delete" size={11} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-    );
-  }, [colors, selected, toggleSelect]);
+  const renderGroup = useCallback(
+    ({ item: group }: { item: DuplicateGroup }) => {
+      const bestId = pickBestId(group)
+      return (
+        <View style={[styles.group, { backgroundColor: colors.cardBg }]}>
+          <View style={styles.groupHeader}>
+            <Icon name="content-copy" size={18} color={colors.textTertiary} />
+            <Text style={[styles.groupCount, { color: colors.textSecondary }]}>
+              {group.length} fotos similares
+            </Text>
+          </View>
+          <View style={styles.groupRow}>
+            {group.map(photo => (
+              <TouchableOpacity
+                key={photo.id}
+                style={[
+                  styles.thumbWrap,
+                  selected.has(photo.id) && {
+                    borderColor: colors.danger,
+                    borderWidth: 2,
+                  },
+                  photo.id === bestId &&
+                    !selected.has(photo.id) && {
+                      borderColor: colors.success,
+                      borderWidth: 2,
+                    },
+                ]}
+                onPress={() => toggleSelect(photo.id)}
+              >
+                <NitroImage
+                  image={{ url: photo.url }}
+                  style={styles.thumb}
+                  resizeMode="cover"
+                  recyclingKey={photo.id}
+                />
+                {photo.id === bestId && (
+                  <View
+                    style={[
+                      styles.blurryBadge,
+                      { backgroundColor: colors.success },
+                    ]}
+                  >
+                    <Icon name="star" size={11} color="#fff" />
+                  </View>
+                )}
+                {selected.has(photo.id) && (
+                  <View
+                    style={[
+                      styles.blurryBadge,
+                      { backgroundColor: colors.danger },
+                    ]}
+                  >
+                    <Icon name="delete" size={11} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )
+    },
+    [colors, selected, toggleSelect],
+  )
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
-    );
+    )
   }
 
   if (groups.length === 0) {
@@ -177,18 +203,29 @@ export default function DuplicatesScreen() {
           No hay fotos duplicadas
         </Text>
       </View>
-    );
+    )
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: top + 12 }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+            paddingTop: top + 12,
+          },
+        ]}
+      >
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Duplicados</Text>
         <TouchableOpacity onPress={selectAllKeepBest}>
-          <Text style={[styles.selectAll, { color: colors.primary }]}>Conservar mejor</Text>
+          <Text style={[styles.selectAll, { color: colors.primary }]}>
+            Conservar mejor
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -201,14 +238,19 @@ export default function DuplicatesScreen() {
 
       {selected.size > 0 && (
         <View style={[styles.deleteBar, { backgroundColor: colors.danger }]}>
-          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteSelected}>
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={handleDeleteSelected}
+          >
             <Icon name="delete" size={22} color="#fff" />
-            <Text style={styles.deleteText}>Eliminar {selected.size} seleccionada(s)</Text>
+            <Text style={styles.deleteText}>
+              Eliminar {selected.size} seleccionada(s)
+            </Text>
           </TouchableOpacity>
         </View>
       )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -272,4 +314,4 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   deleteText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+})

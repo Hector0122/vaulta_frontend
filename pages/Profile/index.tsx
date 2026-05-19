@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -10,38 +10,38 @@ import {
   ScrollView,
   Modal,
   Switch,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../theme';
-import { useThemeMode } from '../../context/ThemeContext';
-import '../../utils/calendarLocales';
-import LazyCalendar from '../../components/LazyCalendar';
+} from 'react-native'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import { useNavigation } from '@react-navigation/native'
+import { StackNavigationProp } from '@react-navigation/stack'
+import { useAuth } from '../../context/AuthContext'
+import { useTheme } from '../../theme'
+import { useThemeMode } from '../../context/ThemeContext'
+import '../../utils/calendarLocales'
+import LazyCalendar from '../../components/LazyCalendar'
 import {
   authenticatedPatch,
   authenticatedGet,
   authenticatedPost,
   exportAllPhotos,
   exportByDate,
-} from '../../api/client';
-import { useToast } from '../../context/ToastContext';
-import { promptBiometrics } from '../../services/biometrics';
+} from '../../api/client'
+import { useToast } from '../../context/ToastContext'
+import { promptBiometrics } from '../../services/biometrics'
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const val = bytes / Math.pow(1024, i);
-  return `${val.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  if (bytes === 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  const val = bytes / Math.pow(1024, i)
+  return `${val.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
 export default function ProfileScreen() {
   const navigation =
     useNavigation<
       StackNavigationProp<{ Duplicates: undefined; Trash: undefined }>
-    >();
+    >()
   const {
     user,
     logout,
@@ -50,167 +50,167 @@ export default function ProfileScreen() {
     biometricLabel,
     enableBiometric,
     disableBiometric,
-  } = useAuth();
-  const { colors } = useTheme();
-  const { themeMode, setThemeMode } = useThemeMode();
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [saving, setSaving] = useState(false);
+  } = useAuth()
+  const { colors } = useTheme()
+  const { themeMode, setThemeMode } = useThemeMode()
+  const [name, setName] = useState(user?.name || '')
+  const [email, setEmail] = useState(user?.email || '')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [saving, setSaving] = useState(false)
   const [stats, setStats] = useState<{
-    photoCount: number;
-    albumCount: number;
-    favoriteCount: number;
-    blurryCount: number;
-    totalSize: number;
-  } | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateFrom, setDateFrom] = useState<string | null>(null);
-  const [dateTo, setDateTo] = useState<string | null>(null);
-  const [selectingEnd, setSelectingEnd] = useState(false);
-  const { showToast } = useToast();
-  const [autoSyncEnabled, setAutoSyncEnabledState] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [lastSyncLabel, setLastSyncLabel] = useState<string | null>(null);
+    photoCount: number
+    albumCount: number
+    favoriteCount: number
+    blurryCount: number
+    totalSize: number
+  } | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [dateFrom, setDateFrom] = useState<string | null>(null)
+  const [dateTo, setDateTo] = useState<string | null>(null)
+  const [selectingEnd, setSelectingEnd] = useState(false)
+  const { showToast } = useToast()
+  const [autoSyncEnabled, setAutoSyncEnabledState] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [lastSyncLabel, setLastSyncLabel] = useState<string | null>(null)
 
   useEffect(() => {
     const {
       isAutoSyncEnabled,
       getLastSyncTimeFormatted,
-    } = require('../../api/autoSync');
-    setAutoSyncEnabledState(isAutoSyncEnabled());
-    setLastSyncLabel(getLastSyncTimeFormatted());
-  }, []);
+    } = require('../../api/autoSync')
+    setAutoSyncEnabledState(isAutoSyncEnabled())
+    setLastSyncLabel(getLastSyncTimeFormatted())
+  }, [])
 
   const handleAutoSyncToggle = (value: boolean) => {
-    const { setAutoSyncEnabled } = require('../../api/autoSync');
-    setAutoSyncEnabled(value);
-    setAutoSyncEnabledState(value);
-  };
+    const { setAutoSyncEnabled } = require('../../api/autoSync')
+    setAutoSyncEnabled(value)
+    setAutoSyncEnabledState(value)
+  }
 
   const handleCancelSync = () => {
-    const { cancelAutoSync } = require('../../api/autoSync');
-    cancelAutoSync();
-  };
+    const { cancelAutoSync } = require('../../api/autoSync')
+    cancelAutoSync()
+  }
 
   const handleFullResync = async () => {
-    setSyncing(true);
+    setSyncing(true)
     try {
       const {
         clearLastSyncTime,
         runAutoSync,
         getLastSyncTimeFormatted,
-      } = require('../../api/autoSync');
-      clearLastSyncTime();
-      setLastSyncLabel(null);
-      const count: number = await runAutoSync(true);
-      setLastSyncLabel(getLastSyncTimeFormatted());
+      } = require('../../api/autoSync')
+      clearLastSyncTime()
+      setLastSyncLabel(null)
+      const count: number = await runAutoSync(true)
+      setLastSyncLabel(getLastSyncTimeFormatted())
       if (count === -2) {
-        showToast({ message: 'Sincronización cancelada', type: 'info' });
+        showToast({ message: 'Sincronización cancelada', type: 'info' })
       } else if (count === -1) {
         Alert.alert(
           'Sin permiso',
           'Otorga permiso de galería en Ajustes del sistema.',
-        );
+        )
       } else if (count === 0) {
-        showToast({ message: 'No hay fotos nuevas', type: 'info' });
+        showToast({ message: 'No hay fotos nuevas', type: 'info' })
       } else {
         showToast({
           message: `${count} foto(s) en cola de subida`,
           type: 'success',
-        });
+        })
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[AutoSync] handleFullResync error:', msg);
-      Alert.alert('Error al sincronizar', msg);
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[AutoSync] handleFullResync error:', msg)
+      Alert.alert('Error al sincronizar', msg)
     } finally {
-      setSyncing(false);
+      setSyncing(false)
     }
-  };
+  }
 
   const handleSyncNow = async () => {
-    setSyncing(true);
+    setSyncing(true)
     try {
       const {
         runAutoSync,
         getLastSyncTimeFormatted,
-      } = require('../../api/autoSync');
-      const count: number = await runAutoSync(true);
-      setLastSyncLabel(getLastSyncTimeFormatted());
+      } = require('../../api/autoSync')
+      const count: number = await runAutoSync(true)
+      setLastSyncLabel(getLastSyncTimeFormatted())
       if (count === -2) {
-        showToast({ message: 'Sincronización cancelada', type: 'info' });
+        showToast({ message: 'Sincronización cancelada', type: 'info' })
       } else if (count === -1) {
         Alert.alert(
           'Sin permiso',
           'Otorga permiso de galería en Ajustes del sistema.',
-        );
+        )
       } else if (count === 0) {
-        showToast({ message: 'No hay fotos nuevas', type: 'info' });
+        showToast({ message: 'No hay fotos nuevas', type: 'info' })
       } else {
         showToast({
           message: `${count} foto(s) en cola de subida`,
           type: 'success',
-        });
+        })
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[AutoSync] handleSyncNow error:', msg);
-      Alert.alert('Error al sincronizar', msg);
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[AutoSync] handleSyncNow error:', msg)
+      Alert.alert('Error al sincronizar', msg)
     } finally {
-      setSyncing(false);
+      setSyncing(false)
     }
-  };
+  }
 
   useEffect(() => {
     authenticatedGet<{
-      photoCount: number;
-      albumCount: number;
-      favoriteCount: number;
-      blurryCount: number;
-      totalSize: number;
+      photoCount: number
+      albumCount: number
+      favoriteCount: number
+      blurryCount: number
+      totalSize: number
     }>('photos/stats')
       .then(setStats)
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+  }, [])
 
   const handleSave = async () => {
-    setSaving(true);
+    setSaving(true)
     try {
-      const body: Record<string, string> = {};
-      if (name) body.name = name;
-      if (email) body.email = email;
+      const body: Record<string, string> = {}
+      if (name) body.name = name
+      if (email) body.email = email
       if (newPassword) {
-        body.currentPassword = currentPassword;
-        body.newPassword = newPassword;
+        body.currentPassword = currentPassword
+        body.newPassword = newPassword
       }
-      await authenticatedPatch('auth/profile', body);
+      await authenticatedPatch('auth/profile', body)
       Alert.alert(
         'Perfil actualizado',
         'Los cambios se aplicarán al volver a iniciar sesión',
-      );
-      setCurrentPassword('');
-      setNewPassword('');
+      )
+      setCurrentPassword('')
+      setNewPassword('')
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert('Error', e.message)
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const nextMode =
-    themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+    themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light'
   const modeLabels: Record<string, string> = {
     light: 'Claro',
     dark: 'Oscuro',
     system: 'Sistema',
-  };
+  }
   const modeIcons: Record<string, string> = {
     light: 'light-mode',
     dark: 'dark-mode',
     system: 'brightness-auto',
-  };
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -303,21 +303,21 @@ export default function ProfileScreen() {
               try {
                 const res = await authenticatedPost<{ analyzed: number }>(
                   'photos/analyze-all',
-                );
+                )
                 Alert.alert(
                   'Análisis completo',
                   `${res.analyzed} foto(s) analizada(s)`,
-                );
+                )
                 const newStats = await authenticatedGet<{
-                  photoCount: number;
-                  albumCount: number;
-                  favoriteCount: number;
-                  blurryCount: number;
-                  totalSize: number;
-                }>('photos/stats');
-                setStats(newStats);
+                  photoCount: number
+                  albumCount: number
+                  favoriteCount: number
+                  blurryCount: number
+                  totalSize: number
+                }>('photos/stats')
+                setStats(newStats)
               } catch {
-                Alert.alert('Error', 'No se pudo analizar');
+                Alert.alert('Error', 'No se pudo analizar')
               }
             }}
           >
@@ -404,12 +404,19 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={[
                     styles.actionBtn,
-                    { backgroundColor: colors.cardBg, flex: 1, borderWidth: 1, borderColor: colors.primary },
+                    {
+                      backgroundColor: colors.cardBg,
+                      flex: 1,
+                      borderWidth: 1,
+                      borderColor: colors.primary,
+                    },
                   ]}
                   onPress={handleFullResync}
                 >
                   <Icon name="refresh" size={18} color={colors.primary} />
-                  <Text style={[styles.actionBtnText, { color: colors.primary }]}>
+                  <Text
+                    style={[styles.actionBtnText, { color: colors.primary }]}
+                  >
                     Sincronizar todo
                   </Text>
                 </TouchableOpacity>
@@ -442,10 +449,10 @@ export default function ProfileScreen() {
             ]}
             onPress={async () => {
               try {
-                await exportAllPhotos();
-                showToast({ message: 'Exportación iniciada', type: 'info' });
+                await exportAllPhotos()
+                showToast({ message: 'Exportación iniciada', type: 'info' })
               } catch {
-                showToast({ message: 'No se pudo exportar', type: 'error' });
+                showToast({ message: 'No se pudo exportar', type: 'error' })
               }
             }}
           >
@@ -486,10 +493,10 @@ export default function ProfileScreen() {
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
-                    setShowDatePicker(false);
-                    setDateFrom(null);
-                    setDateTo(null);
-                    setSelectingEnd(false);
+                    setShowDatePicker(false)
+                    setDateFrom(null)
+                    setDateTo(null)
+                    setSelectingEnd(false)
                   }}
                 >
                   <Icon name="close" size={24} color={colors.text} />
@@ -509,10 +516,10 @@ export default function ProfileScreen() {
               <LazyCalendar
                 onDayPress={(day: { dateString: string }) => {
                   if (!selectingEnd) {
-                    setDateFrom(day.dateString);
-                    setSelectingEnd(true);
+                    setDateFrom(day.dateString)
+                    setSelectingEnd(true)
                   } else {
-                    setDateTo(day.dateString);
+                    setDateTo(day.dateString)
                   }
                 }}
                 markedDates={{
@@ -537,15 +544,15 @@ export default function ProfileScreen() {
                   ...(dateFrom && dateTo
                     ? Object.fromEntries(
                         (() => {
-                          const dates: [string, any][] = [];
-                          const start = new Date(dateFrom);
-                          const end = new Date(dateTo);
+                          const dates: [string, any][] = []
+                          const start = new Date(dateFrom)
+                          const end = new Date(dateTo)
                           for (
                             let d = new Date(start);
                             d <= end;
                             d.setDate(d.getDate() + 1)
                           ) {
-                            const ds = d.toISOString().slice(0, 10);
+                            const ds = d.toISOString().slice(0, 10)
                             if (ds !== dateFrom && ds !== dateTo) {
                               dates.push([
                                 ds,
@@ -553,10 +560,10 @@ export default function ProfileScreen() {
                                   selected: true,
                                   color: colors.primary + '44',
                                 },
-                              ]);
+                              ])
                             }
                           }
-                          return dates;
+                          return dates
                         })(),
                       )
                     : {}),
@@ -583,9 +590,9 @@ export default function ProfileScreen() {
                     },
                   ]}
                   onPress={() => {
-                    setDateFrom(null);
-                    setDateTo(null);
-                    setSelectingEnd(false);
+                    setDateFrom(null)
+                    setDateTo(null)
+                    setSelectingEnd(false)
                   }}
                 >
                   <Text style={[styles.modalBtnText, { color: colors.text }]}>
@@ -596,25 +603,25 @@ export default function ProfileScreen() {
                   style={[styles.modalBtn, { backgroundColor: colors.primary }]}
                   onPress={async () => {
                     if (!dateFrom || !dateTo) {
-                      Alert.alert('Selecciona fecha inicio y fin');
-                      return;
+                      Alert.alert('Selecciona fecha inicio y fin')
+                      return
                     }
-                    setShowDatePicker(false);
+                    setShowDatePicker(false)
                     try {
-                      await exportByDate(dateFrom, dateTo);
+                      await exportByDate(dateFrom, dateTo)
                       showToast({
                         message: 'Exportación iniciada',
                         type: 'info',
-                      });
+                      })
                     } catch {
                       showToast({
                         message: 'No se pudieron exportar las fotos',
                         type: 'error',
-                      });
+                      })
                     }
-                    setDateFrom(null);
-                    setDateTo(null);
-                    setSelectingEnd(false);
+                    setDateFrom(null)
+                    setDateTo(null)
+                    setSelectingEnd(false)
                   }}
                 >
                   <Text style={[styles.modalBtnText, { color: '#fff' }]}>
@@ -745,12 +752,12 @@ export default function ProfileScreen() {
             style={styles.themeRow}
             onPress={async () => {
               if (biometricEnabled) {
-                await disableBiometric();
+                await disableBiometric()
               } else {
                 const ok = await promptBiometrics(
                   'Activar inicio con ' + biometricLabel,
-                );
-                if (ok) await enableBiometric();
+                )
+                if (ok) await enableBiometric()
               }
             }}
           >
@@ -782,7 +789,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -870,4 +877,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
-});
+})

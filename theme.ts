@@ -4,7 +4,31 @@ import { useThemeMode } from './context/ThemeContext'
 // Primary teal: #2BD4CE  |  Purple accent: #7B6BF5
 // Dark bg: #0F0F0F       |  Surface: #1A1A1A
 
-const light = {
+export type ThemeColors = {
+  background: string
+  surface: string
+  surfaceAlt: string
+  text: string
+  textSecondary: string
+  textTertiary: string
+  border: string
+  borderLight: string
+  primary: string
+  accent: string
+  danger: string
+  favorite: string
+  offline: string
+  success: string
+  tabBarBg: string
+  tabBarActive: string
+  tabBarInactive: string
+  overlay: string
+  cardBg: string
+  inputBg: string
+  skeleton: string
+}
+
+const light: ThemeColors = {
   background: '#fff',
   surface: '#f8f8f8',
   surfaceAlt: '#f5f5f5',
@@ -28,7 +52,7 @@ const light = {
   skeleton: '#e0e0e0',
 }
 
-const dark = {
+const dark: ThemeColors = {
   background: '#0F0F0F',
   surface: '#1A1A1A',
   surfaceAlt: '#252525',

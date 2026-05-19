@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  View, Text, StyleSheet, Animated, TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../theme'
@@ -14,7 +18,13 @@ type Props = {
   onClose: () => void
 }
 
-export default function ExportProgressModal({ visible, exportId, onDone, onError, onClose }: Props) {
+export default function ExportProgressModal({
+  visible,
+  exportId,
+  onDone,
+  onError,
+  onClose,
+}: Props) {
   const { colors } = useTheme()
   const [progress, setProgress] = useState<ExportProgress | null>(null)
   const animValue = useRef(new Animated.Value(0)).current
@@ -22,9 +32,15 @@ export default function ExportProgressModal({ visible, exportId, onDone, onError
   const onDoneRef = useRef(onDone)
   const onErrorRef = useRef(onError)
   const onCloseRef = useRef(onClose)
-  useEffect(() => { onDoneRef.current = onDone }, [onDone])
-  useEffect(() => { onErrorRef.current = onError }, [onError])
-  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  useEffect(() => {
+    onDoneRef.current = onDone
+  }, [onDone])
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!visible || !exportId) return
@@ -59,8 +75,16 @@ export default function ExportProgressModal({ visible, exportId, onDone, onError
       animValue.setValue(0)
       Animated.loop(
         Animated.sequence([
-          Animated.timing(animValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
-          Animated.timing(animValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
+          Animated.timing(animValue, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animValue, {
+            toValue: 0,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
         ]),
       ).start()
     } else {
@@ -71,18 +95,27 @@ export default function ExportProgressModal({ visible, exportId, onDone, onError
 
   if (!visible) return null
 
-  const pct = progress ? (progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0) : 0
+  const pct = progress
+    ? progress.total > 0
+      ? Math.round((progress.completed / progress.total) * 100)
+      : 0
+    : 0
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: colors.background }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => onCloseRef.current()}>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={() => onCloseRef.current()}
+          >
             <Icon name="close" size={22} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <Icon name="file-download" size={40} color={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>Exportando fotos</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Exportando fotos
+          </Text>
           {progress && (
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               {progress.label}
@@ -90,7 +123,12 @@ export default function ExportProgressModal({ visible, exportId, onDone, onError
           )}
 
           <View style={[styles.barBg, { backgroundColor: colors.border }]}>
-            <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
+            <View
+              style={[
+                styles.barFill,
+                { width: `${pct}%`, backgroundColor: colors.primary },
+              ]}
+            />
           </View>
 
           <Text style={[styles.status, { color: colors.textSecondary }]}>
@@ -109,12 +147,18 @@ export default function ExportProgressModal({ visible, exportId, onDone, onError
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center', alignItems: 'center', padding: 32,
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
   },
   card: {
-    width: '100%', borderRadius: 16, padding: 28,
-    alignItems: 'center', elevation: 8,
+    width: '100%',
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    elevation: 8,
   },
   closeBtn: { position: 'absolute', top: 12, right: 12, padding: 4 },
   title: { fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 4 },

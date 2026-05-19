@@ -1,10 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native'
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Alert,
+} from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../theme'
 import { useNetwork } from '../context/NetworkContext'
 import { useToast } from '../context/ToastContext'
-import { getPendingCount, processQueue, getQueue, retryFailed, clearQueue } from '../services/UploadQueue'
+import {
+  getPendingCount,
+  processQueue,
+  getQueue,
+  retryFailed,
+  clearQueue,
+} from '../services/UploadQueue'
 import type { QueueItem } from '../services/UploadQueue'
 
 export default function UploadQueueBanner() {
@@ -56,12 +69,22 @@ export default function UploadQueueBanner() {
       (completed, total) => {
         setProgress({ completed, total })
       },
-      (item) => {
-        showToast({ message: `${item.name} subida correctamente`, type: 'success', position: 'top-right', duration: 2000 })
+      item => {
+        showToast({
+          message: `${item.name} subida correctamente`,
+          type: 'success',
+          position: 'top-right',
+          duration: 2000,
+        })
         refresh()
       },
       (item, error) => {
-        showToast({ message: `Error: ${item.name} — ${error}`, type: 'error', position: 'top-right', duration: 5000 })
+        showToast({
+          message: `Error: ${item.name} — ${error}`,
+          type: 'error',
+          position: 'top-right',
+          duration: 5000,
+        })
         refresh()
       },
     )
@@ -70,14 +93,24 @@ export default function UploadQueueBanner() {
     setProgress({ completed: 0, total: 0 })
     refresh()
     if (getPendingCount() === 0) {
-      showToast({ message: 'Todas las fotos se subieron correctamente', type: 'success', position: 'top-right', duration: 3000 })
+      showToast({
+        message: 'Todas las fotos se subieron correctamente',
+        type: 'success',
+        position: 'top-right',
+        duration: 3000,
+      })
     }
   }
 
   const handleRetryFailed = () => {
     const count = retryFailed()
     if (count > 0) {
-      showToast({ message: `Reintentando ${count} archivo(s)`, type: 'info', position: 'top-right', duration: 2000 })
+      showToast({
+        message: `Reintentando ${count} archivo(s)`,
+        type: 'info',
+        position: 'top-right',
+        duration: 2000,
+      })
       handleProcess()
     }
   }
@@ -94,7 +127,12 @@ export default function UploadQueueBanner() {
           onPress: () => {
             clearQueue()
             refresh()
-            showToast({ message: 'Cola limpiada', type: 'info', position: 'top-right', duration: 2000 })
+            showToast({
+              message: 'Cola limpiada',
+              type: 'info',
+              position: 'top-right',
+              duration: 2000,
+            })
           },
         },
       ],
@@ -121,7 +159,13 @@ export default function UploadQueueBanner() {
 
   return (
     <Animated.View
-      style={[styles.banner, { backgroundColor: processing ? colors.primary : colors.offline, transform: [{ translateY }] }]}
+      style={[
+        styles.banner,
+        {
+          backgroundColor: processing ? colors.primary : colors.offline,
+          transform: [{ translateY }],
+        },
+      ]}
     >
       <View style={styles.content}>
         <Icon
@@ -132,8 +176,7 @@ export default function UploadQueueBanner() {
         <Text style={styles.text}>
           {processing
             ? `Subiendo ${progress.completed}/${progress.total}…`
-            : `${pending} archivo(s) pendiente(s) de subir`
-          }
+            : `${pending} archivo(s) pendiente(s) de subir`}
         </Text>
       </View>
 

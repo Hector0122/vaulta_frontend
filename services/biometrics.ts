@@ -14,7 +14,9 @@ export async function isBiometricsAvailable(): Promise<{
 }> {
   try {
     const { available, biometryType } = await rnBiometrics.isSensorAvailable()
-    const label = biometryType ? BIOMETRY_LABELS[biometryType] || 'biometría' : 'biometría'
+    const label = biometryType
+      ? BIOMETRY_LABELS[biometryType] || 'biometría'
+      : 'biometría'
     return { available: !!available, biometryLabel: label }
   } catch {
     return { available: false, biometryLabel: 'biometría' }

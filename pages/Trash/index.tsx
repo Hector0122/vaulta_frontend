@@ -1,14 +1,31 @@
 import React, { useState, useCallback } from 'react'
 import {
-  View, Text, FlatList, Image, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator,
+  View,
+  Text,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
-import { getTrash, restorePhoto, permanentlyDeletePhoto, emptyTrash } from '../../api/client'
+import {
+  getTrash,
+  restorePhoto,
+  permanentlyDeletePhoto,
+  emptyTrash,
+} from '../../api/client'
 
-type TrashItem = { id: string; uri: string; filename: string; deletedAt: string; size: number }
+type TrashItem = {
+  id: string
+  uri: string
+  filename: string
+  deletedAt: string
+  size: number
+}
 
 export default function TrashScreen() {
   const { colors } = useTheme()
@@ -27,73 +44,112 @@ export default function TrashScreen() {
     }
   }, [])
 
-  useFocusEffect(useCallback(() => { fetchTrash() }, [fetchTrash]))
+  useFocusEffect(
+    useCallback(() => {
+      fetchTrash()
+    }, [fetchTrash]),
+  )
 
   async function handleRestore(id: string) {
     try {
       await restorePhoto(id)
       fetchTrash()
-    } catch { Alert.alert('Error', 'No se pudo restaurar') }
+    } catch {
+      Alert.alert('Error', 'No se pudo restaurar')
+    }
   }
 
   async function handlePermanentDelete(id: string) {
-    Alert.alert('Eliminar permanentemente', 'Esta foto se borrará de S3 y no podrá recuperarse.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar', style: 'destructive',
-        onPress: async () => {
-          try {
-            await permanentlyDeletePhoto(id)
-            fetchTrash()
-          } catch { Alert.alert('Error', 'No se pudo eliminar') }
+    Alert.alert(
+      'Eliminar permanentemente',
+      'Esta foto se borrará de S3 y no podrá recuperarse.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await permanentlyDeletePhoto(id)
+              fetchTrash()
+            } catch {
+              Alert.alert('Error', 'No se pudo eliminar')
+            }
+          },
         },
-      },
-    ])
+      ],
+    )
   }
 
   async function handleEmptyTrash() {
-    Alert.alert('Vaciar papelera', 'Se borrarán todas las fotos permanentemente. ¿Estás seguro?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Vaciar', style: 'destructive',
-        onPress: async () => {
-          try {
-            const res = await emptyTrash()
-            fetchTrash()
-            Alert.alert('Hecho', `Se eliminaron ${res.deleted} fotos permanentemente`)
-          } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Error desconocido'
-            Alert.alert('Error', `No se pudo vaciar la papelera: ${msg}`)
-          }
+    Alert.alert(
+      'Vaciar papelera',
+      'Se borrarán todas las fotos permanentemente. ¿Estás seguro?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Vaciar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await emptyTrash()
+              fetchTrash()
+              Alert.alert(
+                'Hecho',
+                `Se eliminaron ${res.deleted} fotos permanentemente`,
+              )
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : 'Error desconocido'
+              Alert.alert('Error', `No se pudo vaciar la papelera: ${msg}`)
+            }
+          },
         },
-      },
-    ])
+      ],
+    )
   }
 
-  const renderItem = useCallback(({ item }: { item: TrashItem }) => (
-    <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
-      <Image source={{ uri: item.uri }} style={styles.thumb} />
-      <View style={styles.info}>
-        <Text style={[styles.filename, { color: colors.text }]} numberOfLines={1}>{item.filename}</Text>
-        <Text style={[styles.date, { color: colors.textTertiary }]}>
-          Eliminada: {new Date(item.deletedAt).toLocaleDateString()}
-        </Text>
+  const renderItem = useCallback(
+    ({ item }: { item: TrashItem }) => (
+      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+        <Image source={{ uri: item.uri }} style={styles.thumb} />
+        <View style={styles.info}>
+          <Text
+            style={[styles.filename, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {item.filename}
+          </Text>
+          <Text style={[styles.date, { color: colors.textTertiary }]}>
+            Eliminada: {new Date(item.deletedAt).toLocaleDateString()}
+          </Text>
+        </View>
+        <View style={styles.actions}>
+          <TouchableOpacity
+            onPress={() => handleRestore(item.id)}
+            style={styles.actionBtn}
+          >
+            <Icon name="restore" size={22} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handlePermanentDelete(item.id)}
+            style={styles.actionBtn}
+          >
+            <Icon name="delete-forever" size={22} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={() => handleRestore(item.id)} style={styles.actionBtn}>
-          <Icon name="restore" size={22} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handlePermanentDelete(item.id)} style={styles.actionBtn}>
-          <Icon name="delete-forever" size={22} color={colors.danger} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  ), [colors, handleRestore, handlePermanentDelete])
+    ),
+    [colors, handleRestore, handlePermanentDelete],
+  )
 
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={{ flex: 1 }}
+        />
       </View>
     )
   }
@@ -103,17 +159,22 @@ export default function TrashScreen() {
       {items.length === 0 ? (
         <View style={styles.emptyState}>
           <Icon name="delete-sweep" size={64} color={colors.textTertiary} />
-          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>Papelera vacía</Text>
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            Papelera vacía
+          </Text>
         </View>
       ) : (
         <View style={{ flex: 1 }}>
-          <TouchableOpacity style={styles.emptyAllBtn} onPress={handleEmptyTrash}>
+          <TouchableOpacity
+            style={styles.emptyAllBtn}
+            onPress={handleEmptyTrash}
+          >
             <Icon name="delete-sweep" size={20} color="#fff" />
             <Text style={styles.emptyAllText}>Vaciar papelera</Text>
           </TouchableOpacity>
           <FlatList
             data={items}
-            keyExtractor={(item) => item.id}
+            keyExtractor={item => item.id}
             contentContainerStyle={styles.list}
             renderItem={renderItem}
           />
@@ -142,8 +203,11 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 16, marginTop: 16 },
   card: {
-    flexDirection: 'row', alignItems: 'center',
-    padding: 10, borderRadius: 10, marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 8,
   },
   thumb: { width: 52, height: 52, borderRadius: 6 },
   info: { flex: 1, marginLeft: 10 },

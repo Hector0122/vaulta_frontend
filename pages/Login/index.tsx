@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -10,45 +10,53 @@ import {
   Platform,
   Alert,
   ScrollView,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../theme';
-import VaultaLogo from '../../components/VaultaLogo';
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import { useAuth } from '../../context/AuthContext'
+import { useTheme } from '../../theme'
+import VaultaLogo from '../../components/VaultaLogo'
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function LoginScreen() {
-  const insets = useSafeAreaInsets();
-  const { login, register, biometricAvailable, biometricEnabled, biometricLabel, enableBiometric, biometricLogin } = useAuth();
-  const { colors } = useTheme();
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets()
+  const {
+    login,
+    register,
+    biometricAvailable,
+    biometricEnabled,
+    biometricLabel,
+    enableBiometric,
+    biometricLogin,
+  } = useAuth()
+  const { colors } = useTheme()
+  const [isRegister, setIsRegister] = useState(false)
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit() {
     if (!email || !password || (isRegister && !name)) {
-      Alert.alert('Error', 'Completa todos los campos');
-      return;
+      Alert.alert('Error', 'Completa todos los campos')
+      return
     }
     if (!EMAIL_RE.test(email)) {
-      Alert.alert('Error', 'Correo electrónico inválido');
-      return;
+      Alert.alert('Error', 'Correo electrónico inválido')
+      return
     }
     if (isRegister && password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-      return;
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres')
+      return
     }
-    setLoading(true);
+    setLoading(true)
     try {
       if (isRegister) {
-        await register(email, name, password);
+        await register(email, name, password)
       } else {
-        await login(email, password);
+        await login(email, password)
       }
       if (biometricAvailable && !biometricEnabled && !isRegister) {
         setTimeout(() => {
@@ -63,16 +71,23 @@ export default function LoginScreen() {
         }, 500)
       }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Algo salió mal';
-      Alert.alert('Error', message);
+      const message = e instanceof Error ? e.message : 'Algo salió mal'
+      Alert.alert('Error', message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -88,7 +103,14 @@ export default function LoginScreen() {
         </Text>
 
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBg }]}
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: colors.inputBg,
+            },
+          ]}
           placeholder="Email"
           placeholderTextColor={colors.textTertiary}
           value={email}
@@ -100,7 +122,14 @@ export default function LoginScreen() {
 
         {isRegister && (
           <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBg }]}
+            style={[
+              styles.input,
+              {
+                borderColor: colors.border,
+                color: colors.text,
+                backgroundColor: colors.inputBg,
+              },
+            ]}
             placeholder="Nombre"
             placeholderTextColor={colors.textTertiary}
             value={name}
@@ -108,7 +137,12 @@ export default function LoginScreen() {
           />
         )}
 
-        <View style={[styles.passwordRow, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
+        <View
+          style={[
+            styles.passwordRow,
+            { borderColor: colors.border, backgroundColor: colors.inputBg },
+          ]}
+        >
           <TextInput
             style={[styles.passwordInput, { color: colors.text }]}
             placeholder="Contraseña"
@@ -121,12 +155,20 @@ export default function LoginScreen() {
             style={styles.eyeBtn}
             onPress={() => setShowPassword(v => !v)}
           >
-            <Icon name={showPassword ? 'visibility-off' : 'visibility'} size={22} color={colors.textTertiary} />
+            <Icon
+              name={showPassword ? 'visibility-off' : 'visibility'}
+              size={22}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
+          style={[
+            styles.button,
+            { backgroundColor: colors.primary },
+            loading && styles.buttonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={loading}
         >
@@ -141,16 +183,24 @@ export default function LoginScreen() {
 
         {biometricAvailable && biometricEnabled && !isRegister && (
           <>
-            <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.borderLight }]}
+            />
             <TouchableOpacity
               style={[styles.biometricBtn, { borderColor: colors.border }]}
               onPress={async () => {
                 const ok = await biometricLogin()
-                if (!ok) Alert.alert('Error', 'No se pudo iniciar sesión. Ingresa manualmente.')
+                if (!ok)
+                  Alert.alert(
+                    'Error',
+                    'No se pudo iniciar sesión. Ingresa manualmente.',
+                  )
               }}
             >
               <Icon name="fingerprint" size={22} color={colors.primary} />
-              <Text style={[styles.biometricBtnText, { color: colors.primary }]}>
+              <Text
+                style={[styles.biometricBtnText, { color: colors.primary }]}
+              >
                 Entrar con {biometricLabel}
               </Text>
             </TouchableOpacity>
@@ -166,7 +216,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -239,4 +289,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
-});
+})

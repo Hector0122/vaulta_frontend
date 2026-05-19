@@ -54,7 +54,7 @@ export async function cachePhoto(userId: string, photoId: string, remoteUrl: str
   const local = offlinePath(userId, photoId);
   const result = await RNFS.downloadFile({ fromUrl: remoteUrl, toFile: local, headers }).promise;
   if (result.statusCode < 200 || result.statusCode >= 300) {
-    try { await RNFS.unlink(local); } catch {}
+    try { await RNFS.unlink(local); } catch { console.warn('[Offline] Failed to cleanup', local) }
     throw new Error(`Download failed with HTTP ${result.statusCode}`);
   }
   if (Platform.OS === 'android') await RNFS.scanFile(local);

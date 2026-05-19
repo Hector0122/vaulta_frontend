@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { BASE_URL } from './server'
+import { fetchWithTimeout } from './fetchWithTimeout'
+
+const PRESIGN_EXPIRY = 604800
 
 const TOKEN_KEY = '@vaulta_token'
 const REFRESH_TOKEN_KEY = '@vaulta_refresh_token'
-const REQUEST_TIMEOUT = 15000
 
 let _onUnauthorized: (() => void) | null = null
 let _tokenCache: string | null | undefined
@@ -82,12 +84,6 @@ export async function refreshAccessToken(): Promise<boolean> {
     }
   })()
   return _refreshing
-}
-
-function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
-  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id))
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -178,7 +174,19 @@ export async function authenticatedPatch<T>(endpoint: string, body: any): Promis
   })
 }
 
-export async function fetchPhotosPage(pageToken?: string, maxKeys: number = 50, query?: string, favoritesOnly?: boolean, blurryOnly?: boolean, privateOnly?: boolean, dateFrom?: string, dateTo?: string) {
+export interface FetchPhotosOptions {
+  pageToken?: string
+  maxKeys?: number
+  query?: string
+  favoritesOnly?: boolean
+  blurryOnly?: boolean
+  privateOnly?: boolean
+  dateFrom?: string
+  dateTo?: string
+}
+
+export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
+  const { pageToken, maxKeys = 50, query, favoritesOnly, blurryOnly, privateOnly, dateFrom, dateTo } = options
   return autoRetry(async () => {
     let url = `${BASE_URL}/photos?maxKeys=${maxKeys}`
     if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`
@@ -211,7 +219,7 @@ export async function bulkDeletePhotos(ids: string[]): Promise<{ deleted: number
   return authenticatedDelete<{ deleted: number }>('photos/bulk', { ids })
 }
 
-export async function getShareLink(photoId: string, expiresIn: number = 604800): Promise<string> {
+export async function getShareLink(photoId: string, expiresIn: number = PRESIGN_EXPIRY): Promise<string> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/share?expiresIn=${expiresIn}`, { headers })

@@ -30,7 +30,7 @@ export async function registerFcmToken(): Promise<void> {
 
   try {
     await authenticatedPost('device-token', { token })
-  } catch {}
+  } catch { console.warn('[Notifications] Token registration failed') }
 }
 
 export function onMessageForeground(

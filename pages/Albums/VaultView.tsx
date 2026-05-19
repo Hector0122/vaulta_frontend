@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -11,140 +11,140 @@ import {
   RefreshControl,
   Modal,
   TextInput,
-} from 'react-native';
-import { NitroImage } from 'react-native-nitro-image';
-import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useTheme } from '../../theme';
-import { fetchVault, removePhotosFromAlbum } from '../../api/client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+} from 'react-native'
+import { NitroImage } from 'react-native-nitro-image'
+import { useNavigation } from '@react-navigation/native'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import { useTheme } from '../../theme'
+import { fetchVault, removePhotosFromAlbum } from '../../api/client'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   isBiometricsAvailable,
   promptBiometrics,
-} from '../../services/biometrics';
-import type { StackNavProp } from '../../types/navigation';
+} from '../../services/biometrics'
+import type { StackNavProp } from '../../types/navigation'
 
-const PIN_KEY = '@vaulta_vault_pin';
+const PIN_KEY = '@vaulta_vault_pin'
 
 type VaultPhoto = {
-  uri: string;
-  id: string;
-  createdAt: string;
-  private: boolean;
-};
+  uri: string
+  id: string
+  createdAt: string
+  private: boolean
+}
 
 export default function VaultView() {
-  const navigation = useNavigation<StackNavProp>();
-  const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const [step, setStep] = useState<'pin' | 'set-pin' | 'gallery'>('pin');
-  const [pin, setPin] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricType, setBiometricType] = useState('');
+  const navigation = useNavigation<StackNavProp>()
+  const { colors } = useTheme()
+  const { width } = useWindowDimensions()
+  const [step, setStep] = useState<'pin' | 'set-pin' | 'gallery'>('pin')
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
+  const [biometricType, setBiometricType] = useState('')
   const [vaultData, setVaultData] = useState<{
-    id: string;
-    photos: VaultPhoto[];
-    _count: { photos: number };
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [selecting, setSelecting] = useState(false);
+    id: string
+    photos: VaultPhoto[]
+    _count: { photos: number }
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selecting, setSelecting] = useState(false)
 
-  const colCount = 3;
-  const gap = 2;
-  const thumbSize = (width - gap * (colCount - 1)) / colCount;
+  const colCount = 3
+  const gap = 2
+  const thumbSize = (width - gap * (colCount - 1)) / colCount
 
   useEffect(() => {
-    (async () => {
-      const { available, biometryLabel } = await isBiometricsAvailable();
-      setBiometricAvailable(available);
-      setBiometricType(biometryLabel);
+    ;(async () => {
+      const { available, biometryLabel } = await isBiometricsAvailable()
+      setBiometricAvailable(available)
+      setBiometricType(biometryLabel)
 
-      const stored = await AsyncStorage.getItem(PIN_KEY);
+      const stored = await AsyncStorage.getItem(PIN_KEY)
       if (stored) {
-        setStep('pin');
+        setStep('pin')
       } else {
-        setStep('set-pin');
+        setStep('set-pin')
       }
-      setLoading(false);
-    })();
-  }, []);
+      setLoading(false)
+    })()
+  }, [])
 
   const loadVault = useCallback(async () => {
     try {
-      const data = await fetchVault();
-      setVaultData(data);
+      const data = await fetchVault()
+      setVaultData(data)
     } catch {
-      Alert.alert('Error', 'No se pudo cargar la caja fuerte');
+      Alert.alert('Error', 'No se pudo cargar la caja fuerte')
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    if (step === 'gallery') loadVault();
-  }, [step, loadVault]);
+    if (step === 'gallery') loadVault()
+  }, [step, loadVault])
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadVault();
-    setRefreshing(false);
-  };
+    setRefreshing(true)
+    await loadVault()
+    setRefreshing(false)
+  }
 
   function handlePinDigit(d: string) {
-    if (pin.length >= 4) return;
-    const next = pin + d;
-    setPin(next);
-    setPinError('');
-    if (next.length === 4 && step === 'pin') verifyPin(next);
+    if (pin.length >= 4) return
+    const next = pin + d
+    setPin(next)
+    setPinError('')
+    if (next.length === 4 && step === 'pin') verifyPin(next)
   }
 
   function handleDeleteDigit() {
-    setPin(p => p.slice(0, -1));
-    setPinError('');
+    setPin(p => p.slice(0, -1))
+    setPinError('')
   }
 
   async function verifyPin(entered: string) {
-    const stored = await AsyncStorage.getItem(PIN_KEY);
+    const stored = await AsyncStorage.getItem(PIN_KEY)
     if (entered === stored) {
-      setPin('');
-      setStep('gallery');
+      setPin('')
+      setStep('gallery')
     } else {
-      setPinError('PIN incorrecto');
-      setPin('');
+      setPinError('PIN incorrecto')
+      setPin('')
     }
   }
 
   async function handleSetPin() {
-    if (pin.length !== 4) return;
-    await AsyncStorage.setItem(PIN_KEY, pin);
-    setPin('');
-    setStep('gallery');
+    if (pin.length !== 4) return
+    await AsyncStorage.setItem(PIN_KEY, pin)
+    setPin('')
+    setStep('gallery')
   }
 
-  const rows: VaultPhoto[][] = [];
-  const photos = vaultData?.photos || [];
+  const rows: VaultPhoto[][] = []
+  const photos = vaultData?.photos || []
   for (let i = 0; i < photos.length; i += colCount) {
-    rows.push(photos.slice(i, i + colCount));
+    rows.push(photos.slice(i, i + colCount))
   }
 
   const toggleSelect = useCallback((id: string) => {
     setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      if (next.size === 0) setSelecting(false);
-      return next;
-    });
-  }, []);
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      if (next.size === 0) setSelecting(false)
+      return next
+    })
+  }, [])
 
   function clearSelection() {
-    setSelected(new Set());
-    setSelecting(false);
+    setSelected(new Set())
+    setSelecting(false)
   }
 
   async function handleRemove() {
-    if (selected.size === 0 || !vaultData) return;
+    if (selected.size === 0 || !vaultData) return
     Alert.alert(
       'Quitar fotos',
       `¿Quitar ${selected.size} foto(s) de la caja fuerte?\nSe eliminará su marca de privada.`,
@@ -155,39 +155,39 @@ export default function VaultView() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await removePhotosFromAlbum(vaultData.id, Array.from(selected));
-              clearSelection();
-              await loadVault();
+              await removePhotosFromAlbum(vaultData.id, Array.from(selected))
+              clearSelection()
+              await loadVault()
             } catch {
-              Alert.alert('Error', 'No se pudieron quitar las fotos');
+              Alert.alert('Error', 'No se pudieron quitar las fotos')
             }
           },
         },
       ],
-    );
+    )
   }
 
   const renderItem = useCallback(
     ({ item: row }: { item: VaultPhoto[] }) => (
       <View style={styles.row}>
         {row.map(photo => {
-          const isSelected = selected.has(photo.id);
+          const isSelected = selected.has(photo.id)
           return (
             <TouchableOpacity
               key={photo.id}
               onPress={() => {
                 if (selecting) {
-                  toggleSelect(photo.id);
-                  return;
+                  toggleSelect(photo.id)
+                  return
                 }
                 navigation.navigate('PhotoPreview', {
                   photos: photos.map(p => ({ uri: p.uri, id: p.id })),
                   initialIndex: photos.indexOf(photo),
-                });
+                })
               }}
               onLongPress={() => {
-                setSelecting(true);
-                toggleSelect(photo.id);
+                setSelecting(true)
+                toggleSelect(photo.id)
               }}
             >
               <View>
@@ -215,12 +215,12 @@ export default function VaultView() {
                 )}
               </View>
             </TouchableOpacity>
-          );
+          )
         })}
       </View>
     ),
     [selected, selecting, photos, navigation, colors, thumbSize, toggleSelect],
-  );
+  )
 
   if (loading) {
     return (
@@ -231,7 +231,7 @@ export default function VaultView() {
           style={{ flex: 1 }}
         />
       </View>
-    );
+    )
   }
 
   if (step === 'pin' || step === 'set-pin') {
@@ -276,10 +276,10 @@ export default function VaultView() {
               { backgroundColor: colors.surfaceAlt },
             ]}
             onPress={async () => {
-              const ok = await promptBiometrics('Desbloquea la Caja Fuerte');
+              const ok = await promptBiometrics('Desbloquea la Caja Fuerte')
               if (ok) {
-                setPin('');
-                setStep('gallery');
+                setPin('')
+                setStep('gallery')
               }
             }}
           >
@@ -293,8 +293,8 @@ export default function VaultView() {
                 key={i}
                 style={[styles.pinKey, { backgroundColor: colors.surfaceAlt }]}
                 onPress={() => {
-                  if (d === '⌫') handleDeleteDigit();
-                  else if (d) handlePinDigit(d);
+                  if (d === '⌫') handleDeleteDigit()
+                  else if (d) handlePinDigit(d)
                 }}
                 disabled={!d && d !== ''}
               >
@@ -321,7 +321,7 @@ export default function VaultView() {
           </TouchableOpacity>
         )}
       </View>
-    );
+    )
   }
 
   return (
@@ -392,7 +392,7 @@ export default function VaultView() {
         />
       )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -490,4 +490,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   biometricLabel: { fontSize: 12, marginTop: 4 },
-});
+})

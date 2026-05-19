@@ -9,7 +9,10 @@ try {
   }
 } catch {}
 
-const options = { enableVibrateFallback: true, ignoreAndroidSystemSettings: false }
+const options = {
+  enableVibrateFallback: true,
+  ignoreAndroidSystemSettings: false,
+}
 
 export function impactLight() {
   if (triggerHaptic) triggerHaptic('impactLight', options)

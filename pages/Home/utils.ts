@@ -31,17 +31,10 @@ export function flattenWithHeaders(photos: Photo[]): ListItem[] {
   return items
 }
 
-export function groupPhotosByDate(photos: Photo[]) {
-  const groups: { [date: string]: Photo[] } = {}
-  photos.forEach(photo => {
-    if (!groups[photo.date]) groups[photo.date] = []
-    groups[photo.date].push(photo)
-  })
-  const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a))
-  return sortedDates.map(date => ({ date, photos: groups[date] }))
-}
-
-export function dateRange(start?: string | null, end?: string | null): { dateFrom?: string; dateTo?: string } {
+export function dateRange(
+  start?: string | null,
+  end?: string | null,
+): { dateFrom?: string; dateTo?: string } {
   if (!start && !end) return {}
   return {
     dateFrom: start ? new Date(start + 'T00:00:00').toISOString() : undefined,

@@ -23,7 +23,14 @@ const icons: Record<ToastType, string> = {
   info: 'info',
 }
 
-export default function Toast({ visible, message, type = 'info', position = 'top', onDismiss, duration = 2500 }: Props) {
+export default function Toast({
+  visible,
+  message,
+  type = 'info',
+  position = 'top',
+  onDismiss,
+  duration = 2500,
+}: Props) {
   const { colors } = useTheme()
   const { top: topInset } = useSafeAreaInsets()
   const animValue = useRef(new Animated.Value(0)).current
@@ -31,11 +38,18 @@ export default function Toast({ visible, message, type = 'info', position = 'top
   useEffect(() => {
     if (visible) {
       animValue.setValue(0)
-      Animated.spring(animValue, { toValue: 1, useNativeDriver: true, friction: 10 }).start()
+      Animated.spring(animValue, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 10,
+      }).start()
 
       const timer = setTimeout(() => {
-        Animated.timing(animValue, { toValue: 0, duration: 200, useNativeDriver: true })
-          .start(() => onDismiss())
+        Animated.timing(animValue, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => onDismiss())
       }, duration)
 
       return () => clearTimeout(timer)
@@ -44,9 +58,12 @@ export default function Toast({ visible, message, type = 'info', position = 'top
 
   if (!visible) return null
 
-  const bgColor = type === 'success' ? colors.success
-    : type === 'error' ? colors.danger
-    : colors.primary
+  const bgColor =
+    type === 'success'
+      ? colors.success
+      : type === 'error'
+      ? colors.danger
+      : colors.primary
 
   const isTop = position === 'top' || position === 'top-right'
   const isRight = position === 'top-right'
@@ -63,7 +80,11 @@ export default function Toast({ visible, message, type = 'info', position = 'top
       <Animated.View
         style={[
           styles.banner,
-          isRight ? styles.bannerRight : (isTop ? styles.bannerTop : styles.bannerBottom),
+          isRight
+            ? styles.bannerRight
+            : isTop
+            ? styles.bannerTop
+            : styles.bannerBottom,
           isTop && { top: topInset + 12 },
           isRight && { top: topInset + 12 },
           { backgroundColor: bgColor, transform: [{ translateY }], opacity },

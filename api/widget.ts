@@ -9,7 +9,7 @@ export async function updateWidgetWithRecentPhotos(): Promise<void> {
   if (!WIDGET_ENABLED) return
 
   try {
-    const data = await fetchPhotosPage(undefined, 4)
+    const data = await fetchPhotosPage({ maxKeys: 4 })
     WidgetModule.updateWidget(data.photos ? data.photos.length : 0, [])
   } catch {
     // Silently fail — widget keeps previous state

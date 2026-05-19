@@ -18,11 +18,11 @@ export async function loadCachedPhotos(userId: string): Promise<CachedPhoto[] | 
 export async function saveCachedPhotos(userId: string, photos: CachedPhoto[]): Promise<void> {
   try {
     await AsyncStorage.setItem(cacheKey(userId), JSON.stringify(photos));
-  } catch {}
+  } catch { console.warn('[Cache] Failed to save photos') }
 }
 
 export async function clearCachedPhotos(userId: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(cacheKey(userId));
-  } catch {}
+  } catch { console.warn('[Cache] Failed to clear cache') }
 }

@@ -1,12 +1,5 @@
 import { BASE_URL } from './server'
-
-const REQUEST_TIMEOUT = 15000
-
-async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
-  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id))
-}
+import { fetchWithTimeout } from './fetchWithTimeout'
 
 export async function login(email: string, password: string) {
   const res = await fetchWithTimeout(`${BASE_URL}/auth/login`, {

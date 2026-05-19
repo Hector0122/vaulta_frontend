@@ -1,16 +1,33 @@
 import React, { useState, useCallback } from 'react'
 import {
-  View, Text, FlatList, TouchableOpacity, TextInput, Image,
-  StyleSheet, Alert, ActivityIndicator,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
 import { SkeletonAlbumList } from '../../components/Skeleton'
-import { authenticatedGet, authenticatedDelete, authenticatedPost } from '../../api/client'
+import {
+  authenticatedGet,
+  authenticatedDelete,
+  authenticatedPost,
+} from '../../api/client'
 import type { StackNavProp } from '../../types/navigation'
 
-type Album = { id: string; name: string; _count: { photos: number }; createdAt: string; coverUri: string | null }
+type Album = {
+  id: string
+  name: string
+  _count: { photos: number }
+  createdAt: string
+  coverUri: string | null
+}
 
 export default function AlbumsScreen() {
   const navigation = useNavigation<StackNavProp>()
@@ -34,7 +51,9 @@ export default function AlbumsScreen() {
   }, [])
 
   useFocusEffect(
-    useCallback(() => { fetchAlbums() }, [fetchAlbums]),
+    useCallback(() => {
+      fetchAlbums()
+    }, [fetchAlbums]),
   )
 
   async function handleCreate() {
@@ -70,32 +89,57 @@ export default function AlbumsScreen() {
     ])
   }
 
-  const renderItem = useCallback(({ item }: { item: Album }) => {
-    return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.cardBg }]}
-        onPress={() => navigation.navigate('AlbumView', { albumId: item.id, albumName: item.name })}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardContent}>
-          {item.coverUri ? (
-            <Image source={{ uri: item.coverUri }} style={styles.coverThumb} />
-          ) : (
-            <View style={[styles.coverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
-              <Icon name="photo-album" size={24} color={colors.primary} />
+  const renderItem = useCallback(
+    ({ item }: { item: Album }) => {
+      return (
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: colors.cardBg }]}
+          onPress={() =>
+            navigation.navigate('AlbumView', {
+              albumId: item.id,
+              albumName: item.name,
+            })
+          }
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardContent}>
+            {item.coverUri ? (
+              <Image
+                source={{ uri: item.coverUri }}
+                style={styles.coverThumb}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.coverPlaceholder,
+                  { backgroundColor: colors.primary + '20' },
+                ]}
+              >
+                <Icon name="photo-album" size={24} color={colors.primary} />
+              </View>
+            )}
+            <View style={styles.cardText}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                {item.name}
+              </Text>
+              <Text
+                style={[styles.cardSubtitle, { color: colors.textTertiary }]}
+              >
+                {item._count?.photos ?? 0} fotos
+              </Text>
             </View>
-          )}
-          <View style={styles.cardText}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
-            <Text style={[styles.cardSubtitle, { color: colors.textTertiary }]}>{item._count?.photos ?? 0} fotos</Text>
           </View>
-        </View>
-        <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Icon name="delete-outline" size={22} color={colors.textTertiary} />
+          <TouchableOpacity
+            onPress={() => handleDelete(item.id)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="delete-outline" size={22} color={colors.textTertiary} />
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
-    )
-  }, [navigation, colors, handleDelete])
+      )
+    },
+    [navigation, colors, handleDelete],
+  )
 
   if (loading) {
     return (
@@ -109,26 +153,43 @@ export default function AlbumsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Vault entry */}
       <TouchableOpacity
-        style={[styles.vaultCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
+        style={[
+          styles.vaultCard,
+          { backgroundColor: colors.cardBg, borderColor: colors.border },
+        ]}
         onPress={() => navigation.navigate('VaultView')}
         activeOpacity={0.7}
       >
         <Icon name="lock" size={22} color="#ffa726" />
-        <Text style={[styles.vaultText, { color: colors.text }]}>Caja Fuerte</Text>
+        <Text style={[styles.vaultText, { color: colors.text }]}>
+          Caja Fuerte
+        </Text>
         <Icon name="chevron-right" size={22} color={colors.textTertiary} />
       </TouchableOpacity>
 
       {showCreate && (
-        <View style={[styles.createRow, { borderBottomColor: colors.borderLight }]}>
+        <View
+          style={[styles.createRow, { borderBottomColor: colors.borderLight }]}
+        >
           <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBg }]}
+            style={[
+              styles.input,
+              {
+                borderColor: colors.border,
+                color: colors.text,
+                backgroundColor: colors.inputBg,
+              },
+            ]}
             placeholder="Nombre del álbum"
             placeholderTextColor={colors.textTertiary}
             value={newName}
             onChangeText={setNewName}
             autoFocus
           />
-          <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.primary }]} onPress={handleCreate}>
+          <TouchableOpacity
+            style={[styles.createBtn, { backgroundColor: colors.primary }]}
+            onPress={handleCreate}
+          >
             <Text style={styles.createBtnText}>Crear</Text>
           </TouchableOpacity>
         </View>
@@ -137,7 +198,9 @@ export default function AlbumsScreen() {
       {albums.length === 0 ? (
         <View style={styles.centered}>
           <Icon name="photo-album" size={56} color={colors.textTertiary} />
-          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No hay álbumes aún</Text>
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            No hay álbumes aún
+          </Text>
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: colors.primary }]}
             onPress={() => setShowCreate(true)}
@@ -148,7 +211,7 @@ export default function AlbumsScreen() {
       ) : (
         <FlatList
           data={albums}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
         />
@@ -168,9 +231,15 @@ export default function AlbumsScreen() {
 
 const styles = StyleSheet.create({
   vaultCard: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 16, marginTop: 12, marginBottom: 4,
-    padding: 16, borderRadius: 10, borderWidth: 1, gap: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 10,
   },
   vaultText: { fontSize: 16, fontWeight: '600', flex: 1 },
   container: { flex: 1 },
@@ -186,7 +255,13 @@ const styles = StyleSheet.create({
   },
   cardContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   coverThumb: { width: 44, height: 44, borderRadius: 8 },
-  coverPlaceholder: { width: 44, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  coverPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   cardText: { marginLeft: 12, flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: '600' },
   cardSubtitle: { fontSize: 13, marginTop: 2 },

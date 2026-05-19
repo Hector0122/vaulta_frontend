@@ -35,7 +35,9 @@ function saveQueue(queue: QueueItem[]): void {
   storage.set(QUEUE_KEY, JSON.stringify(queue))
 }
 
-export function addToQueue(items: Omit<QueueItem, 'id' | 'createdAt' | 'status'>[]): number {
+export function addToQueue(
+  items: Omit<QueueItem, 'id' | 'createdAt' | 'status'>[],
+): number {
   const queue = loadQueue()
   const existingUris = new Set(queue.map(i => i.uri))
   const now = Date.now()
@@ -56,10 +58,16 @@ export function getQueue(): QueueItem[] {
 }
 
 export function getPendingCount(): number {
-  return loadQueue().filter(i => i.status === 'pending' || i.status === 'failed').length
+  return loadQueue().filter(
+    i => i.status === 'pending' || i.status === 'failed',
+  ).length
 }
 
-export function updateItemStatus(id: string, status: QueueItem['status'], errorMessage?: string): void {
+export function updateItemStatus(
+  id: string,
+  status: QueueItem['status'],
+  errorMessage?: string,
+): void {
   const queue = loadQueue()
   const idx = queue.findIndex(i => i.id === id)
   if (idx !== -1) {
@@ -80,7 +88,9 @@ export function clearQueue(): void {
 export function getSyncedNames(): Set<string> {
   try {
     const raw = storage.getString(SYNCED_NAMES_KEY)
-    return raw ? new Set<string>(JSON.parse(raw) as string[]) : new Set<string>()
+    return raw
+      ? new Set<string>(JSON.parse(raw) as string[])
+      : new Set<string>()
   } catch {
     return new Set<string>()
   }
@@ -138,10 +148,11 @@ export async function processQueue(
 
     const formData = new FormData()
     formData.append('files', {
-      uri: Platform.OS === 'android' ? item.uri : item.uri.replace('file://', ''),
+      uri:
+        Platform.OS === 'android' ? item.uri : item.uri.replace('file://', ''),
       type: resolvedType,
       name: item.name,
-    } as any)
+    })
 
     try {
       const token = await getToken()

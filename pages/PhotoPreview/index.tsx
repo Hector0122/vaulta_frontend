@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   View,
   Image,
@@ -11,20 +11,20 @@ import {
   Platform,
   useWindowDimensions,
   ScrollView,
-} from 'react-native';
+} from 'react-native'
 import {
   RouteProp,
   useRoute,
   useNavigation,
   useFocusEffect,
-} from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import RNFS from 'react-native-fs';
-import Share from 'react-native-share';
-import { useAuth } from '../../context/AuthContext';
-import { SkeletonBox } from '../../components/Skeleton';
-import ZoomableImage from '../../components/ZoomableImage';
-import VideoPlayer from '../../components/VideoPlayer';
+} from '@react-navigation/native'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import RNFS from 'react-native-fs'
+import Share from 'react-native-share'
+import { useAuth } from '../../context/AuthContext'
+import { SkeletonBox } from '../../components/Skeleton'
+import ZoomableImage from '../../components/ZoomableImage'
+import VideoPlayer from '../../components/VideoPlayer'
 import {
   getPhotoUrl,
   deletePhoto,
@@ -37,32 +37,32 @@ import {
   authenticatedGet,
   getPhotoAlbums,
   getToken,
-} from '../../api/client';
-import { BASE_URL } from '../../api/server';
-import { impactLight, success, warning } from '../../utils/haptics';
+} from '../../api/client'
+import { BASE_URL } from '../../api/server'
+import { impactLight, success, warning } from '../../utils/haptics'
 import {
   isCached,
   cachePhoto,
   removeCachedPhoto,
   offlinePath,
-} from '../../api/offline';
+} from '../../api/offline'
 import {
   addPhotoToWidget,
   removePhotoFromWidget,
   getWidgetPhotoIds,
-} from '../../api/widget';
+} from '../../api/widget'
 
 type PhotoItem = {
-  uri: string;
-  id: string;
-  tags?: string[];
-  mimeType?: string;
-};
+  uri: string
+  id: string
+  tags?: string[]
+  mimeType?: string
+}
 
 type PhotoPreviewRouteProp = RouteProp<
   { PhotoPreview: { photos: PhotoItem[]; initialIndex: number } },
   'PhotoPreview'
->;
+>
 
 function PhotoPage({
   item,
@@ -71,196 +71,192 @@ function PhotoPage({
   userId,
   isActive,
 }: {
-  item: PhotoItem;
-  onDelete: (f: string) => void;
-  onFavoriteToggle: (id: string) => void;
-  userId: string;
-  isActive: boolean;
+  item: PhotoItem
+  onDelete: (f: string) => void
+  onFavoriteToggle: (id: string) => void
+  userId: string
+  isActive: boolean
 }) {
-  const [fullUri, setFullUri] = useState<string | null>(null);
-  const [thumbUri, setThumbUri] = useState<string | null>(null);
+  const [fullUri, setFullUri] = useState<string | null>(null)
+  const [thumbUri, setThumbUri] = useState<string | null>(null)
   const [videoHeaders, setVideoHeaders] = useState<
     Record<string, string> | undefined
-  >(undefined);
-  const [showAlbumPicker, setShowAlbumPicker] = useState(false);
+  >(undefined)
+  const [showAlbumPicker, setShowAlbumPicker] = useState(false)
   const [albums, setAlbums] = useState<
     { id: string; name: string; _count: { photos: number } }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [isFav, setIsFav] = useState(false);
-  const [tags, setTags] = useState<string[]>(item.tags || []);
-  const [tagInput, setTagInput] = useState('');
-  const [offlineCached, setOfflineCached] = useState(false);
-  const [offlineLoading, setOfflineLoading] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(false);
+  >([])
+  const [loading, setLoading] = useState(true)
+  const [isFav, setIsFav] = useState(false)
+  const [tags, setTags] = useState<string[]>(item.tags || [])
+  const [tagInput, setTagInput] = useState('')
+  const [offlineCached, setOfflineCached] = useState(false)
+  const [offlineLoading, setOfflineLoading] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(false)
   const [containingAlbums, setContainingAlbums] = useState<
     { id: string; name: string; vault: boolean }[]
-  >([]);
-  const [inWidget, setInWidget] = useState(false);
-  const [imageReady, setImageReady] = useState(false);
-  const loadedRef = useRef<string | null>(null);
+  >([])
+  const [inWidget, setInWidget] = useState(false)
+  const [imageReady, setImageReady] = useState(false)
+  const loadedRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!isActive) return;
-    if (loadedRef.current === item.id) return;
-    loadedRef.current = item.id;
-    setImageReady(false);
-    setFullUri(null);
-    setLoading(true);
-    getWidgetPhotoIds().then(ids => setInWidget(ids.includes(item.id)));
+    if (!isActive) return
+    if (loadedRef.current === item.id) return
+    loadedRef.current = item.id
+    setImageReady(false)
+    setFullUri(null)
+    setLoading(true)
+    getWidgetPhotoIds().then(ids => setInWidget(ids.includes(item.id)))
     if (item.mimeType?.startsWith('video/')) {
-      setThumbUri(item.uri);
+      setThumbUri(item.uri)
       getPhotoUrl(item.id)
         .then(url => {
-          setFullUri(url);
-          setImageReady(true);
+          setFullUri(url)
+          setImageReady(true)
         })
         .catch(() => {
           getToken().then(token => {
             if (token) {
-              setFullUri(`${BASE_URL}/photos/${item.id}/stream`);
-              setVideoHeaders({ Authorization: `Bearer ${token}` });
+              setFullUri(`${BASE_URL}/photos/${item.id}/stream`)
+              setVideoHeaders({ Authorization: `Bearer ${token}` })
             }
-            setImageReady(true);
-          });
+            setImageReady(true)
+          })
         })
-        .finally(() => setLoading(false));
+        .finally(() => setLoading(false))
     } else {
       getPhotoUrl(item.id)
         .then(url => {
-          setFullUri(url);
-          setImageReady(true);
+          setFullUri(url)
+          setImageReady(true)
         })
         .catch(() => {
-          setImageReady(true);
+          setImageReady(true)
         })
-        .finally(() => setLoading(false));
+        .finally(() => setLoading(false))
     }
-    isCached(userId, item.id).then(setOfflineCached);
+    isCached(userId, item.id).then(setOfflineCached)
     getPhotoAlbums(item.id)
       .then(setContainingAlbums)
-      .catch(() => {});
-  }, [item.id, item.uri, userId, item.mimeType, isActive]);
+      .catch(() => {})
+  }, [item.id, item.uri, userId, item.mimeType, isActive])
 
   const handleToggleFav = async () => {
     try {
-      const fav = await toggleFavorite(item.id);
-      setIsFav(fav);
-      impactLight();
-      onFavoriteToggle(item.id);
+      const fav = await toggleFavorite(item.id)
+      setIsFav(fav)
+      impactLight()
+      onFavoriteToggle(item.id)
     } catch {
-      Alert.alert('Error', 'No se pudo cambiar favorito');
+      Alert.alert('Error', 'No se pudo cambiar favorito')
     }
-  };
+  }
 
   const handleDownload = async () => {
-    const uri = fullUri || item.uri;
-    const isVideo = item.mimeType?.startsWith('video/');
-    const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG';
+    const uri = fullUri || item.uri
+    const isVideo = item.mimeType?.startsWith('video/')
+    const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG'
     try {
-      const dest = `${
-        RNFS.DocumentDirectoryPath
-      }/download_${Date.now()}.${ext}`;
-      const token = await getToken();
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-      await RNFS.downloadFile({ fromUrl: uri, toFile: dest, headers }).promise;
-      if (Platform.OS === 'android') await RNFS.scanFile(dest);
-      success();
-      Alert.alert('Descargado', `Archivo guardado en ${dest}`);
+      const dest = `${RNFS.DocumentDirectoryPath}/download_${Date.now()}.${ext}`
+      const token = await getToken()
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+      await RNFS.downloadFile({ fromUrl: uri, toFile: dest, headers }).promise
+      if (Platform.OS === 'android') await RNFS.scanFile(dest)
+      success()
+      Alert.alert('Descargado', `Archivo guardado en ${dest}`)
     } catch {
-      Alert.alert('Error', 'No se pudo descargar el archivo');
+      Alert.alert('Error', 'No se pudo descargar el archivo')
     }
-  };
+  }
 
   const handleShare = async () => {
-    const uri = fullUri || item.uri;
-    const isVideo = item.mimeType?.startsWith('video/');
-    const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG';
+    const uri = fullUri || item.uri
+    const isVideo = item.mimeType?.startsWith('video/')
+    const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG'
     try {
-      const localPath = `${
-        RNFS.CachesDirectoryPath
-      }/share_${Date.now()}.${ext}`;
-      const token = await getToken();
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const localPath = `${RNFS.CachesDirectoryPath}/share_${Date.now()}.${ext}`
+      const token = await getToken()
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
       await RNFS.downloadFile({ fromUrl: uri, toFile: localPath, headers })
-        .promise;
+        .promise
       await Share.open({
         url: Platform.OS === 'android' ? `file://${localPath}` : localPath,
         type: isVideo ? 'video/mp4' : 'image/jpeg',
-      });
+      })
     } catch {
-      Alert.alert('Error', 'No se pudo compartir el archivo');
+      Alert.alert('Error', 'No se pudo compartir el archivo')
     }
-  };
+  }
 
   const handleOfflineToggle = async () => {
-    if (offlineLoading) return;
-    setOfflineLoading(true);
+    if (offlineLoading) return
+    setOfflineLoading(true)
     try {
       if (offlineCached) {
-        await removeCachedPhoto(userId, item.id);
-        setOfflineCached(false);
+        await removeCachedPhoto(userId, item.id)
+        setOfflineCached(false)
       } else {
-        let uri: string;
+        let uri: string
         try {
-          uri = await getPhotoUrl(item.id);
+          uri = await getPhotoUrl(item.id)
         } catch {
-          Alert.alert('Error', 'No se pudo obtener la URL de la imagen');
-          setOfflineLoading(false);
-          return;
+          Alert.alert('Error', 'No se pudo obtener la URL de la imagen')
+          setOfflineLoading(false)
+          return
         }
         // Presigned S3 URLs carry auth in query params — do NOT add Authorization header
-        await cachePhoto(userId, item.id, uri);
-        setOfflineCached(true);
+        await cachePhoto(userId, item.id, uri)
+        setOfflineCached(true)
       }
     } catch {
-      Alert.alert('Error', 'No se pudo gestionar el archivo offline');
+      Alert.alert('Error', 'No se pudo gestionar el archivo offline')
     } finally {
-      setOfflineLoading(false);
+      setOfflineLoading(false)
     }
-  };
+  }
 
   const handleTogglePrivate = async () => {
-    const nonVault = containingAlbums.filter(a => !a.vault);
+    const nonVault = containingAlbums.filter(a => !a.vault)
     if (!isPrivate && nonVault.length > 0) {
-      const names = nonVault.map(a => `"${a.name}"`).join(', ');
+      const names = nonVault.map(a => `"${a.name}"`).join(', ')
       Alert.alert(
         'No disponible',
         `Esta foto está en ${names} y no puede ser privada. Quítala del álbum primero.`,
-      );
-      return;
+      )
+      return
     }
     try {
-      const res = await togglePrivate(item.id);
-      setIsPrivate(res.private);
+      const res = await togglePrivate(item.id)
+      setIsPrivate(res.private)
       if (!res.private) {
         getPhotoAlbums(item.id)
           .then(setContainingAlbums)
-          .catch(() => {});
+          .catch(() => {})
       }
     } catch {
-      Alert.alert('Error', 'No se pudo cambiar privacidad');
+      Alert.alert('Error', 'No se pudo cambiar privacidad')
     }
-  };
+  }
 
   const handleToggleWidget = async () => {
     try {
       if (inWidget) {
-        await removePhotoFromWidget(item.id);
-        setInWidget(false);
-        warning();
+        await removePhotoFromWidget(item.id)
+        setInWidget(false)
+        warning()
       } else {
-        await addPhotoToWidget(item.id, item.uri);
-        setInWidget(true);
-        success();
+        await addPhotoToWidget(item.id, item.uri)
+        setInWidget(true)
+        success()
       }
     } catch {
-      Alert.alert('Error', 'No se pudo actualizar el widget');
+      Alert.alert('Error', 'No se pudo actualizar el widget')
     }
-  };
+  }
 
   const handleDelete = () => {
-    warning();
+    warning()
     Alert.alert('Eliminar foto', '¿Estás seguro?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -268,67 +264,67 @@ function PhotoPage({
         style: 'destructive',
         onPress: async () => {
           try {
-            await deletePhoto(item.id);
-            onDelete(item.id);
+            await deletePhoto(item.id)
+            onDelete(item.id)
           } catch {
-            Alert.alert('Error', 'No se pudo eliminar la foto');
+            Alert.alert('Error', 'No se pudo eliminar la foto')
           }
         },
       },
-    ]);
-  };
+    ])
+  }
 
   const handleAddTag = async () => {
-    const t = tagInput.trim();
-    if (!t) return;
+    const t = tagInput.trim()
+    if (!t) return
     try {
-      const updated = await addTag(item.id, t);
-      setTags(updated);
-      setTagInput('');
+      const updated = await addTag(item.id, t)
+      setTags(updated)
+      setTagInput('')
     } catch {
-      Alert.alert('Error', 'No se pudo añadir la etiqueta');
+      Alert.alert('Error', 'No se pudo añadir la etiqueta')
     }
-  };
+  }
 
   const handleRemoveTag = async (tag: string) => {
     try {
-      const updated = await removeTag(item.id, tag);
-      setTags(updated);
+      const updated = await removeTag(item.id, tag)
+      setTags(updated)
     } catch {
-      Alert.alert('Error', 'No se pudo eliminar la etiqueta');
+      Alert.alert('Error', 'No se pudo eliminar la etiqueta')
     }
-  };
+  }
 
   const handleOpenAlbumPicker = async () => {
     try {
       const data = await authenticatedGet<
         { id: string; name: string; _count: { photos: number } }[]
-      >('albums');
-      setAlbums(data);
-      setShowAlbumPicker(true);
+      >('albums')
+      setAlbums(data)
+      setShowAlbumPicker(true)
     } catch {
-      Alert.alert('Error', 'No se pudieron cargar los álbumes');
+      Alert.alert('Error', 'No se pudieron cargar los álbumes')
     }
-  };
+  }
 
   const handleAddToAlbum = async (albumId: string) => {
     try {
-      const res = await addPhotosToAlbum(albumId, [item.id]);
-      setShowAlbumPicker(false);
+      const res = await addPhotosToAlbum(albumId, [item.id])
+      setShowAlbumPicker(false)
       if (res.alreadyInAlbum > 0 && res.added === 0) {
-        Alert.alert('Ya está', 'Esta foto ya está en el álbum');
+        Alert.alert('Ya está', 'Esta foto ya está en el álbum')
       } else {
-        Alert.alert('Hecho', 'Foto agregada al álbum');
+        Alert.alert('Hecho', 'Foto agregada al álbum')
       }
     } catch (e: any) {
-      const msg = e?.message || '';
+      const msg = e?.message || ''
       if (msg.includes('Unique') || msg.includes('already')) {
-        Alert.alert('Ya está', 'Esta foto ya está en el álbum');
+        Alert.alert('Ya está', 'Esta foto ya está en el álbum')
       } else {
-        Alert.alert('Error', 'No se pudo agregar la foto');
+        Alert.alert('Error', 'No se pudo agregar la foto')
       }
     }
-  };
+  }
 
   return (
     <View style={pageStyles.container}>
@@ -355,7 +351,7 @@ function PhotoPage({
               uri={
                 offlineCached
                   ? `file://${offlinePath(userId, item.id)}`
-                  : (fullUri ?? item.uri)
+                  : fullUri ?? item.uri
               }
             />
           )}
@@ -495,7 +491,7 @@ function PhotoPage({
         </View>
       )}
     </View>
-  );
+  )
 }
 
 const pageStyles = StyleSheet.create({
@@ -582,24 +578,24 @@ const pageStyles = StyleSheet.create({
   },
   albumRowName: { fontSize: 15, fontWeight: '500', color: '#fff', flex: 1 },
   albumRowCount: { fontSize: 13, color: '#999' },
-});
+})
 
 export default function PhotoPreview() {
-  const { user } = useAuth();
-  const route = useRoute<PhotoPreviewRouteProp>();
-  const navigation = useNavigation();
-  const { width: screenWidth } = useWindowDimensions();
-  const { photos: initialPhotos, initialIndex } = route.params;
-  const [items, setItems] = useState(initialPhotos);
-  const [activeIndex, setActiveIndex] = useState(initialIndex || 0);
-  const scrollRef = useRef<ScrollView>(null);
+  const { user } = useAuth()
+  const route = useRoute<PhotoPreviewRouteProp>()
+  const navigation = useNavigation()
+  const { width: screenWidth } = useWindowDimensions()
+  const { photos: initialPhotos, initialIndex } = route.params
+  const [items, setItems] = useState(initialPhotos)
+  const [activeIndex, setActiveIndex] = useState(initialIndex || 0)
+  const scrollRef = useRef<ScrollView>(null)
   const onScrollEnd = useCallback(
     (e: any) => {
-      const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-      setActiveIndex(idx);
+      const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth)
+      setActiveIndex(idx)
     },
     [screenWidth],
-  );
+  )
 
   useFocusEffect(
     useCallback(() => {
@@ -607,25 +603,23 @@ export default function PhotoPreview() {
         scrollRef.current?.scrollTo({
           x: screenWidth * initialIndex,
           animated: false,
-        });
+        })
       }
     }, [screenWidth, initialIndex]),
-  );
+  )
 
   const handleDelete = useCallback(
     (id: string) => {
-      const remaining = items.filter(i => i.id !== id);
+      const remaining = items.filter(i => i.id !== id)
       if (remaining.length === 0) {
-        navigation.goBack();
-        return;
+        navigation.goBack()
+        return
       }
-      const deletedIdx = items.findIndex(i => i.id === id);
-      setItems(remaining);
+      const deletedIdx = items.findIndex(i => i.id === id)
+      setItems(remaining)
     },
     [items, navigation],
-  );
-
-  const handleFavoriteToggle = useCallback((_id: string) => {}, []);
+  )
 
   return (
     <ScrollView
@@ -642,12 +636,12 @@ export default function PhotoPreview() {
           <PhotoPage
             item={item}
             onDelete={handleDelete}
-            onFavoriteToggle={handleFavoriteToggle}
+            onFavoriteToggle={() => {}}
             userId={user?.id || ''}
             isActive={index === activeIndex}
           />
         </View>
       ))}
     </ScrollView>
-  );
+  )
 }

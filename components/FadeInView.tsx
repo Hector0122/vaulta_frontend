@@ -1,15 +1,15 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, type ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from 'react'
+import { Animated, type ViewStyle } from 'react-native'
 
 type Props = {
-  children: React.ReactNode;
-  style?: ViewStyle;
-  delay?: number;
-};
+  children: React.ReactNode
+  style?: ViewStyle
+  delay?: number
+}
 
 export default function FadeInView({ children, style, delay = 0 }: Props) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(10)).current;
+  const opacity = useRef(new Animated.Value(0)).current
+  const translateY = useRef(new Animated.Value(10)).current
 
   useEffect(() => {
     Animated.parallel([
@@ -25,12 +25,12 @@ export default function FadeInView({ children, style, delay = 0 }: Props) {
         delay,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [opacity, translateY, delay]);
+    ]).start()
+  }, [opacity, translateY, delay])
 
   return (
     <Animated.View style={[{ opacity, transform: [{ translateY }] }, style]}>
       {children}
     </Animated.View>
-  );
+  )
 }

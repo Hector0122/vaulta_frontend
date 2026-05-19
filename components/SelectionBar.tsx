@@ -2,11 +2,12 @@ import React from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import type { ThemeColors } from '../theme'
 
 type Props = {
   selectedCount: number
   isDark: boolean
-  colors: any
+  colors: ThemeColors
   onDownload: () => void
   onShare: () => void
   onAddToAlbum: () => void

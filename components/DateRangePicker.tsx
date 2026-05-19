@@ -3,12 +3,13 @@ import { View, Text, TouchableOpacity, Modal } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import LazyCalendar from './LazyCalendar'
+import type { ThemeColors } from '../theme'
 
 type Props = {
   visible: boolean
   rangeStart: string | null
   rangeEnd: string | null
-  colors: any
+  colors: ThemeColors
   onDayPress: (day: { dateString: string }) => void
   onSelectToday: () => void
   onClose: () => void
@@ -26,7 +27,9 @@ export default function DateRangePicker({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+        <View
+          style={[styles.modalContent, { backgroundColor: colors.surface }]}
+        >
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {rangeStart ? 'Selecciona fecha fin' : 'Selecciona fecha inicio'}
@@ -48,12 +51,22 @@ export default function DateRangePicker({
                       color: colors.primary,
                       startingDay: !rangeEnd || rangeStart <= rangeEnd,
                       ...(rangeEnd ? {} : { endingDay: true }),
-                      ...(rangeEnd && rangeStart === rangeEnd ? { endingDay: true } : {}),
+                      ...(rangeEnd && rangeStart === rangeEnd
+                        ? { endingDay: true }
+                        : {}),
                     },
                     ...(rangeEnd && rangeEnd !== rangeStart
                       ? Object.fromEntries(
                           (() => {
-                            const dates: [string, any][] = []
+                            const dates: [
+                              string,
+                              {
+                                selected: boolean
+                                color: string
+                                startingDay?: boolean
+                                endingDay?: boolean
+                              },
+                            ][] = []
                             const start = new Date(rangeStart)
                             const end = new Date(rangeEnd)
                             if (start > end) return dates
@@ -61,11 +74,31 @@ export default function DateRangePicker({
                             while (cursor <= end) {
                               const ds = cursor.toISOString().split('T')[0]
                               if (ds === rangeStart) {
-                                dates.push([ds, { selected: true, color: colors.primary, startingDay: true }])
+                                dates.push([
+                                  ds,
+                                  {
+                                    selected: true,
+                                    color: colors.primary,
+                                    startingDay: true,
+                                  },
+                                ])
                               } else if (ds === rangeEnd) {
-                                dates.push([ds, { selected: true, color: colors.primary, endingDay: true }])
+                                dates.push([
+                                  ds,
+                                  {
+                                    selected: true,
+                                    color: colors.primary,
+                                    endingDay: true,
+                                  },
+                                ])
                               } else {
-                                dates.push([ds, { selected: true, color: colors.primary + '40' }])
+                                dates.push([
+                                  ds,
+                                  {
+                                    selected: true,
+                                    color: colors.primary + '40',
+                                  },
+                                ])
                               }
                               cursor.setDate(cursor.getDate() + 1)
                             }
@@ -90,7 +123,10 @@ export default function DateRangePicker({
             }}
           />
           {rangeStart && !rangeEnd && (
-            <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={onSelectToday}>
+            <TouchableOpacity
+              style={[styles.applyBtn, { backgroundColor: colors.primary }]}
+              onPress={onSelectToday}
+            >
               <Text style={styles.applyBtnText}>Este día</Text>
             </TouchableOpacity>
           )}
@@ -101,7 +137,11 @@ export default function DateRangePicker({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -109,8 +149,18 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     maxHeight: '85%',
   },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   modalTitle: { fontSize: 17, fontWeight: '600' },
-  applyBtn: { marginTop: 12, borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  applyBtn: {
+    marginTop: 12,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
   applyBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 })
