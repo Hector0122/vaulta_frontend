@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
@@ -9,8 +9,6 @@ import {
   useWindowDimensions,
   Alert,
   RefreshControl,
-  Modal,
-  TextInput,
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
@@ -41,7 +39,7 @@ export default function VaultView() {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [biometricAvailable, setBiometricAvailable] = useState(false)
-  const [biometricType, setBiometricType] = useState('')
+  const [_biometricType, setBiometricType] = useState('')
   const [vaultData, setVaultData] = useState<{
     id: string
     photos: VaultPhoto[]
@@ -122,8 +120,8 @@ export default function VaultView() {
     setStep('gallery')
   }
 
+  const photos = useMemo(() => vaultData?.photos || [], [vaultData])
   const rows: VaultPhoto[][] = []
-  const photos = vaultData?.photos || []
   for (let i = 0; i < photos.length; i += colCount) {
     rows.push(photos.slice(i, i + colCount))
   }
@@ -200,7 +198,7 @@ export default function VaultView() {
                   }}
                   resizeMode="cover"
                 />
-                <View style={{ position: 'absolute', bottom: 4, right: 4 }}>
+                <View style={styles.vaultBadge}>
                   <Icon name="visibility-off" size={14} color="#ffa726" />
                 </View>
                 {isSelected && (
@@ -228,7 +226,7 @@ export default function VaultView() {
         <ActivityIndicator
           size="large"
           color={colors.primary}
-          style={{ flex: 1 }}
+          style={styles.loadingCentered}
         />
       </View>
     )
@@ -353,7 +351,7 @@ export default function VaultView() {
           <Text style={styles.actionCount}>
             {selected.size} seleccionada(s)
           </Text>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View style={styles.actionActions}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleRemove}>
               <Icon name="remove-circle-outline" size={18} color="#fff" />
               <Text style={styles.actionBtnLabel}>Quitar</Text>
@@ -490,4 +488,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   biometricLabel: { fontSize: 12, marginTop: 4 },
+  vaultBadge: { position: 'absolute', bottom: 4, right: 4 },
+  loadingCentered: { flex: 1 },
+  actionActions: { flexDirection: 'row', gap: 4 },
 })

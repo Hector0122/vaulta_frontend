@@ -18,7 +18,6 @@ import {
   retryFailed,
   clearQueue,
 } from '../services/UploadQueue'
-import type { QueueItem } from '../services/UploadQueue'
 
 export default function UploadQueueBanner() {
   const { colors } = useTheme()
@@ -34,34 +33,7 @@ export default function UploadQueueBanner() {
     setPending(getPendingCount())
   }, [])
 
-  useEffect(() => {
-    refresh()
-    const interval = setInterval(refresh, 3000)
-    return () => clearInterval(interval)
-  }, [refresh])
-
-  useEffect(() => {
-    if (!wasOffline.current && !isConnected) {
-      wasOffline.current = true
-    }
-    if (wasOffline.current && isConnected && pending > 0 && !processing) {
-      wasOffline.current = false
-      handleProcess()
-    }
-    if (isConnected) {
-      wasOffline.current = false
-    }
-  }, [isConnected])
-
-  useEffect(() => {
-    Animated.spring(animValue, {
-      toValue: pending > 0 || processing ? 1 : 0,
-      useNativeDriver: true,
-      friction: 10,
-    }).start()
-  }, [pending, processing])
-
-  async function handleProcess() {
+  const handleProcess = useCallback(async () => {
     setProcessing(true)
     setProgress({ completed: 0, total: getPendingCount() })
 
@@ -100,7 +72,34 @@ export default function UploadQueueBanner() {
         duration: 3000,
       })
     }
-  }
+  }, [showToast, refresh])
+
+  useEffect(() => {
+    refresh()
+    const interval = setInterval(refresh, 3000)
+    return () => clearInterval(interval)
+  }, [refresh])
+
+  useEffect(() => {
+    if (!wasOffline.current && !isConnected) {
+      wasOffline.current = true
+    }
+    if (wasOffline.current && isConnected && pending > 0 && !processing) {
+      wasOffline.current = false
+      handleProcess()
+    }
+    if (isConnected) {
+      wasOffline.current = false
+    }
+  }, [isConnected, handleProcess, pending, processing])
+
+  useEffect(() => {
+    Animated.spring(animValue, {
+      toValue: pending > 0 || processing ? 1 : 0,
+      useNativeDriver: true,
+      friction: 10,
+    }).start()
+  }, [pending, processing, animValue])
 
   const handleRetryFailed = () => {
     const count = retryFailed()

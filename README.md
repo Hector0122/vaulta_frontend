@@ -43,7 +43,6 @@ pages/
   Profile/         - Stats, export, duplicates, logout
   Trash/           - Restore or permanently delete
   Duplicates/      - Duplicate photo groups by perceptual hash
-  Map/             - Geotagged photo markers
 
 components/        - 17 shared components (Toast, Skeleton, FAB, FilterBar, etc.)
 context/           - Auth, Theme, Network, Toast providers

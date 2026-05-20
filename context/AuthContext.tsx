@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useMemo,
   useCallback,
   ReactNode,
 } from 'react';
@@ -210,12 +211,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
   }, [])
 
+  const value = useMemo(() => ({
+    user, loading, biometricNeeded, biometricAvailable, biometricLabel,
+    biometricEnabled, login, register, logout, biometricLogin,
+    handleBiometricSuccess, dismissBiometricGate, enableBiometric, disableBiometric,
+  }), [user, loading, biometricNeeded, biometricAvailable, biometricLabel,
+    biometricEnabled, login, register, logout, biometricLogin,
+    handleBiometricSuccess, dismissBiometricGate, enableBiometric, disableBiometric])
+
   return (
-    <AuthContext.Provider value={{
-      user, loading, biometricNeeded, biometricAvailable, biometricLabel,
-      biometricEnabled, login, register, logout, biometricLogin,
-      handleBiometricSuccess, dismissBiometricGate, enableBiometric, disableBiometric,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

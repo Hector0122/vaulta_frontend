@@ -79,24 +79,29 @@ export default function AlbumView() {
     [albumId],
   )
 
+  const headerRight = useCallback(
+    () => (
+      <TouchableOpacity
+        onPress={() => setShowRename(true)}
+        style={styles.headerRightBtn}
+      >
+        <Icon name="edit" size={22} color={colors.primary} />
+      </TouchableOpacity>
+    ),
+    [colors],
+  )
+
   useEffect(() => {
     navigation.setOptions({
       title: albumName,
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => setShowRename(true)}
-          style={{ marginRight: 16 }}
-        >
-          <Icon name="edit" size={22} color={colors.primary} />
-        </TouchableOpacity>
-      ),
+      headerRight,
     })
     ;(async () => {
       setLoading(true)
       await fetchPhotos()
       setLoading(false)
     })()
-  }, [albumId, albumName, navigation, colors, fetchPhotos])
+  }, [albumId, albumName, navigation, colors, fetchPhotos, headerRight])
 
   const onRefresh = async () => {
     setRefreshing(true)
@@ -240,7 +245,7 @@ export default function AlbumView() {
         <ActivityIndicator
           size="large"
           color={colors.primary}
-          style={{ flex: 1 }}
+          style={styles.loadingCentered}
         />
       </View>
     )
@@ -261,7 +266,7 @@ export default function AlbumView() {
           {photos.length} foto(s)
           {filterActive ? ' (filtradas)' : ''}
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={styles.topActions}>
           <TouchableOpacity
             style={styles.topBtn}
             onPress={() => setShowDateFilter(true)}
@@ -313,7 +318,7 @@ export default function AlbumView() {
           <Text style={styles.actionCount}>
             {selected.size} seleccionada(s)
           </Text>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View style={styles.actionActions}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleSetCover}>
               <Icon name="photo" size={18} color="#fff" />
               <Text style={styles.actionBtnLabel}>Portada</Text>
@@ -450,10 +455,10 @@ export default function AlbumView() {
               <TouchableOpacity
                 style={[
                   styles.modalBtn,
+                  styles.modalBtnOutline,
                   {
                     backgroundColor: colors.surfaceAlt,
                     borderColor: colors.border,
-                    borderWidth: 1,
                   },
                 ]}
                 onPress={() => {
@@ -471,7 +476,7 @@ export default function AlbumView() {
                 disabled={!dateFrom || !dateTo}
                 onPress={applyDateFilter}
               >
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>
+                <Text style={[styles.modalBtnText, styles.modalBtnTextLight]}>
                   Aplicar
                 </Text>
               </TouchableOpacity>
@@ -489,7 +494,8 @@ export default function AlbumView() {
             <Text
               style={[
                 styles.modalTitle,
-                { color: colors.text, marginBottom: 12 },
+                { color: colors.text },
+                styles.modalTitleSpaced,
               ]}
             >
               Renombrar álbum
@@ -511,10 +517,10 @@ export default function AlbumView() {
               <TouchableOpacity
                 style={[
                   styles.modalBtn,
+                  styles.modalBtnOutline,
                   {
                     backgroundColor: colors.surfaceAlt,
                     borderColor: colors.border,
-                    borderWidth: 1,
                   },
                 ]}
                 onPress={() => setShowRename(false)}
@@ -527,7 +533,7 @@ export default function AlbumView() {
                 style={[styles.modalBtn, { backgroundColor: colors.primary }]}
                 onPress={handleRename}
               >
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>
+                <Text style={[styles.modalBtnText, styles.modalBtnTextLight]}>
                   Guardar
                 </Text>
               </TouchableOpacity>
@@ -647,4 +653,11 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
   },
+  headerRightBtn: { marginRight: 16 },
+  loadingCentered: { flex: 1 },
+  topActions: { flexDirection: 'row', gap: 8 },
+  actionActions: { flexDirection: 'row', gap: 4 },
+  modalBtnOutline: { borderWidth: 1 },
+  modalBtnTextLight: { color: '#fff' },
+  modalTitleSpaced: { marginBottom: 12 },
 })

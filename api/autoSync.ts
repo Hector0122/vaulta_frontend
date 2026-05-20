@@ -3,7 +3,7 @@ import { storage } from './storage';
 import { addToQueue, getSyncedNames } from '../services/UploadQueue';
 
 const AUTO_SYNC_ENABLED_KEY = '@vaulta_auto_sync_enabled';
-const LAST_SYNC_TIME_KEY = '@vaulta_last_sync_time';
+const LAST_SYNC_TIME_KEY = '@vaulta_last_sync_timeÑ';
 
 /** On first sync, look back this many days instead of scanning the full library */
 const FIRST_SYNC_LOOKBACK_DAYS = 30;

@@ -28,6 +28,14 @@ import {
 } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
 import { promptBiometrics } from '../../services/biometrics'
+import {
+  isAutoSyncEnabled,
+  setAutoSyncEnabled,
+  cancelAutoSync,
+  clearLastSyncTime,
+  runAutoSync,
+  getLastSyncTimeFormatted,
+} from '../../api/autoSync'
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -75,33 +83,22 @@ export default function ProfileScreen() {
   const [lastSyncLabel, setLastSyncLabel] = useState<string | null>(null)
 
   useEffect(() => {
-    const {
-      isAutoSyncEnabled,
-      getLastSyncTimeFormatted,
-    } = require('../../api/autoSync')
     setAutoSyncEnabledState(isAutoSyncEnabled())
     setLastSyncLabel(getLastSyncTimeFormatted())
   }, [])
 
   const handleAutoSyncToggle = (value: boolean) => {
-    const { setAutoSyncEnabled } = require('../../api/autoSync')
     setAutoSyncEnabled(value)
     setAutoSyncEnabledState(value)
   }
 
   const handleCancelSync = () => {
-    const { cancelAutoSync } = require('../../api/autoSync')
     cancelAutoSync()
   }
 
   const handleFullResync = async () => {
     setSyncing(true)
     try {
-      const {
-        clearLastSyncTime,
-        runAutoSync,
-        getLastSyncTimeFormatted,
-      } = require('../../api/autoSync')
       clearLastSyncTime()
       setLastSyncLabel(null)
       const count: number = await runAutoSync(true)
@@ -133,10 +130,6 @@ export default function ProfileScreen() {
   const handleSyncNow = async () => {
     setSyncing(true)
     try {
-      const {
-        runAutoSync,
-        getLastSyncTimeFormatted,
-      } = require('../../api/autoSync')
       const count: number = await runAutoSync(true)
       setLastSyncLabel(getLastSyncTimeFormatted())
       if (count === -2) {
@@ -213,7 +206,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.flex1}>
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
@@ -285,7 +278,8 @@ export default function ProfileScreen() {
               <Text
                 style={[
                   styles.statNumber,
-                  { color: colors.text, fontSize: 18 },
+                  styles.statNumberLarge,
+                  { color: colors.text },
                 ]}
               >
                 {formatBytes(stats.totalSize)}
@@ -296,7 +290,7 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
-        <View style={[styles.analysisRow, { gap: 8 }]}>
+        <View style={[styles.analysisRow, styles.analysisRowGap]}>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: colors.primary }]}
             onPress={async () => {
@@ -327,10 +321,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[
               styles.actionBtn,
+              styles.border1,
               {
                 backgroundColor: colors.surfaceAlt,
                 borderColor: colors.border,
-                borderWidth: 1,
               },
             ]}
             onPress={() => navigation.navigate('Duplicates')}
@@ -344,25 +338,18 @@ export default function ProfileScreen() {
         <View
           style={[
             styles.statsCard,
-            {
-              backgroundColor: colors.cardBg,
-              marginTop: 12,
-              alignItems: 'center',
-            },
+            styles.statsCardTop,
+            { backgroundColor: colors.cardBg },
           ]}
         >
-          <View style={{ flex: 1 }}>
+          <View style={styles.flex1}>
             <Text
-              style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}
+              style={[styles.syncLabel, { color: colors.text }]}
             >
               Sincronización automática
             </Text>
             <Text
-              style={{
-                color: colors.textSecondary,
-                fontSize: 12,
-                marginTop: 2,
-              }}
+              style={[styles.syncSubLabel, { color: colors.textSecondary }]}
             >
               {lastSyncLabel
                 ? `Última sync: ${lastSyncLabel}`
@@ -377,13 +364,10 @@ export default function ProfileScreen() {
           />
         </View>
         {autoSyncEnabled && (
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          <View style={styles.syncBtnRow}>
             {syncing ? (
               <TouchableOpacity
-                style={[
-                  styles.actionBtn,
-                  { backgroundColor: '#ef4444', flex: 1 },
-                ]}
+                style={[styles.actionBtn, styles.cancelBtn, styles.flex1]}
                 onPress={handleCancelSync}
               >
                 <Icon name="close" size={18} color="#fff" />
@@ -394,7 +378,8 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={[
                     styles.actionBtn,
-                    { backgroundColor: colors.primary, flex: 1 },
+                    styles.flex1,
+                    { backgroundColor: colors.primary },
                   ]}
                   onPress={handleSyncNow}
                 >
@@ -404,10 +389,10 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={[
                     styles.actionBtn,
+                    styles.flex1,
+                    styles.border1,
                     {
                       backgroundColor: colors.cardBg,
-                      flex: 1,
-                      borderWidth: 1,
                       borderColor: colors.primary,
                     },
                   ]}
@@ -425,14 +410,14 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        <View style={[styles.analysisRow, { gap: 8, marginTop: 8 }]}>
+        <View style={[styles.analysisRow, styles.analysisRowGapTop]}>
           <TouchableOpacity
             style={[
               styles.actionBtn,
+              styles.border1,
               {
                 backgroundColor: colors.surfaceAlt,
                 borderColor: colors.border,
-                borderWidth: 1,
               },
             ]}
             onPress={() => navigation.navigate('Trash')}
@@ -445,7 +430,8 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[
               styles.actionBtn,
-              { backgroundColor: colors.primary, flex: 1 },
+              styles.flex1,
+              { backgroundColor: colors.primary },
             ]}
             onPress={async () => {
               try {
@@ -462,10 +448,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[
               styles.actionBtn,
+              styles.border1,
               {
                 backgroundColor: colors.surfaceAlt,
                 borderColor: colors.border,
-                borderWidth: 1,
               },
             ]}
             onPress={() => setShowDatePicker(true)}
@@ -583,10 +569,10 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={[
                     styles.modalBtn,
+                    styles.border1,
                     {
                       backgroundColor: colors.surfaceAlt,
                       borderColor: colors.border,
-                      borderWidth: 1,
                     },
                   ]}
                   onPress={() => {
@@ -624,7 +610,7 @@ export default function ProfileScreen() {
                     setSelectingEnd(false)
                   }}
                 >
-                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>
+                  <Text style={[styles.modalBtnText, styles.whiteText]}>
                     Exportar
                   </Text>
                 </TouchableOpacity>
@@ -877,4 +863,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
+  flex1: { flex: 1 },
+  syncBtnRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  analysisRowGap: { gap: 8 },
+  analysisRowGapTop: { gap: 8, marginTop: 8 },
+  whiteText: { color: '#fff' },
+  border1: { borderWidth: 1 },
+  statNumberLarge: { fontSize: 18 },
+  statsCardTop: { marginTop: 12, alignItems: 'center' },
+  syncLabel: { fontWeight: '600', fontSize: 15 },
+  syncSubLabel: { fontSize: 12, marginTop: 2 },
+  cancelBtn: { backgroundColor: '#ef4444' },
 })

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Text,
   TextInput,
-  ActivityIndicator,
   Alert,
   Platform,
   useWindowDimensions,
@@ -22,7 +21,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons'
 import RNFS from 'react-native-fs'
 import Share from 'react-native-share'
 import { useAuth } from '../../context/AuthContext'
-import { SkeletonBox } from '../../components/Skeleton'
 import ZoomableImage from '../../components/ZoomableImage'
 import VideoPlayer from '../../components/VideoPlayer'
 import {
@@ -30,7 +28,6 @@ import {
   deletePhoto,
   toggleFavorite,
   togglePrivate,
-  getShareLink,
   addTag,
   removeTag,
   addPhotosToAlbum,
@@ -86,7 +83,7 @@ function PhotoPage({
   const [albums, setAlbums] = useState<
     { id: string; name: string; _count: { photos: number } }[]
   >([])
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [isFav, setIsFav] = useState(false)
   const [tags, setTags] = useState<string[]>(item.tags || [])
   const [tagInput, setTagInput] = useState('')
@@ -110,9 +107,10 @@ function PhotoPage({
     getWidgetPhotoIds().then(ids => setInWidget(ids.includes(item.id)))
     if (item.mimeType?.startsWith('video/')) {
       setThumbUri(item.uri)
-      getPhotoUrl(item.id)
-        .then(url => {
+      getPhotoDetail(item.id)
+        .then(({ url, albums: photoAlbums }) => {
           setFullUri(url)
+          setContainingAlbums(photoAlbums)
           setImageReady(true)
         })
         .catch(() => {
@@ -126,9 +124,10 @@ function PhotoPage({
         })
         .finally(() => setLoading(false))
     } else {
-      getPhotoUrl(item.id)
-        .then(url => {
+      getPhotoDetail(item.id)
+        .then(({ url, albums: photoAlbums }) => {
           setFullUri(url)
+          setContainingAlbums(photoAlbums)
           setImageReady(true)
         })
         .catch(() => {
@@ -137,9 +136,6 @@ function PhotoPage({
         .finally(() => setLoading(false))
     }
     isCached(userId, item.id).then(setOfflineCached)
-    getPhotoAlbums(item.id)
-      .then(setContainingAlbums)
-      .catch(() => {})
   }, [item.id, item.uri, userId, item.mimeType, isActive])
 
   const handleToggleFav = async () => {
@@ -456,7 +452,7 @@ function PhotoPage({
       {showAlbumPicker && (
         <View style={pageStyles.modalOverlay}>
           <View
-            style={[pageStyles.modalContent, { backgroundColor: '#1a1a1a' }]}
+            style={[pageStyles.modalContent, pageStyles.modalContentDark]}
           >
             <View style={pageStyles.modalHeader}>
               <Text style={pageStyles.modalTitle}>Añadir a álbum</Text>
@@ -465,8 +461,8 @@ function PhotoPage({
               </TouchableOpacity>
             </View>
             {albums.length === 0 ? (
-              <View style={{ padding: 32, alignItems: 'center' }}>
-                <Text style={{ color: '#999', fontSize: 15 }}>
+              <View style={pageStyles.emptyAlbumsContainer}>
+                <Text style={pageStyles.emptyAlbumsText}>
                   No hay álbumes. Crea uno desde la pestaña Álbumes.
                 </Text>
               </View>
@@ -475,7 +471,7 @@ function PhotoPage({
                 {albums.map(a => (
                   <TouchableOpacity
                     key={a.id}
-                    style={[pageStyles.albumRow, { borderBottomColor: '#333' }]}
+                    style={[pageStyles.albumRow, pageStyles.albumRowBorder]}
                     onPress={() => handleAddToAlbum(a.id)}
                   >
                     <Icon name="photo-album" size={22} color="#4fc3f7" />
@@ -578,6 +574,11 @@ const pageStyles = StyleSheet.create({
   },
   albumRowName: { fontSize: 15, fontWeight: '500', color: '#fff', flex: 1 },
   albumRowCount: { fontSize: 13, color: '#999' },
+  modalContentDark: { backgroundColor: '#1a1a1a' },
+  emptyAlbumsContainer: { padding: 32, alignItems: 'center' },
+  emptyAlbumsText: { color: '#999', fontSize: 15 },
+  albumRowBorder: { borderBottomColor: '#333' },
+  scrollView: { flex: 1 },
 })
 
 export default function PhotoPreview() {
@@ -615,11 +616,15 @@ export default function PhotoPreview() {
         navigation.goBack()
         return
       }
-      const deletedIdx = items.findIndex(i => i.id === id)
+      const _deletedIdx = items.findIndex(i => i.id === id)
       setItems(remaining)
     },
     [items, navigation],
   )
+
+  const handleFavoriteToggle = useCallback((id: string) => {
+    setItems(prev => prev.map(p => p.id === id ? { ...p, favorite: !(p as any).favorite } : p))
+  }, [])
 
   return (
     <ScrollView
@@ -627,7 +632,7 @@ export default function PhotoPreview() {
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
-      style={{ flex: 1 }}
+      style={pageStyles.scrollView}
       onMomentumScrollEnd={onScrollEnd}
       onScrollEndDrag={onScrollEnd}
     >
@@ -636,7 +641,7 @@ export default function PhotoPreview() {
           <PhotoPage
             item={item}
             onDelete={handleDelete}
-            onFavoriteToggle={() => {}}
+            onFavoriteToggle={handleFavoriteToggle}
             userId={user?.id || ''}
             isActive={index === activeIndex}
           />

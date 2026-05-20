@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
-  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -36,6 +35,7 @@ export default function DuplicatesScreen() {
   const { top } = useSafeAreaInsets()
   const [groups, setGroups] = useState<DuplicateGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -50,14 +50,14 @@ export default function DuplicatesScreen() {
       })
   }, [])
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = useCallback((id: string) => {
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
     })
-  }
+  }, [])
 
   const handleDeleteSelected = () => {
     if (selected.size === 0) return
@@ -67,11 +67,11 @@ export default function DuplicatesScreen() {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
+          setDeleting(true)
           const ids = Array.from(selected)
           try {
             await bulkDeletePhotos(ids)
           } catch {
-            // fallback: delete one by one
             for (const id of ids) {
               try {
                 await deletePhoto(id)
@@ -86,19 +86,19 @@ export default function DuplicatesScreen() {
               .filter(g => g.length > 1),
           )
           setSelected(new Set())
+          setDeleting(false)
         },
       },
     ])
   }
 
-  const selectAll = () => {
+  const _selectAll = () => {
     const all = new Set<string>()
     groups.forEach(g => g.forEach(p => all.add(p.id)))
     setSelected(all)
   }
 
-  /** Returns the ID of the best photo in a group (sharpest + most recent). */
-  function pickBestId(group: DuplicateGroup): string {
+  const pickBestId = useCallback((group: DuplicateGroup): string => {
     const sorted = [...group].sort((a, b) => {
       // Prefer non-blurred
       if (a.blurred !== b.blurred) return a.blurred ? 1 : -1
@@ -110,7 +110,7 @@ export default function DuplicatesScreen() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
     return sorted[0].id
-  }
+  }, [])
 
   const selectAllKeepBest = () => {
     const toDelete = new Set<string>()
@@ -140,15 +140,15 @@ export default function DuplicatesScreen() {
                 key={photo.id}
                 style={[
                   styles.thumbWrap,
-                  selected.has(photo.id) && {
-                    borderColor: colors.danger,
-                    borderWidth: 2,
-                  },
+                  selected.has(photo.id) && [
+                    styles.thumbSelected,
+                    { borderColor: colors.danger },
+                  ],
                   photo.id === bestId &&
-                    !selected.has(photo.id) && {
-                      borderColor: colors.success,
-                      borderWidth: 2,
-                    },
+                    !selected.has(photo.id) && [
+                      styles.thumbSelected,
+                      { borderColor: colors.success },
+                    ],
                 ]}
                 onPress={() => toggleSelect(photo.id)}
               >
@@ -184,7 +184,7 @@ export default function DuplicatesScreen() {
         </View>
       )
     },
-    [colors, selected, toggleSelect],
+    [colors, selected, toggleSelect, pickBestId],
   )
 
   if (loading) {
@@ -241,11 +241,18 @@ export default function DuplicatesScreen() {
           <TouchableOpacity
             style={styles.deleteBtn}
             onPress={handleDeleteSelected}
+            disabled={deleting}
           >
-            <Icon name="delete" size={22} color="#fff" />
-            <Text style={styles.deleteText}>
-              Eliminar {selected.size} seleccionada(s)
-            </Text>
+            {deleting ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Icon name="delete" size={22} color="#fff" />
+                <Text style={styles.deleteText}>
+                  Eliminar {selected.size} seleccionada(s)
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -314,4 +321,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   deleteText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  thumbSelected: { borderWidth: 2 },
 })

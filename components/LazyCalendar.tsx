@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { ActivityIndicator, View, StyleSheet } from 'react-native'
 import type { CalendarProps } from 'react-native-calendars'
 
 const CalendarComponent = React.lazy(() =>
@@ -10,7 +10,7 @@ export default function LazyCalendar(props: CalendarProps) {
   return (
     <Suspense
       fallback={
-        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+        <View style={styles.fallback}>
           <ActivityIndicator size="small" />
         </View>
       }
@@ -19,3 +19,7 @@ export default function LazyCalendar(props: CalendarProps) {
     </Suspense>
   )
 }
+
+const styles = StyleSheet.create({
+  fallback: { paddingVertical: 40, alignItems: 'center' },
+})

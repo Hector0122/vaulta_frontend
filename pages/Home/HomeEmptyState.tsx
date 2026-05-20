@@ -43,11 +43,7 @@ export function HomeEmptyState({
 
   return (
     <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
+      style={styles.centerContainer}
     >
       <Icon
         name="photo-library"
@@ -84,6 +80,11 @@ export function HomeEmptyState({
 }
 
 const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   stateContainer: {
     alignItems: 'center',
     paddingHorizontal: 32,

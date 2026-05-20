@@ -20,11 +20,11 @@ import Share from 'react-native-share'
 
 import {
   fetchPhotosPage,
-  deletePhoto,
   authenticatedGet,
   addPhotosToAlbum,
+  bulkDeletePhotos,
 } from '../../api/client'
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker'
+import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
 import { getCachedIds } from '../../api/offline'
 import { updateWidgetWithRecentPhotos } from '../../api/widget'
@@ -77,7 +77,7 @@ export function HomeScreen({ navigation }: Props) {
   const [showRangePicker, setShowRangePicker] = useState(false)
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [blurryOnly, setBlurryOnly] = useState(false)
-  const [privateOnly, setPrivateOnly] = useState(false)
+  const [privateOnly, _setPrivateOnly] = useState(false)
   const [offlineIds, setOfflineIds] = useState<string[]>([])
   const [showAlbumPicker, setShowAlbumPicker] = useState(false)
   const [albums, setAlbums] = useState<
@@ -200,7 +200,7 @@ export function HomeScreen({ navigation }: Props) {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
-          await Promise.allSettled(selectedIds.map(deletePhoto))
+          await bulkDeletePhotos(Array.from(selectedIds))
           clearSelection()
           loadPhotos()
         },
@@ -459,7 +459,7 @@ export function HomeScreen({ navigation }: Props) {
             ]}
           >
             <TouchableOpacity onPress={clearSelection}>
-              <Text style={{ color: colors.primary, fontSize: 16 }}>
+              <Text style={[styles.selectionAction, { color: colors.primary }]}>
                 Cancelar
               </Text>
             </TouchableOpacity>
@@ -475,7 +475,7 @@ export function HomeScreen({ navigation }: Props) {
                 )
               }
             >
-              <Text style={{ color: colors.primary, fontSize: 16 }}>
+              <Text style={[styles.selectionAction, { color: colors.primary }]}>
                 {selectedUris.length === photos.length ? 'Ninguna' : 'Todo'}
               </Text>
             </TouchableOpacity>
@@ -511,6 +511,11 @@ export function HomeScreen({ navigation }: Props) {
     ],
   )
 
+  const extraData = useMemo(
+    () => [selectedUris, uriToFav, uriToBlurred, uriToOffline, uriToPrivate, selecting, colors],
+    [selectedUris, uriToFav, uriToBlurred, uriToOffline, uriToPrivate, selecting, colors],
+  )
+
   if (loading) {
     return (
       <View
@@ -528,8 +533,8 @@ export function HomeScreen({ navigation }: Props) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {error || photos.length === 0 ? (
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -561,7 +566,7 @@ export function HomeScreen({ navigation }: Props) {
         </ScrollView>
       ) : (
         <FlashList
-          style={{ flex: 1 }}
+          style={styles.flashList}
           data={listData}
           keyExtractor={(item: ListItem) => item.key}
           numColumns={2}
@@ -629,18 +634,14 @@ export function HomeScreen({ navigation }: Props) {
           ListFooterComponent={
             <>
               {loadingMore && (
-                <View style={{ paddingVertical: 20 }}>
+                <View style={styles.loadingMoreContainer}>
                   <ActivityIndicator size="small" color={colors.primary} />
                 </View>
               )}
               {!hasMore && photos.length > 0 && (
-                <View style={{ paddingVertical: 12 }}>
+                <View style={styles.allLoadedContainer}>
                   <Text
-                    style={{
-                      textAlign: 'center',
-                      color: colors.textTertiary,
-                      fontSize: 13,
-                    }}
+                    style={[styles.allLoadedText, { color: colors.textTertiary }]}
                   >
                     Todas las fotos cargadas
                   </Text>
@@ -658,15 +659,7 @@ export function HomeScreen({ navigation }: Props) {
           }
           onEndReached={!loadingMore && hasMore ? loadMorePhotos : undefined}
           onEndReachedThreshold={0.5}
-          extraData={[
-            selectedUris,
-            uriToFav,
-            uriToBlurred,
-            uriToOffline,
-            uriToPrivate,
-            selecting,
-            colors,
-          ]}
+          extraData={extraData}
           overrideItemLayout={(layout, item: ListItem) => {
             if (item.type === 'header') {
               layout.size = 45
@@ -739,4 +732,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   selectionCount: { fontSize: 16, fontWeight: '600' },
+  selectionAction: { fontSize: 16 },
+  scrollView: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
+  flashList: { flex: 1 },
+  loadingMoreContainer: { paddingVertical: 20 },
+  allLoadedContainer: { paddingVertical: 12 },
+  allLoadedText: { textAlign: 'center', fontSize: 13 },
 })

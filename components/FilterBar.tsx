@@ -1,8 +1,7 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, Modal } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
-import LazyCalendar from './LazyCalendar'
 import type { ThemeColors } from '../theme'
 
 type Props = {
@@ -71,7 +70,7 @@ export default function FilterBar({
       </TouchableOpacity>
       <TouchableOpacity
         onPress={onToggleFavorites}
-        style={{ marginHorizontal: 4 }}
+        style={styles.filterIcon}
       >
         <Icon
           name={favoritesOnly ? 'favorite' : 'favorite-border'}
@@ -81,7 +80,7 @@ export default function FilterBar({
       </TouchableOpacity>
       <TouchableOpacity
         onPress={onToggleBlurry}
-        style={{ marginHorizontal: 4 }}
+        style={styles.filterIcon}
       >
         <Icon
           name={blurryOnly ? 'blur-off' : 'blur-on'}
@@ -89,7 +88,7 @@ export default function FilterBar({
           color={blurryOnly ? colors.danger : colors.textTertiary}
         />
       </TouchableOpacity>
-      <TouchableOpacity onPress={onGoToProfile} style={{ marginLeft: 4 }}>
+      <TouchableOpacity onPress={onGoToProfile} style={styles.profileIcon}>
         <Icon name="person" size={22} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
@@ -115,4 +114,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   rangeFieldText: { fontSize: 13, flex: 1 },
+  filterIcon: { marginHorizontal: 4 },
+  profileIcon: { marginLeft: 4 },
 })

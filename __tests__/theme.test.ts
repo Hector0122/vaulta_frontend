@@ -13,7 +13,7 @@ describe('useTheme', () => {
     expect(isDark).toBe(false);
     expect(colors.background).toBe('#fff');
     expect(colors.text).toBe('#222');
-    expect(colors.primary).toBe('#007AFF');
+    expect(colors.primary).toBe('#2BD4CE');
   });
 
   it('should return dark colors when isDark is true', () => {
@@ -22,6 +22,6 @@ describe('useTheme', () => {
     expect(isDark).toBe(true);
     expect(colors.background).toBe('#121212');
     expect(colors.text).toBe('#e0e0e0');
-    expect(colors.primary).toBe('#007AFF');
+    expect(colors.primary).toBe('#2BD4CE');
   });
 });

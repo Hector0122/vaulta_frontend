@@ -34,8 +34,8 @@ export default function AlbumPickerModal({
             </TouchableOpacity>
           </View>
           {albums.length === 0 ? (
-            <View style={{ padding: 32, alignItems: 'center' }}>
-              <Text style={{ color: colors.textTertiary, fontSize: 15 }}>
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
                 No hay álbumes. Crea uno desde la pestaña Álbumes.
               </Text>
             </View>
@@ -98,4 +98,6 @@ const styles = StyleSheet.create({
   },
   rowName: { fontSize: 15, fontWeight: '500', flex: 1 },
   rowCount: { fontSize: 13 },
+  emptyContainer: { padding: 32, alignItems: 'center' },
+  emptyText: { fontSize: 15 },
 })

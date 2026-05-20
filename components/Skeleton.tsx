@@ -59,10 +59,10 @@ export function SkeletonBox({
 }
 
 export function SkeletonPhotoGrid({
-  colors,
+  _colors,
   count = 6,
 }: {
-  colors: ThemeColors
+  _colors: ThemeColors
   count?: number
 }) {
   const { width: screenWidth } = useWindowDimensions()

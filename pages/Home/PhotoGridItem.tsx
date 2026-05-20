@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, TouchableOpacity, StyleSheet } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import type { ThemeColors } from '../../theme'
@@ -45,7 +45,7 @@ export function PhotoGridItem({
 }: Props) {
   const uri = photo.uri
   return (
-    <View style={{ padding: 3, flex: 1 }}>
+    <View style={styles.gridItem}>
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => {
@@ -60,15 +60,11 @@ export function PhotoGridItem({
         }}
       >
         <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 6,
-            overflow: 'hidden',
-          }}
+          style={[styles.cardInner, { backgroundColor: colors.surface }]}
         >
           <NitroImage
             image={{ url: uri }}
-            style={{ width: '100%', height: 250 }}
+            style={styles.image}
             resizeMode="cover"
             recyclingKey={uri}
           />
@@ -82,17 +78,17 @@ export function PhotoGridItem({
             </View>
           )}
           {isBlurry && (
-            <View style={{ position: 'absolute', top: 4, left: 4 }}>
+            <View style={styles.blurryBadge}>
               <Icon name="blur-off" size={16} color={colors.danger} />
             </View>
           )}
           {isPrivate && (
-            <View style={{ position: 'absolute', bottom: 24, right: 4 }}>
+            <View style={styles.privateBadge}>
               <Icon name="visibility-off" size={16} color="#ffa726" />
             </View>
           )}
           {isOffline && (
-            <View style={{ position: 'absolute', bottom: 4, left: 4 }}>
+            <View style={styles.offlineBadge}>
               <Icon
                 name="cloud-queue"
                 size={16}
@@ -101,7 +97,7 @@ export function PhotoGridItem({
             </View>
           )}
           {isFav && (
-            <View style={{ position: 'absolute', top: 4, right: 4 }}>
+            <View style={styles.favBadge}>
               <Icon
                 name="favorite"
                 size={18}
@@ -113,11 +109,8 @@ export function PhotoGridItem({
             <View
               style={[
                 StyleSheet.absoluteFill,
-                {
-                  backgroundColor: colors.overlay,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                },
+                styles.selectedOverlay,
+                { backgroundColor: colors.overlay },
               ]}
             >
               <Icon name="check-circle" size={28} color="#fff" />
@@ -130,6 +123,20 @@ export function PhotoGridItem({
 }
 
 const styles = StyleSheet.create({
+  gridItem: { padding: 3, flex: 1 },
+  cardInner: {
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  image: { width: '100%', height: 250 },
+  blurryBadge: { position: 'absolute', top: 4, left: 4 },
+  privateBadge: { position: 'absolute', bottom: 24, right: 4 },
+  offlineBadge: { position: 'absolute', bottom: 4, left: 4 },
+  favBadge: { position: 'absolute', top: 4, right: 4 },
+  selectedOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   videoOverlay: {
     position: 'absolute',
     top: 0,

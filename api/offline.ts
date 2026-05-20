@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
+import { storage } from './storage';
 
 const OFFLINE_DIR = `${RNFS.DocumentDirectoryPath}/offline`;
 
@@ -24,14 +24,14 @@ async function ensureDir(userId: string) {
 
 export async function isCached(userId: string, photoId: string): Promise<boolean> {
   try {
-    const raw = await AsyncStorage.getItem(offlineIdsKey(userId));
+    const raw = storage.getString(offlineIdsKey(userId));
     if (!raw) return false;
     const ids: string[] = JSON.parse(raw);
     if (!ids.includes(photoId)) return false;
     const exists = await RNFS.exists(offlinePath(userId, photoId));
     if (!exists) {
       const filtered = ids.filter((id: string) => id !== photoId);
-      await AsyncStorage.setItem(offlineIdsKey(userId), JSON.stringify(filtered));
+      storage.set(offlineIdsKey(userId), JSON.stringify(filtered));
       return false;
     }
     return true;
@@ -42,7 +42,7 @@ export async function isCached(userId: string, photoId: string): Promise<boolean
 
 export async function getCachedIds(userId: string): Promise<string[]> {
   try {
-    const raw = await AsyncStorage.getItem(offlineIdsKey(userId));
+    const raw = storage.getString(offlineIdsKey(userId));
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -62,7 +62,7 @@ export async function cachePhoto(userId: string, photoId: string, remoteUrl: str
   const ids = await getCachedIds(userId);
   if (!ids.includes(photoId)) {
     ids.push(photoId);
-    await AsyncStorage.setItem(offlineIdsKey(userId), JSON.stringify(ids));
+    storage.set(offlineIdsKey(userId), JSON.stringify(ids));
   }
   return `file://${local}`;
 }
@@ -75,7 +75,7 @@ export async function removeCachedPhoto(userId: string, photoId: string): Promis
 
   const ids = await getCachedIds(userId);
   const filtered = ids.filter((id: string) => id !== photoId);
-  await AsyncStorage.setItem(offlineIdsKey(userId), JSON.stringify(filtered));
+  storage.set(offlineIdsKey(userId), JSON.stringify(filtered));
 }
 
 export async function clearAllOffline(userId: string): Promise<void> {
@@ -83,6 +83,6 @@ export async function clearAllOffline(userId: string): Promise<void> {
     const dir = offlineDir(userId);
     const exists = await RNFS.exists(dir);
     if (exists) await RNFS.unlink(dir);
-    await AsyncStorage.removeItem(offlineIdsKey(userId));
+    storage.delete(offlineIdsKey(userId));
   } catch {}
 }

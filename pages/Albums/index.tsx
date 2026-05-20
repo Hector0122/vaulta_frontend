@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
@@ -34,9 +35,11 @@ export default function AlbumsScreen() {
   const { colors } = useTheme()
   const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchAlbums = useCallback(async () => {
     setLoading(true)
@@ -71,29 +74,32 @@ export default function AlbumsScreen() {
     }
   }
 
-  async function handleDelete(id: string) {
+  const handleDelete = useCallback(async (id: string) => {
     Alert.alert('Eliminar álbum', '¿Estás seguro?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
+          setDeletingId(id)
           try {
             await authenticatedDelete(`albums/${id}`)
             fetchAlbums()
           } catch {
             Alert.alert('Error', 'No se pudo eliminar el álbum')
+          } finally {
+            setDeletingId(null)
           }
         },
       },
     ])
-  }
+  }, [fetchAlbums])
 
   const renderItem = useCallback(
     ({ item }: { item: Album }) => {
       return (
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: colors.cardBg }]}
+          <TouchableOpacity
+            style={[styles.card, { backgroundColor: colors.cardBg, opacity: deletingId === item.id ? 0.5 : 1 }]}
           onPress={() =>
             navigation.navigate('AlbumView', {
               albumId: item.id,
@@ -132,13 +138,18 @@ export default function AlbumsScreen() {
           <TouchableOpacity
             onPress={() => handleDelete(item.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={deletingId === item.id}
           >
-            <Icon name="delete-outline" size={22} color={colors.textTertiary} />
+            {deletingId === item.id ? (
+              <ActivityIndicator size="small" color={colors.textTertiary} />
+            ) : (
+              <Icon name="delete-outline" size={22} color={colors.textTertiary} />
+            )}
           </TouchableOpacity>
         </TouchableOpacity>
       )
     },
-    [navigation, colors, handleDelete],
+    [navigation, colors, handleDelete, deletingId],
   )
 
   if (loading) {
@@ -189,8 +200,13 @@ export default function AlbumsScreen() {
           <TouchableOpacity
             style={[styles.createBtn, { backgroundColor: colors.primary }]}
             onPress={handleCreate}
+            disabled={creating}
           >
-            <Text style={styles.createBtnText}>Crear</Text>
+            {creating ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.createBtnText}>Crear</Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -214,6 +230,17 @@ export default function AlbumsScreen() {
           keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true)
+                await fetchAlbums()
+                setRefreshing(false)
+              }}
+              tintColor={colors.primary}
+            />
+          }
         />
       )}
 

@@ -91,20 +91,10 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-let _retrying = false
-
 async function handleResponse(res: Response): Promise<void> {
-  if (res.status === 401 && !_retrying) {
-    _retrying = true
-    try {
-      const refreshed = await refreshAccessToken()
-      if (refreshed) {
-        _retrying = false
-        throw new Error('__RETRY__')
-      }
-    } finally {
-      _retrying = false
-    }
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) throw new Error('__RETRY__')
     await clearToken()
     await clearRefreshToken()
     _onUnauthorized?.()
@@ -208,6 +198,14 @@ export async function getPhotoUrl(photoId: string): Promise<string> {
     const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}`, { headers })
     const data = await handleJsonResponse<{ url: string }>(res)
     return data.url
+  })
+}
+
+export async function getPhotoDetail(photoId: string): Promise<{ url: string; albums: { id: string; name: string; vault: boolean }[] }> {
+  return autoRetry(async () => {
+    const headers = await authHeaders()
+    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/detail`, { headers })
+    return handleJsonResponse<{ url: string; albums: { id: string; name: string; vault: boolean }[] }>(res)
   })
 }
 

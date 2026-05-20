@@ -4,6 +4,6 @@ module.exports = {
   rules: {
     'react-native/no-inline-styles': 'warn',
     'react-hooks/exhaustive-deps': 'warn',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_', varsIgnorePattern: '^_' }],
   },
 };

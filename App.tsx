@@ -33,6 +33,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { NetworkProvider } from './context/NetworkContext';
 import { updateWidgetWithRecentPhotos } from './api/widget';
 import { registerFcmToken } from './api/notifications';
+import { runAutoSync } from './api/autoSync';
 import type { TabParamList, StackParamList } from './types/navigation';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -134,7 +135,6 @@ function AppNavigator() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextState === 'active') {
-        const { runAutoSync } = require('./api/autoSync')
         runAutoSync().catch(() => {})
       }
       appState.current = nextState
@@ -144,9 +144,9 @@ function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <VaultaLogo color={colors.text} />
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 32 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
       </View>
     );
   }
@@ -226,7 +226,7 @@ function NotificationHandler() {
     const unsubscribe = onMessageForeground(message => {
       const body = message.notification?.body
       if (!body) return
-      console.log('Push notification:', body)
+
       const isError = body.toLowerCase().includes('fall')
       showToast({ message: body, type: isError ? 'error' : 'success' })
     })
@@ -259,7 +259,7 @@ function AppContent() {
 
 function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <ThemeProvider>
           <ErrorBoundary>
@@ -270,5 +270,11 @@ function App() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingSpinner: { marginTop: 32 },
+  root: { flex: 1 },
+})
 
 export default App;

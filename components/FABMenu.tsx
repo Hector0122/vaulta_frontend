@@ -79,10 +79,9 @@ export default function FABMenu({
       <Animated.View
         style={[
           styles.mini,
+          styles.mini1,
           {
             backgroundColor: colors.surfaceAlt,
-            right: 24,
-            bottom: 100,
             opacity: anim1,
             transform: [
               {
@@ -108,10 +107,9 @@ export default function FABMenu({
       <Animated.View
         style={[
           styles.mini,
+          styles.mini2,
           {
             backgroundColor: colors.surfaceAlt,
-            right: 24,
-            bottom: 160,
             opacity: anim2,
             transform: [
               {
@@ -137,10 +135,9 @@ export default function FABMenu({
       <Animated.View
         style={[
           styles.mini,
+          styles.mini3,
           {
             backgroundColor: colors.surfaceAlt,
-            right: 24,
-            bottom: 220,
             opacity: anim3,
             transform: [
               {
@@ -191,6 +188,7 @@ const styles = StyleSheet.create({
   },
   mini: {
     position: 'absolute',
+    right: 24,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -200,6 +198,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
+  mini1: { bottom: 100 },
+  mini2: { bottom: 160 },
+  mini3: { bottom: 220 },
   miniInner: {
     width: 48,
     height: 48,

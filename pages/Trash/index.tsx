@@ -50,16 +50,16 @@ export default function TrashScreen() {
     }, [fetchTrash]),
   )
 
-  async function handleRestore(id: string) {
+  const handleRestore = useCallback(async (id: string) => {
     try {
       await restorePhoto(id)
       fetchTrash()
     } catch {
       Alert.alert('Error', 'No se pudo restaurar')
     }
-  }
+  }, [fetchTrash])
 
-  async function handlePermanentDelete(id: string) {
+  const handlePermanentDelete = useCallback(async (id: string) => {
     Alert.alert(
       'Eliminar permanentemente',
       'Esta foto se borrará de S3 y no podrá recuperarse.',
@@ -79,7 +79,7 @@ export default function TrashScreen() {
         },
       ],
     )
-  }
+  }, [fetchTrash])
 
   async function handleEmptyTrash() {
     Alert.alert(
@@ -148,7 +148,7 @@ export default function TrashScreen() {
         <ActivityIndicator
           size="large"
           color={colors.primary}
-          style={{ flex: 1 }}
+          style={styles.fill}
         />
       </View>
     )
@@ -164,7 +164,7 @@ export default function TrashScreen() {
           </Text>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
+        <View style={styles.fill}>
           <TouchableOpacity
             style={styles.emptyAllBtn}
             onPress={handleEmptyTrash}
@@ -215,4 +215,5 @@ const styles = StyleSheet.create({
   date: { fontSize: 12, marginTop: 2 },
   actions: { flexDirection: 'row', gap: 4 },
   actionBtn: { padding: 6 },
+  fill: { flex: 1 },
 })

@@ -54,7 +54,7 @@ export default function Toast({
 
       return () => clearTimeout(timer)
     }
-  }, [visible])
+  }, [visible, animValue, duration, onDismiss])
 
   if (!visible) return null
 

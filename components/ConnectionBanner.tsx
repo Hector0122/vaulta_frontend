@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Animated } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import NetInfo from '@react-native-community/netinfo'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../theme'
