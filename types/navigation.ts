@@ -9,7 +9,7 @@ export type TabParamList = {
 export type StackParamList = {
   Login: undefined
   Main: { screen?: keyof TabParamList }
-  Upload: { imageUri?: string }
+  Upload: { imageUri?: string; imageType?: string }
   AlbumView: { albumId: string; albumName: string }
   VaultView: undefined
   PhotoPreview: {

@@ -14,6 +14,7 @@ import { useNavigation, useRoute } from '@react-navigation/native'
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
+import RNFS from 'react-native-fs'
 import { useToast } from '../../context/ToastContext'
 import { useNetwork } from '../../context/NetworkContext'
 import { getToken } from '../../api/client'
@@ -30,9 +31,19 @@ export default function UploadScreen() {
   const { width: screenWidth } = useWindowDimensions()
   const { isConnected } = useNetwork()
   const cameraUri = route.params?.imageUri
+  const cameraType = route.params?.imageType
   const [images, setImages] = useState<
     { uri: string; name: string; type?: string }[]
-  >(cameraUri ? [{ uri: cameraUri, name: `photo-${Date.now()}.jpg` }] : [])
+  >(() => {
+    if (!cameraUri) return []
+    const ext = cameraUri.split('.').pop()?.toLowerCase() ?? ''
+    const videoExts = new Set(['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'])
+    if (cameraType) {
+      return [{ uri: cameraUri, name: `capture-${Date.now()}.${cameraType.startsWith('video') ? 'mp4' : 'jpg'}`, type: cameraType }]
+    }
+    const isVideo = videoExts.has(ext)
+    return [{ uri: cameraUri, name: `capture-${Date.now()}.${isVideo ? ext : 'jpg'}`, type: isVideo ? 'video/mp4' : 'image/jpeg' }]
+  })
   const [uploading, setUploading] = useState(false)
   const { showToast } = useToast()
 
@@ -75,10 +86,19 @@ export default function UploadScreen() {
     })
     if (result.assets?.[0]?.uri) {
       const asset = result.assets[0]
+      let uri = asset.uri!
+
+      const ext = asset.fileName?.split('.').pop() || 'jpg'
+      const tempPath = `${RNFS.CachesDirectoryPath}/capture-${Date.now()}.${ext}`
+      try {
+        await RNFS.copyFile(uri, tempPath)
+        uri = tempPath
+      } catch {}
+
       setImages(prev => [
         ...prev,
         {
-          uri: asset.uri!,
+          uri,
           name: asset.fileName || `capture-${Date.now()}.jpg`,
           type: asset.type || 'image',
         },
@@ -94,10 +114,19 @@ export default function UploadScreen() {
     })
     if (result.assets?.[0]?.uri) {
       const asset = result.assets[0]
+      let uri = asset.uri!
+
+      const ext = asset.fileName?.split('.').pop() || 'mp4'
+      const tempPath = `${RNFS.CachesDirectoryPath}/capture-${Date.now()}.${ext}`
+      try {
+        await RNFS.copyFile(uri, tempPath)
+        uri = tempPath
+      } catch {}
+
       setImages(prev => [
         ...prev,
         {
-          uri: asset.uri!,
+          uri,
           name: asset.fileName || `capture-${Date.now()}.mp4`,
           type: asset.type || 'video',
         },
@@ -117,7 +146,7 @@ export default function UploadScreen() {
         images.map(img => ({
           uri: img.uri,
           name: img.name,
-          type: img.type || 'image',
+          type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
         })),
       )
       showToast({
@@ -132,11 +161,27 @@ export default function UploadScreen() {
 
     setUploading(true)
 
+    const resolved = await Promise.all(
+      images.map(async img => {
+        let uri = img.uri
+        if (Platform.OS === 'android' && uri.startsWith('content://')) {
+          const ext = img.name.split('.').pop() || 'jpg'
+          const tmp = `${RNFS.CachesDirectoryPath}/upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+          try {
+            await RNFS.copyFile(uri, tmp)
+            uri = tmp
+          } catch {}
+        } else if (Platform.OS !== 'android') {
+          uri = uri.replace('file://', '')
+        }
+        return { ...img, uri }
+      }),
+    )
+
     const formData = new FormData()
-    for (const img of images) {
+    for (const img of resolved) {
       formData.append('files', {
-        uri:
-          Platform.OS === 'android' ? img.uri : img.uri.replace('file://', ''),
+        uri: img.uri,
         type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
         name: img.name,
       })
@@ -171,10 +216,10 @@ export default function UploadScreen() {
     } catch (e) {
       console.error('Upload network error:', e)
       const count = addToQueue(
-        images.map(img => ({
+        resolved.map(img => ({
           uri: img.uri,
           name: img.name,
-          type: img.type || 'image',
+          type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
         })),
       )
       showToast({

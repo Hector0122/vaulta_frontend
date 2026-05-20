@@ -71,6 +71,11 @@ export default function AlbumView() {
             return t >= start && t <= end
           })
         }
+        filtered.sort((a, b) => {
+          const da = new Date(a.createdAt).getTime()
+          const db = new Date(b.createdAt).getTime()
+          return db - da || b.id.localeCompare(a.id)
+        })
         setPhotos(filtered)
       } catch {
         setPhotos([])

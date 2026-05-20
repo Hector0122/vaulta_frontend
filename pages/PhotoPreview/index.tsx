@@ -25,6 +25,7 @@ import ZoomableImage from '../../components/ZoomableImage'
 import VideoPlayer from '../../components/VideoPlayer'
 import {
   getPhotoUrl,
+  getPhotoDetail,
   deletePhoto,
   toggleFavorite,
   togglePrivate,

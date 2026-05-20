@@ -50,7 +50,7 @@ import { HomeEmptyState } from './HomeEmptyState'
 
 type HomeStackParamList = {
   Main: undefined
-  Upload: { imageUri?: string }
+  Upload: { imageUri?: string; imageType?: string }
   PhotoPreview: {
     photos: { uri: string; id: string; tags?: string[]; mimeType?: string }[]
     initialIndex: number
@@ -690,18 +690,30 @@ export function HomeScreen({ navigation }: Props) {
           }}
           onOpenCamera={() => {
             setShowFabMenu(false)
-            launchCamera({ mediaType: 'photo', quality: 0.8 }, res => {
-              if (res.assets?.[0]?.uri)
-                navigation.navigate('Upload', { imageUri: res.assets[0].uri })
+            launchCamera({ mediaType: 'photo', quality: 0.8, saveToPhotos: true }, async res => {
+              if (res.assets?.[0]?.uri) {
+                let uri = res.assets[0].uri
+                if (Platform.OS === 'android' && uri.startsWith('content://')) {
+                  const tmp = `${RNFS.CachesDirectoryPath}/capture-${Date.now()}.jpg`
+                  try { await RNFS.copyFile(uri, tmp); uri = tmp } catch {}
+                }
+                navigation.navigate('Upload', { imageUri: uri, imageType: res.assets[0].type || 'image/jpeg' })
+              }
             })
           }}
           onOpenVideo={() => {
             setShowFabMenu(false)
             launchCamera(
               { mediaType: 'video', videoQuality: 'high', saveToPhotos: true },
-              res => {
-                if (res.assets?.[0]?.uri)
-                  navigation.navigate('Upload', { imageUri: res.assets[0].uri })
+              async res => {
+                if (res.assets?.[0]?.uri) {
+                  let uri = res.assets[0].uri
+                  if (Platform.OS === 'android' && uri.startsWith('content://')) {
+                    const tmp = `${RNFS.CachesDirectoryPath}/capture-${Date.now()}.mp4`
+                    try { await RNFS.copyFile(uri, tmp); uri = tmp } catch {}
+                  }
+                  navigation.navigate('Upload', { imageUri: uri, imageType: res.assets[0].type || 'video/mp4' })
+                }
               },
             )
           }}

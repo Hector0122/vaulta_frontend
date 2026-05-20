@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import RNFS from 'react-native-fs'
 import { storage } from '../api/storage'
 import { BASE_URL } from '../api/server'
 import { getToken } from '../api/client'
@@ -138,6 +139,7 @@ export async function processQueue(
     const ext = item.name.split('.').pop()?.toLowerCase() ?? ''
     const videoExts = new Set(['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'])
     let resolvedType = item.type || 'image/jpeg'
+    if (!resolvedType.includes('/')) resolvedType = 'image/jpeg'
     if (videoExts.has(ext) && resolvedType.startsWith('image/')) {
       if (ext === 'mov') resolvedType = 'video/quicktime'
       else if (ext === 'avi') resolvedType = 'video/x-msvideo'
@@ -146,10 +148,21 @@ export async function processQueue(
       else resolvedType = 'video/mp4'
     }
 
+    let uploadUri = item.uri
+    if (Platform.OS === 'android' && uploadUri.startsWith('content://')) {
+      const ext = item.name.split('.').pop() || 'jpg'
+      const tmp = `${RNFS.CachesDirectoryPath}/q-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      try {
+        await RNFS.copyFile(uploadUri, tmp)
+        uploadUri = tmp
+      } catch {}
+    } else if (Platform.OS !== 'android') {
+      uploadUri = uploadUri.replace('file://', '')
+    }
+
     const formData = new FormData()
     formData.append('files', {
-      uri:
-        Platform.OS === 'android' ? item.uri : item.uri.replace('file://', ''),
+      uri: uploadUri,
       type: resolvedType,
       name: item.name,
     })
