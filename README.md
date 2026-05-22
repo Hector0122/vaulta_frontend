@@ -75,10 +75,30 @@ services/          - Upload queue (MMKV-backed)
 
 ```bash
 yarn start             # Metro bundler
-yarn android           # Build + install
+yarn android           # Build + install (debug)
 npx tsc --noEmit       # Type-check
 yarn test              # Run tests
 ```
+
+## Release APK
+
+Generate a signed release APK and install it on the connected device:
+
+```bash
+# 1. Build release APK
+cd android && ./gradlew assembleRelease
+
+# 2. Install on connected device
+adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+Or as a one-liner:
+
+```bash
+cd android && ./gradlew assembleRelease && adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+> Make sure the device is connected (`adb devices`) and USB debugging is enabled.
 
 ## Dev notes
 

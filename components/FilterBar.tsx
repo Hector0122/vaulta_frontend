@@ -9,11 +9,9 @@ type Props = {
   rangeStart: string | null
   rangeEnd: string | null
   favoritesOnly: boolean
-  blurryOnly: boolean
   onOpenDatePicker: () => void
   onClearDateRange: () => void
   onToggleFavorites: () => void
-  onToggleBlurry: () => void
   onGoToProfile: () => void
 }
 
@@ -22,11 +20,9 @@ export default function FilterBar({
   rangeStart,
   rangeEnd,
   favoritesOnly,
-  blurryOnly,
   onOpenDatePicker,
   onClearDateRange,
   onToggleFavorites,
-  onToggleBlurry,
   onGoToProfile,
 }: Props) {
   return (
@@ -76,16 +72,6 @@ export default function FilterBar({
           name={favoritesOnly ? 'favorite' : 'favorite-border'}
           size={22}
           color={colors.favorite}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={onToggleBlurry}
-        style={styles.filterIcon}
-      >
-        <Icon
-          name={blurryOnly ? 'blur-off' : 'blur-on'}
-          size={22}
-          color={blurryOnly ? colors.danger : colors.textTertiary}
         />
       </TouchableOpacity>
       <TouchableOpacity onPress={onGoToProfile} style={styles.profileIcon}>

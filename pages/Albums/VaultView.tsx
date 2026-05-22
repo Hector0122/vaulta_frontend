@@ -260,6 +260,42 @@ export default function VaultView() {
     [selected, selecting, photos, navigation, colors, thumbSize, toggleSelect],
   )
 
+  const renderVaultAlbumItem = useCallback(
+    ({ item }: { item: VaultAlbum }) => (
+      <TouchableOpacity
+        style={[styles.albumCard, { backgroundColor: colors.cardBg }]}
+        onPress={() =>
+          navigation.navigate('AlbumView', {
+            albumId: item.id,
+            albumName: item.name,
+          })
+        }
+        activeOpacity={0.7}
+      >
+        <View style={styles.albumCardContent}>
+          {item.coverUri ? (
+            <Image source={{ uri: item.coverUri }} style={styles.albumCoverThumb} />
+          ) : (
+            <View style={[styles.albumCoverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
+              <Icon name="photo-album" size={22} color={colors.primary} />
+            </View>
+          )}
+          <View style={styles.albumCardText}>
+            <Text style={[styles.albumCardTitle, { color: colors.text }]}>
+              {item.name}
+            </Text>
+            <Text style={[styles.albumCardSubtitle, { color: colors.textTertiary }]}>
+              {item._count.photos} foto(s) ·{' '}
+              {new Date(item.createdAt).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+      </TouchableOpacity>
+    ),
+    [colors, navigation],
+  )
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -361,41 +397,6 @@ export default function VaultView() {
       </View>
     )
   }
-
-  const renderVaultAlbumItem = useCallback(
-    ({ item }: { item: VaultAlbum }) => (
-      <TouchableOpacity
-        style={[styles.albumCard, { backgroundColor: colors.cardBg }]}
-        onPress={() =>
-          navigation.navigate('AlbumView', {
-            albumId: item.id,
-            albumName: item.name,
-          })
-        }
-        activeOpacity={0.7}
-      >
-        <View style={styles.albumCardContent}>
-          {item.coverUri ? (
-            <Image source={{ uri: item.coverUri }} style={styles.albumCoverThumb} />
-          ) : (
-            <View style={[styles.albumCoverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
-              <Icon name="photo-album" size={22} color={colors.primary} />
-            </View>
-          )}
-          <View style={styles.albumCardText}>
-            <Text style={[styles.albumCardTitle, { color: colors.text }]}>
-              {item.name}
-            </Text>
-            <Text style={[styles.albumCardSubtitle, { color: colors.textTertiary }]}>
-              {item._count?.photos ?? 0} fotos
-            </Text>
-          </View>
-        </View>
-        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
-      </TouchableOpacity>
-    ),
-    [colors, navigation],
-  )
 
   if (step === 'gallery' && galleryView === 'albums') {
     return (

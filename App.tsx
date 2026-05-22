@@ -28,7 +28,7 @@ import ProfileScreen from './pages/Profile';
 import DuplicatesScreen from './pages/Duplicates';
 import TrashScreen from './pages/Trash';
 import ConnectionBanner from './components/ConnectionBanner';
-import UploadQueueBanner from './components/UploadQueueBanner';
+
 import ErrorBoundary from './components/ErrorBoundary';
 import { NetworkProvider } from './context/NetworkContext';
 import { updateWidgetWithRecentPhotos } from './api/widget';
@@ -245,7 +245,7 @@ function AppContent() {
         <ConnectionBanner />
         <AuthProvider>
           <ToastProvider>
-            <UploadQueueBanner />
+
             <NotificationHandler />
             <NavigationContainer>
               <AppNavigator />

@@ -40,17 +40,22 @@ export function addToQueue(
   items: Omit<QueueItem, 'id' | 'createdAt' | 'status'>[],
 ): number {
   const queue = loadQueue()
-  const existingUris = new Set(queue.map(i => i.uri))
+  const activeUris = new Set(
+    queue.filter(i => i.status !== 'failed').map(i => i.uri),
+  )
   const now = Date.now()
   const newItems: QueueItem[] = items
-    .filter(item => !existingUris.has(item.uri))
+    .filter(item => !activeUris.has(item.uri))
     .map(item => ({
       ...item,
       id: genId(),
       createdAt: now,
       status: 'pending',
     }))
-  if (newItems.length > 0) saveQueue([...queue, ...newItems])
+  if (newItems.length > 0) {
+    const newUris = new Set(newItems.map(i => i.uri))
+    saveQueue([...queue.filter(i => i.status !== 'failed' || !newUris.has(i.uri)), ...newItems])
+  }
   return newItems.length
 }
 
@@ -154,8 +159,15 @@ export async function processQueue(
       const tmp = `${RNFS.CachesDirectoryPath}/q-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       try {
         await RNFS.copyFile(uploadUri, tmp)
-        uploadUri = tmp
-      } catch {}
+        uploadUri = 'file://' + tmp
+      } catch (copyErr: any) {
+        const errMsg = `No se pudo leer el archivo: ${copyErr?.message || 'error de copia'}`
+        updateItemStatus(item.id, 'failed', errMsg)
+        onItemError?.(item, errMsg)
+        continue
+      }
+    } else if (Platform.OS === 'android' && !uploadUri.startsWith('file://') && !uploadUri.startsWith('content://')) {
+      uploadUri = 'file://' + uploadUri
     } else if (Platform.OS !== 'android') {
       uploadUri = uploadUri.replace('file://', '')
     }
@@ -169,16 +181,25 @@ export async function processQueue(
 
     try {
       const token = await getToken()
-      const res = await fetch(`${BASE_URL}/photos/upload-batch`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      })
+      const url = `${BASE_URL}/photos/upload-batch`
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`HTTP ${res.status}: ${text}`)
-      }
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', url)
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+        xhr.timeout = 120000
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve()
+          } else {
+            reject(new Error(`HTTP ${xhr.status}: ${xhr.responseText}`))
+          }
+        }
+        xhr.onerror = () => reject(new Error('Error de red'))
+        xhr.ontimeout = () => reject(new Error('Timeout de subida (2 min)'))
+        xhr.send(formData)
+      })
 
       markAsSynced(item.name)
       removeFromQueue(item.id)

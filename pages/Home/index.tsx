@@ -77,7 +77,6 @@ export function HomeScreen({ navigation }: Props) {
   const [rangeEnd, setRangeEnd] = useState<string | null>(null)
   const [showRangePicker, setShowRangePicker] = useState(false)
   const [favoritesOnly, setFavoritesOnly] = useState(false)
-  const [blurryOnly, setBlurryOnly] = useState(false)
   const [privateOnly, _setPrivateOnly] = useState(false)
   const [offlineIds, setOfflineIds] = useState<string[]>([])
   const [showAlbumPicker, setShowAlbumPicker] = useState(false)
@@ -108,7 +107,6 @@ export function HomeScreen({ navigation }: Props) {
 
   const hasCache = useRef(false)
   const favoritesOnlyRef = useRef(favoritesOnly)
-  const blurryOnlyRef = useRef(blurryOnly)
   const privateOnlyRef = useRef(privateOnly)
   const rangeStartRef = useRef(rangeStart)
   const rangeEndRef = useRef(rangeEnd)
@@ -116,9 +114,6 @@ export function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     favoritesOnlyRef.current = favoritesOnly
   }, [favoritesOnly])
-  useEffect(() => {
-    blurryOnlyRef.current = blurryOnly
-  }, [blurryOnly])
   useEffect(() => {
     privateOnlyRef.current = privateOnly
   }, [privateOnly])
@@ -259,11 +254,10 @@ export function HomeScreen({ navigation }: Props) {
       else setError(null)
 
       const favOnly = favoritesOnlyRef.current
-      const blOnly = blurryOnlyRef.current
       const privOnly = privateOnlyRef.current
       const dr = dateRange(rangeStartRef.current, rangeEndRef.current)
       const hasFilter =
-        !!favOnly || !!blOnly || !!privOnly || !!dr.dateFrom || !!dr.dateTo
+        !!favOnly || !!privOnly || !!dr.dateFrom || !!dr.dateTo
 
       if (!isRefresh && !hasFilter && user?.id) {
         const cached = await loadCachedPhotos(user.id)
@@ -278,7 +272,6 @@ export function HomeScreen({ navigation }: Props) {
         const data = await fetchPhotosPage({
           maxKeys: 50,
           favoritesOnly: favOnly,
-          blurryOnly: blOnly,
           privateOnly: privOnly,
           dateFrom: dr.dateFrom,
           dateTo: dr.dateTo,
@@ -308,7 +301,6 @@ export function HomeScreen({ navigation }: Props) {
         pageToken: nextToken,
         maxKeys: 50,
         favoritesOnly: favoritesOnlyRef.current,
-        blurryOnly: blurryOnlyRef.current,
         privateOnly: privateOnlyRef.current,
         dateFrom: dr.dateFrom,
         dateTo: dr.dateTo,
@@ -402,12 +394,10 @@ export function HomeScreen({ navigation }: Props) {
   }, [setDateFilter])
 
   const toggleFilter = useCallback(
-    (filter: 'favorites' | 'blurry') => {
-      const setter = filter === 'favorites' ? setFavoritesOnly : setBlurryOnly
-      const ref = filter === 'favorites' ? favoritesOnlyRef : blurryOnlyRef
-      setter(v => {
+    () => {
+      setFavoritesOnly(v => {
         const next = !v
-        ref.current = next
+        favoritesOnlyRef.current = next
         return next
       })
       setNextToken(null)
@@ -506,11 +496,9 @@ export function HomeScreen({ navigation }: Props) {
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
           favoritesOnly={favoritesOnly}
-          blurryOnly={blurryOnly}
           onOpenDatePicker={() => setShowRangePicker(true)}
           onClearDateRange={handleClearDateRange}
-          onToggleFavorites={() => toggleFilter('favorites')}
-          onToggleBlurry={() => toggleFilter('blurry')}
+          onToggleFavorites={() => toggleFilter()}
           onGoToProfile={() => navigation.navigate('Profile')}
         />
       </>
@@ -524,7 +512,6 @@ export function HomeScreen({ navigation }: Props) {
       rangeStart,
       rangeEnd,
       favoritesOnly,
-      blurryOnly,
       handleClearDateRange,
       toggleFilter,
       navigation,
@@ -580,7 +567,6 @@ export function HomeScreen({ navigation }: Props) {
             colors={colors}
             rangeStart={rangeStart}
             favoritesOnly={favoritesOnly}
-            blurryOnly={blurryOnly}
             loadPhotos={() => loadPhotos()}
           />
         </ScrollView>

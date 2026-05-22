@@ -36,6 +36,7 @@ import {
   runAutoSync,
   getLastSyncTimeFormatted,
 } from '../../api/autoSync'
+import { processQueue } from '../../services/UploadQueue'
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -70,7 +71,6 @@ export default function ProfileScreen() {
     photoCount: number
     albumCount: number
     favoriteCount: number
-    blurryCount: number
     totalSize: number
   } | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -117,6 +117,7 @@ export default function ProfileScreen() {
           message: `${count} foto(s) en cola de subida`,
           type: 'success',
         })
+        processQueue()
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -146,6 +147,7 @@ export default function ProfileScreen() {
           message: `${count} foto(s) en cola de subida`,
           type: 'success',
         })
+        processQueue()
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -161,7 +163,6 @@ export default function ProfileScreen() {
       photoCount: number
       albumCount: number
       favoriteCount: number
-      blurryCount: number
       totalSize: number
     }>('photos/stats')
       .then(setStats)
@@ -259,21 +260,6 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="blur-off" size={24} color={colors.danger} />
-              <Text style={[styles.statNumber, { color: colors.text }]}>
-                {stats.blurryCount}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-                Borrosas
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: colors.borderLight },
-              ]}
-            />
-            <View style={styles.statItem}>
               <Icon name="storage" size={24} color={colors.primary} />
               <Text
                 style={[
@@ -291,33 +277,6 @@ export default function ProfileScreen() {
           </View>
         )}
         <View style={[styles.analysisRow, styles.analysisRowGap]}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-            onPress={async () => {
-              try {
-                const res = await authenticatedPost<{ analyzed: number }>(
-                  'photos/analyze-all',
-                )
-                Alert.alert(
-                  'Análisis completo',
-                  `${res.analyzed} foto(s) analizada(s)`,
-                )
-                const newStats = await authenticatedGet<{
-                  photoCount: number
-                  albumCount: number
-                  favoriteCount: number
-                  blurryCount: number
-                  totalSize: number
-                }>('photos/stats')
-                setStats(newStats)
-              } catch {
-                Alert.alert('Error', 'No se pudo analizar')
-              }
-            }}
-          >
-            <Icon name="auto-fix" size={18} color="#fff" />
-            <Text style={styles.actionBtnText}>Analizar fotos</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.actionBtn,

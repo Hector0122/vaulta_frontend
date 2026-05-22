@@ -169,20 +169,18 @@ export interface FetchPhotosOptions {
   maxKeys?: number
   query?: string
   favoritesOnly?: boolean
-  blurryOnly?: boolean
   privateOnly?: boolean
   dateFrom?: string
   dateTo?: string
 }
 
 export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
-  const { pageToken, maxKeys = 50, query, favoritesOnly, blurryOnly, privateOnly, dateFrom, dateTo } = options
+  const { pageToken, maxKeys = 50, query, favoritesOnly, privateOnly, dateFrom, dateTo } = options
   return autoRetry(async () => {
     let url = `${BASE_URL}/photos?maxKeys=${maxKeys}`
     if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`
     if (query) url += `&q=${encodeURIComponent(query)}`
     if (favoritesOnly) url += `&favorites=true`
-    if (blurryOnly) url += `&blurry=true`
     if (privateOnly) url += `&private=true`
     if (dateFrom) url += `&dateFrom=${encodeURIComponent(dateFrom)}`
     if (dateTo) url += `&dateTo=${encodeURIComponent(dateTo)}`

@@ -8,7 +8,6 @@ type Props = {
   colors: ThemeColors
   rangeStart: string | null
   favoritesOnly: boolean
-  blurryOnly: boolean
   loadPhotos: () => void
 }
 
@@ -17,7 +16,6 @@ export function HomeEmptyState({
   colors,
   rangeStart,
   favoritesOnly,
-  blurryOnly,
   loadPhotos,
 }: Props) {
   if (error) {
@@ -50,7 +48,7 @@ export function HomeEmptyState({
         size={72}
         color={colors.textTertiary}
       />
-      {rangeStart || favoritesOnly || blurryOnly ? (
+      {rangeStart || favoritesOnly ? (
         <>
           <Text
             style={[styles.stateText, { color: colors.textSecondary }]}
