@@ -308,8 +308,19 @@ export async function togglePrivate(photoId: string): Promise<{ private: boolean
   return authenticatedPatch(`photos/${photoId}/private`, {})
 }
 
-export async function fetchVault(): Promise<{ id: string; name: string; photos: { uri: string; id: string; createdAt: string; private: boolean }[]; _count: { photos: number } }> {
+export async function bulkSetPrivate(ids: string[]): Promise<{ marked: number; skipped: number }> {
+  return authenticatedPatch('photos/bulk-private', { ids })
+}
+
+export async function fetchVault(): Promise<{
+  mainVault: { id: string; name: string; photos: { uri: string; id: string; createdAt: string; private: boolean }[]; _count: { photos: number } }
+  vaultAlbums: { id: string; name: string; _count: { photos: number }; createdAt: string; coverUri: string | null }[]
+}> {
   return authenticatedGet('albums/vault')
+}
+
+export async function createAlbum(name: string, vault?: boolean): Promise<{ id: string; name: string }> {
+  return authenticatedPost('albums', { name, vault })
 }
 
 export async function migrateVault(): Promise<{ moved: number }> {

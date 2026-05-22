@@ -9,12 +9,16 @@ import {
   useWindowDimensions,
   Alert,
   RefreshControl,
+  Modal,
+  TextInput,
+  Image,
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
-import { fetchVault, removePhotosFromAlbum } from '../../api/client'
+import { fetchVault, removePhotosFromAlbum, createAlbum } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   isBiometricsAvailable,
@@ -31,24 +35,41 @@ type VaultPhoto = {
   private: boolean
 }
 
+type VaultAlbum = {
+  id: string
+  name: string
+  _count: { photos: number }
+  createdAt: string
+  coverUri: string | null
+}
+
+type MainVault = {
+  id: string
+  name: string
+  photos: VaultPhoto[]
+  _count: { photos: number }
+}
+
 export default function VaultView() {
   const navigation = useNavigation<StackNavProp>()
   const { colors } = useTheme()
   const { width } = useWindowDimensions()
   const [step, setStep] = useState<'pin' | 'set-pin' | 'gallery'>('pin')
+  const [galleryView, setGalleryView] = useState<'albums' | 'all'>('albums')
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [_biometricType, setBiometricType] = useState('')
-  const [vaultData, setVaultData] = useState<{
-    id: string
-    photos: VaultPhoto[]
-    _count: { photos: number }
-  } | null>(null)
+  const [mainVault, setMainVault] = useState<MainVault | null>(null)
+  const [vaultAlbums, setVaultAlbums] = useState<VaultAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selecting, setSelecting] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+  const [newAlbumName, setNewAlbumName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const { showToast } = useToast()
 
   const colCount = 3
   const gap = 2
@@ -73,7 +94,8 @@ export default function VaultView() {
   const loadVault = useCallback(async () => {
     try {
       const data = await fetchVault()
-      setVaultData(data)
+      setMainVault(data.mainVault)
+      setVaultAlbums(data.vaultAlbums)
     } catch {
       Alert.alert('Error', 'No se pudo cargar la caja fuerte')
     }
@@ -106,6 +128,7 @@ export default function VaultView() {
     const stored = await AsyncStorage.getItem(PIN_KEY)
     if (entered === stored) {
       setPin('')
+      setGalleryView('albums')
       setStep('gallery')
     } else {
       setPinError('PIN incorrecto')
@@ -117,10 +140,11 @@ export default function VaultView() {
     if (pin.length !== 4) return
     await AsyncStorage.setItem(PIN_KEY, pin)
     setPin('')
+    setGalleryView('albums')
     setStep('gallery')
   }
 
-  const photos = useMemo(() => vaultData?.photos || [], [vaultData])
+  const photos = useMemo(() => mainVault?.photos || [], [mainVault])
   const rows: VaultPhoto[][] = []
   for (let i = 0; i < photos.length; i += colCount) {
     rows.push(photos.slice(i, i + colCount))
@@ -142,7 +166,7 @@ export default function VaultView() {
   }
 
   async function handleRemove() {
-    if (selected.size === 0 || !vaultData) return
+    if (selected.size === 0 || !mainVault) return
     Alert.alert(
       'Quitar fotos',
       `¿Quitar ${selected.size} foto(s) de la caja fuerte?\nSe eliminará su marca de privada.`,
@@ -153,7 +177,7 @@ export default function VaultView() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await removePhotosFromAlbum(vaultData.id, Array.from(selected))
+              await removePhotosFromAlbum(mainVault.id, Array.from(selected))
               clearSelection()
               await loadVault()
             } catch {
@@ -163,6 +187,22 @@ export default function VaultView() {
         },
       ],
     )
+  }
+
+  async function handleCreateVaultAlbum() {
+    if (!newAlbumName.trim() || creating) return
+    setCreating(true)
+    try {
+      await createAlbum(newAlbumName.trim(), true)
+      setNewAlbumName('')
+      setShowCreate(false)
+      await loadVault()
+      showToast({ message: 'Álbum creado en la caja fuerte', type: 'success' })
+    } catch {
+      Alert.alert('Error', 'No se pudo crear el álbum')
+    } finally {
+      setCreating(false)
+    }
   }
 
   const renderItem = useCallback(
@@ -322,6 +362,138 @@ export default function VaultView() {
     )
   }
 
+  const renderVaultAlbumItem = useCallback(
+    ({ item }: { item: VaultAlbum }) => (
+      <TouchableOpacity
+        style={[styles.albumCard, { backgroundColor: colors.cardBg }]}
+        onPress={() =>
+          navigation.navigate('AlbumView', {
+            albumId: item.id,
+            albumName: item.name,
+          })
+        }
+        activeOpacity={0.7}
+      >
+        <View style={styles.albumCardContent}>
+          {item.coverUri ? (
+            <Image source={{ uri: item.coverUri }} style={styles.albumCoverThumb} />
+          ) : (
+            <View style={[styles.albumCoverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
+              <Icon name="photo-album" size={22} color={colors.primary} />
+            </View>
+          )}
+          <View style={styles.albumCardText}>
+            <Text style={[styles.albumCardTitle, { color: colors.text }]}>
+              {item.name}
+            </Text>
+            <Text style={[styles.albumCardSubtitle, { color: colors.textTertiary }]}>
+              {item._count?.photos ?? 0} fotos
+            </Text>
+          </View>
+        </View>
+        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+      </TouchableOpacity>
+    ),
+    [colors, navigation],
+  )
+
+  if (step === 'gallery' && galleryView === 'albums') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <FlatList
+          data={vaultAlbums}
+          keyExtractor={item => item.id}
+          renderItem={renderVaultAlbumItem}
+          contentContainerStyle={styles.albumList}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          }
+          ListHeaderComponent={
+            <>
+              <TouchableOpacity
+                style={[styles.allPrivatesCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
+                onPress={() => setGalleryView('all')}
+                activeOpacity={0.7}
+              >
+                <Icon name="visibility-off" size={22} color="#ffa726" />
+                <Text style={[styles.allPrivatesText, { color: colors.text }]}>
+                  Todas las privadas
+                </Text>
+                <Text style={[styles.allPrivatesCount, { color: colors.textTertiary }]}>
+                  {mainVault?._count.photos ?? 0} fotos
+                </Text>
+                <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+              </TouchableOpacity>
+              {vaultAlbums.length > 0 && (
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                  Álbumes de la caja fuerte
+                </Text>
+              )}
+            </>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Icon name="lock" size={48} color={colors.textTertiary} />
+              <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+                {mainVault?._count.photos ? 'Crea un álbum para organizar tus fotos privadas' : 'La caja fuerte está vacía'}
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>
+                Marca fotos como privadas desde la vista previa o la selección múltiple
+              </Text>
+            </View>
+          }
+        />
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.primary }]}
+          onPress={() => setShowCreate(true)}
+        >
+          <Icon name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+
+        <Modal visible={showCreate} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.createCard, { backgroundColor: colors.background }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Nuevo álbum privado
+              </Text>
+              <TextInput
+                style={[styles.createInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBg }]}
+                placeholder="Nombre del álbum"
+                placeholderTextColor={colors.textTertiary}
+                value={newAlbumName}
+                onChangeText={setNewAlbumName}
+                autoFocus
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnOutline, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
+                  onPress={() => { setShowCreate(false); setNewAlbumName('') }}
+                >
+                  <Text style={[styles.modalBtnText, { color: colors.text }]}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleCreateVaultAlbum}
+                  disabled={creating}
+                >
+                  {creating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={[styles.modalBtnText, styles.modalBtnTextLight]}>Crear</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    )
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
@@ -333,9 +505,13 @@ export default function VaultView() {
           },
         ]}
       >
+        <TouchableOpacity onPress={() => { setGalleryView('albums'); clearSelection() }}>
+          <Icon name="arrow-back" size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
         <Text style={[styles.topCount, { color: colors.textSecondary }]}>
-          {vaultData?._count.photos ?? 0} foto(s)
+          {mainVault?._count.photos ?? 0} foto(s)
         </Text>
+        <View style={{ width: 22 }} />
       </View>
 
       {selecting && (
@@ -491,4 +667,78 @@ const styles = StyleSheet.create({
   vaultBadge: { position: 'absolute', bottom: 4, right: 4 },
   loadingCentered: { flex: 1 },
   actionActions: { flexDirection: 'row', gap: 4 },
+  albumList: { padding: 16 },
+  albumCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  albumCardContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  albumCoverThumb: { width: 44, height: 44, borderRadius: 8 },
+  albumCoverPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  albumCardText: { marginLeft: 12, flex: 1 },
+  albumCardTitle: { fontSize: 16, fontWeight: '600' },
+  albumCardSubtitle: { fontSize: 13, marginTop: 2 },
+  allPrivatesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 10,
+  },
+  allPrivatesText: { fontSize: 16, fontWeight: '600', flex: 1 },
+  allPrivatesCount: { fontSize: 13 },
+  sectionLabel: { fontSize: 13, fontWeight: '600', marginBottom: 12, marginTop: 4 },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  createCard: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 24,
+    elevation: 8,
+  },
+  modalTitle: { fontSize: 17, fontWeight: '600', marginBottom: 16 },
+  createInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalBtnOutline: { borderWidth: 1 },
+  modalBtnText: { fontSize: 15, fontWeight: '600' },
+  modalBtnTextLight: { color: '#fff' },
 })

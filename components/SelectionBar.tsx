@@ -11,6 +11,7 @@ type Props = {
   onDownload: () => void
   onShare: () => void
   onAddToAlbum: () => void
+  onMakePrivate: () => void
   onDelete: () => void
 }
 
@@ -21,6 +22,7 @@ export default function SelectionBar({
   onDownload,
   onShare,
   onAddToAlbum,
+  onMakePrivate,
   onDelete,
 }: Props) {
   if (selectedCount === 0) return null
@@ -38,6 +40,10 @@ export default function SelectionBar({
       <TouchableOpacity style={styles.action} onPress={onAddToAlbum}>
         <Icon name="photo-album" size={24} color="#4fc3f7" />
         <Text style={styles.label}>Álbum</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.action} onPress={onMakePrivate}>
+        <Icon name="visibility-off" size={24} color="#ffa726" />
+        <Text style={[styles.label, { color: '#ffa726' }]}>Privada</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onDelete}>
         <Icon name="delete" size={24} color={colors.danger} />

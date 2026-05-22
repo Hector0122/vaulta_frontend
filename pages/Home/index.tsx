@@ -23,6 +23,7 @@ import {
   authenticatedGet,
   addPhotosToAlbum,
   bulkDeletePhotos,
+  bulkSetPrivate,
 } from '../../api/client'
 import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
@@ -203,6 +204,25 @@ export function HomeScreen({ navigation }: Props) {
           await bulkDeletePhotos(Array.from(selectedIds))
           clearSelection()
           loadPhotos()
+        },
+      },
+    ])
+  }
+
+  const handleBatchMakePrivate = () => {
+    warning()
+    Alert.alert(`Marcar ${selectedIds.length} foto(s) como privada(s)`, 'Las fotos se moverán a la Caja Fuerte', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Privada',
+        onPress: async () => {
+          try {
+            await bulkSetPrivate(Array.from(selectedIds))
+            clearSelection()
+            loadPhotos()
+          } catch {
+            Alert.alert('Error', 'No se pudieron marcar como privadas')
+          }
         },
       },
     ])
@@ -677,6 +697,7 @@ export function HomeScreen({ navigation }: Props) {
         onDownload={handleBatchDownload}
         onShare={handleBatchShare}
         onAddToAlbum={handleOpenAlbumPicker}
+        onMakePrivate={handleBatchMakePrivate}
         onDelete={handleBatchDelete}
       />
       {!selecting && (
