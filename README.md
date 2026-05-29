@@ -37,31 +37,37 @@ adb reverse tcp:3000 tcp:3000
 pages/
   Login/           - Login / Register with JWT
   Home/            - Masonry grid, pull-to-refresh, search, filters, FAB
-  Upload/          - Camera, gallery, crop, video, GPS
-  Albums/          - Album list, AlbumView (rename/filter/export), VaultView (PIN)
+    index.tsx      - Main home screen
+    HomeEmptyState.tsx - Empty state component
+    PhotoGridItem.tsx  - Grid photo item
+    utils.ts       - Date utilities
+  Upload/          - Camera, gallery, video, GPS
+  Albums/          - Album list, AlbumView (rename/filter/export), VaultView
+    VaultView.tsx  - Vault with PIN + biometric auth, vault sub-albums
   PhotoPreview/    - Full image, zoom, slideshow, download, share, delete, offline
   Profile/         - Stats, export, duplicates, logout
-  Trash/           - Restore or permanently delete
+  Trash/           - Restore, empty trash, or permanently delete
   Duplicates/      - Duplicate photo groups by perceptual hash
 
-components/        - 17 shared components (Toast, Skeleton, FAB, FilterBar, etc.)
+components/        - 18 shared components (Toast, Skeleton, FAB, VaultaLogo, etc.)
 context/           - Auth, Theme, Network, Toast providers
-api/               - API client (JWT+refresh), cache, offline, notifications, widget
-services/          - Upload queue (MMKV-backed)
+api/               - API client (JWT+refresh), cache, offline, autoSync, notifications, widget, fetchWithTimeout
+services/          - Upload queue (MMKV-backed), biometrics
+utils/             - calendarLocales, haptics
 ```
 
 ## Key features
 
 - JWT auth with refresh token rotation
 - Pull-to-refresh, infinite scroll, masonry grid
-- Multi-select: batch download, share, delete
-- Albums: create, rename, delete, add/remove photos
-- Vault: PIN-protected private album
-- Trash: soft delete with restore/permanent delete
+- Multi-select: batch download, share, delete, bulk set private
+- Albums: create, rename, delete, add/remove photos, album cover
+- Vault: PIN + biometric-protected private album with sub-albums
+- Trash: soft delete with restore, empty trash, permanent delete
 - Duplicate detection by perceptual hash
 - Video playback with poster + streaming
-- Offline caching (RNFS)
-- Upload queue (persistent, auto-retry)
+- Offline caching (RNFS, with auth headers for video streaming)
+- Upload queue (persistent, MMKV-backed, auto-retry)
 - Push notifications (Firebase)
 - Android home screen widget
 - Dark/light/system theme
@@ -69,7 +75,8 @@ services/          - Upload queue (MMKV-backed)
 - Toast notifications, error boundaries
 - Export photo ZIP by email (Mailgun)
 - Recuerdos "On this day"
-- Filters: date range, favorites, blurry
+- Filters: date range, favorites
+- Biometric authentication (FaceID / fingerprint)
 
 ## Commands
 
