@@ -178,6 +178,22 @@ export default function AlbumsScreen() {
         <Icon name="chevron-right" size={22} color={colors.textTertiary} />
       </TouchableOpacity>
 
+      {/* People entry */}
+      <TouchableOpacity
+        style={[
+          styles.vaultCard,
+          { backgroundColor: colors.cardBg, borderColor: colors.border },
+        ]}
+        onPress={() => navigation.navigate('People')}
+        activeOpacity={0.7}
+      >
+        <Icon name="face" size={22} color={colors.primary} />
+        <Text style={[styles.vaultText, { color: colors.text }]}>
+          Personas
+        </Text>
+        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+      </TouchableOpacity>
+
       {showCreate && (
         <View
           style={[styles.createRow, { borderBottomColor: colors.borderLight }]}

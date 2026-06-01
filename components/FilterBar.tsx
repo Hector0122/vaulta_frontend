@@ -13,6 +13,7 @@ type Props = {
   onClearDateRange: () => void
   onToggleFavorites: () => void
   onGoToProfile: () => void
+  onGoToPeople: () => void
 }
 
 export default function FilterBar({
@@ -24,6 +25,7 @@ export default function FilterBar({
   onClearDateRange,
   onToggleFavorites,
   onGoToProfile,
+  onGoToPeople,
 }: Props) {
   return (
     <View
@@ -73,6 +75,9 @@ export default function FilterBar({
           size={22}
           color={colors.favorite}
         />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onGoToPeople} style={styles.filterIcon}>
+        <Icon name="face" size={22} color={colors.textSecondary} />
       </TouchableOpacity>
       <TouchableOpacity onPress={onGoToProfile} style={styles.profileIcon}>
         <Icon name="person" size={22} color={colors.textSecondary} />

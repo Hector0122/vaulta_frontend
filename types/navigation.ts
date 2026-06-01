@@ -19,6 +19,8 @@ export type StackParamList = {
   Profile: undefined
   Duplicates: undefined
   Trash: undefined
+  People: undefined
+  PersonView: { personName: string }
 }
 
 export type StackNavProp = StackNavigationProp<StackParamList>

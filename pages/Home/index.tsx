@@ -57,6 +57,7 @@ type HomeStackParamList = {
     initialIndex: number
   }
   Profile: undefined
+  People: undefined
 }
 
 type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList, 'Main'>
@@ -500,6 +501,7 @@ export function HomeScreen({ navigation }: Props) {
           onClearDateRange={handleClearDateRange}
           onToggleFavorites={() => toggleFilter()}
           onGoToProfile={() => navigation.navigate('Profile')}
+          onGoToPeople={() => navigation.navigate('People')}
         />
       </>
     ),

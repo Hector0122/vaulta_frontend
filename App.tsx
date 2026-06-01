@@ -27,6 +27,8 @@ import VaultView from './pages/Albums/VaultView';
 import ProfileScreen from './pages/Profile';
 import DuplicatesScreen from './pages/Duplicates';
 import TrashScreen from './pages/Trash';
+import PeopleScreen from './pages/People';
+import PersonView from './pages/People/PersonView';
 import ConnectionBanner from './components/ConnectionBanner';
 
 import ErrorBoundary from './components/ErrorBoundary';
@@ -214,6 +216,16 @@ function AppNavigator() {
         name="Trash"
         component={TrashScreen}
         options={{ title: 'Papelera' }}
+      />
+      <Stack.Screen
+        name="People"
+        component={PeopleScreen}
+        options={{ title: 'Personas' }}
+      />
+      <Stack.Screen
+        name="PersonView"
+        component={PersonView}
+        options={{ title: 'Persona' }}
       />
     </Stack.Navigator>
   );

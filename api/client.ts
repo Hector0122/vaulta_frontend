@@ -337,3 +337,68 @@ export async function removeTag(photoId: string, tag: string): Promise<string[]>
     return data.tags
   })
 }
+
+export function fetchPhotosPageRaw(url: string) {
+  return autoRetry(async () => {
+    const headers = await authHeaders()
+    const res = await fetchWithTimeout(`${BASE_URL}${url}`, { headers })
+    return handleJsonResponse<{ photos: { uri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
+  })
+}
+
+export type Person = {
+  name: string
+  faceCount: number
+  photoCount: number
+  thumbnailPhotoId: string | null
+}
+
+export async function getPeople(): Promise<Person[]> {
+  return authenticatedGet('faces/people')
+}
+
+export type UnconfirmedFace = {
+  id: string
+  photoId: string
+  photoUri: string | null
+}
+
+export async function getUnconfirmedFaces(): Promise<UnconfirmedFace[]> {
+  return authenticatedGet('faces/unconfirmed')
+}
+
+export async function updateFace(faceId: string, data: { personName?: string; confirmed?: boolean; ignored?: boolean }): Promise<any> {
+  return authenticatedPatch(`faces/${faceId}`, data)
+}
+
+export async function deleteFace(faceId: string): Promise<void> {
+  await authenticatedDelete(`faces/${faceId}`)
+}
+
+export async function detectFaces(photoId: string): Promise<{ facesFound: number }> {
+  return authenticatedPost(`faces/detect/${photoId}`, {})
+}
+
+export async function detectBatchFaces(photoIds: string[]): Promise<{ processed: number; facesFound: number; failed: number }> {
+  return authenticatedPost('faces/detect-batch', { photoIds })
+}
+
+export async function detectAllFaces(): Promise<{ processed: number; facesFound: number; failed: number }> {
+  return authenticatedPost('faces/detect-all', {})
+}
+
+export async function confirmAllForPerson(personName: string): Promise<{ confirmed: number }> {
+  return authenticatedPost('faces/confirm-all', { personName })
+}
+
+export async function mergePeople(fromPerson: string, toPerson: string): Promise<{ merged: number }> {
+  return authenticatedPost('faces/merge', { fromPerson, toPerson })
+}
+
+export async function getFaceStats(): Promise<{ totalFaces: number; peopleCount: number; byPerson: { name: string; faceCount: number; photoCount: number }[] }> {
+  return authenticatedGet('faces/stats')
+}
+
+export async function getThisDayByPerson(person: string) {
+  return authenticatedGet(`faces/this-day?person=${encodeURIComponent(person)}`)
+}

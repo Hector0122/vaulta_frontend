@@ -72,6 +72,8 @@ export default function ProfileScreen() {
     albumCount: number
     favoriteCount: number
     totalSize: number
+    faceCount: number
+    peopleCount: number
   } | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [dateFrom, setDateFrom] = useState<string | null>(null)
@@ -164,6 +166,8 @@ export default function ProfileScreen() {
       albumCount: number
       favoriteCount: number
       totalSize: number
+      faceCount: number
+      peopleCount: number
     }>('photos/stats')
       .then(setStats)
       .catch(() => {})
@@ -272,6 +276,34 @@ export default function ProfileScreen() {
               </Text>
               <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
                 Almacenamiento
+              </Text>
+            </View>
+          </View>
+        )}
+        {stats && (stats.faceCount > 0 || stats.peopleCount > 0) && (
+          <View style={[styles.statsCard, { backgroundColor: colors.cardBg, marginTop: 8 }]}>
+            <View style={styles.statItem}>
+              <Icon name="face" size={24} color={colors.accent} />
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {stats.faceCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Rostros
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: colors.borderLight },
+              ]}
+            />
+            <View style={styles.statItem}>
+              <Icon name="people" size={24} color={colors.accent} />
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {stats.peopleCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
+                Personas
               </Text>
             </View>
           </View>
