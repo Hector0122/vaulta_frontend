@@ -20,6 +20,7 @@ import {
   getUnconfirmedFaces,
   updateFace,
   deleteFace,
+  findMoreFaces,
 } from '../../api/client'
 import type { StackNavProp } from '../../types/navigation'
 import type { Person, UnconfirmedFace } from '../../api/client'
@@ -97,6 +98,38 @@ export default function PeopleScreen() {
       Alert.alert('Error', 'No se pudo eliminar')
     }
   }, [])
+
+  const [searchResults, setSearchResults] = useState<{ results: { faceId: string; photoId: string; photoUri: string; distance: number }[]; personName: string } | null>(null)
+  const [searching, setSearching] = useState<string | null>(null)
+
+  const handleFindMore = useCallback(async (personName: string) => {
+    setSearching(personName)
+    try {
+      const results = await findMoreFaces(personName)
+      setSearchResults({ results, personName })
+    } catch {
+      Alert.alert('Error', `No se pudieron buscar más fotos de ${personName}`)
+    } finally {
+      setSearching(null)
+    }
+  }, [])
+
+  const handleConfirmMatches = useCallback(async (personName: string) => {
+    if (!searchResults || searchResults.results.length === 0) return
+    const count = searchResults.results.length
+    try {
+      await Promise.all(
+        searchResults.results.map((r) =>
+          updateFace(r.faceId, { personName, confirmed: true }),
+        ),
+      )
+      Alert.alert('Hecho', `${count} ${count === 1 ? 'foto agregada' : 'fotos agregadas'} a ${personName}`)
+      setSearchResults(null)
+      fetchData()
+    } catch {
+      Alert.alert('Error', 'No se pudieron confirmar las coincidencias')
+    }
+  }, [searchResults, fetchData])
 
   if (loading) {
     return (
@@ -200,7 +233,16 @@ export default function PeopleScreen() {
             }
           >
             <View style={[styles.thumb, { backgroundColor: colors.skeleton }]}>
-              <Icon name="face" size={28} color={colors.primary} />
+              {item.thumbnailUri ? (
+                <NitroImage
+                  image={{ url: item.thumbnailUri }}
+                  style={styles.thumb}
+                  resizeMode="cover"
+                  recyclingKey={item.name}
+                />
+              ) : (
+                <Icon name="face" size={28} color={colors.primary} />
+              )}
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>
@@ -211,6 +253,18 @@ export default function PeopleScreen() {
                 {item.faceCount} {item.faceCount === 1 ? 'rostro' : 'rostros'}
               </Text>
             </View>
+            <TouchableOpacity
+              style={[styles.filterPersonBtn, { backgroundColor: colors.primary + '20' }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={() => handleFindMore(item.name)}
+              disabled={searching === item.name}
+            >
+              {searching === item.name ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Icon name="search" size={18} color={colors.primary} />
+              )}
+            </TouchableOpacity>
             <Icon name="chevron-right" size={22} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
@@ -277,6 +331,75 @@ export default function PeopleScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={searchResults !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSearchResults(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[styles.resultsCard, { backgroundColor: colors.surface }]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {searchResults
+                ? `${searchResults.results.length} posible(s) coincidencia(s) con ${searchResults.personName}`
+                : ''}
+            </Text>
+            {searchResults && searchResults.results.length > 0 ? (
+              <>
+                <FlatList
+                  data={searchResults.results}
+                  keyExtractor={(item) => item.faceId}
+                  numColumns={3}
+                  contentContainerStyle={styles.resultsGrid}
+                  renderItem={({ item }) => (
+                    <View
+                      style={[
+                        styles.resultThumb,
+                        { backgroundColor: colors.skeleton },
+                      ]}
+                    >
+                      <NitroImage
+                        image={{ url: item.photoUri }}
+                        style={styles.resultThumb}
+                        resizeMode="cover"
+                        recyclingKey={item.faceId}
+                      />
+                    </View>
+                  )}
+                />
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalBtn, { backgroundColor: colors.border }]}
+                    onPress={() => setSearchResults(null)}
+                  >
+                    <Text style={[styles.modalBtnText, { color: colors.text }]}>
+                      Cerrar
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => handleConfirmMatches(searchResults.personName)}
+                  >
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>
+                      Confirmar todas
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View style={styles.empty}>
+                <Icon name="search-off" size={48} color={colors.textTertiary} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  No se encontraron coincidencias
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -336,6 +459,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardInfo: { flex: 1, marginLeft: 12 },
+  filterPersonBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
   cardName: { fontSize: 16, fontWeight: '600' },
   cardCount: { fontSize: 13, marginTop: 2 },
   empty: { alignItems: 'center', paddingTop: 60 },
@@ -372,4 +503,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
+  resultsCard: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 14,
+    padding: 16,
+    maxWidth: 400,
+  },
+  resultsGrid: { paddingBottom: 12 },
+  resultThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 6,
+    margin: 3,
+  },
 })

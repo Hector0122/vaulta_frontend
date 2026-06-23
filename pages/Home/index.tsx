@@ -517,6 +517,7 @@ export function HomeScreen({ navigation }: Props) {
       handleClearDateRange,
       toggleFilter,
       navigation,
+      loadPhotos,
     ],
   )
 

@@ -172,10 +172,11 @@ export interface FetchPhotosOptions {
   privateOnly?: boolean
   dateFrom?: string
   dateTo?: string
+  person?: string
 }
 
 export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
-  const { pageToken, maxKeys = 50, query, favoritesOnly, privateOnly, dateFrom, dateTo } = options
+  const { pageToken, maxKeys = 50, query, favoritesOnly, privateOnly, dateFrom, dateTo, person } = options
   return autoRetry(async () => {
     let url = `${BASE_URL}/photos?maxKeys=${maxKeys}`
     if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`
@@ -184,6 +185,7 @@ export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
     if (privateOnly) url += `&private=true`
     if (dateFrom) url += `&dateFrom=${encodeURIComponent(dateFrom)}`
     if (dateTo) url += `&dateTo=${encodeURIComponent(dateTo)}`
+    if (person) url += `&person=${encodeURIComponent(person)}`
     const headers = await authHeaders()
     const res = await fetchWithTimeout(url, { headers })
     return handleJsonResponse<{ photos: { uri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
@@ -351,6 +353,7 @@ export type Person = {
   faceCount: number
   photoCount: number
   thumbnailPhotoId: string | null
+  thumbnailUri: string | null
 }
 
 export async function getPeople(): Promise<Person[]> {
@@ -401,4 +404,8 @@ export async function getFaceStats(): Promise<{ totalFaces: number; peopleCount:
 
 export async function getThisDayByPerson(person: string) {
   return authenticatedGet(`faces/this-day?person=${encodeURIComponent(person)}`)
+}
+
+export async function findMoreFaces(person: string): Promise<{ faceId: string; photoId: string; photoUri: string; distance: number }[]> {
+  return authenticatedGet(`faces/find-more?person=${encodeURIComponent(person)}`)
 }
