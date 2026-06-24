@@ -56,6 +56,7 @@ import {
 type PhotoItem = {
   uri: string
   fullUri: string
+  largeUri?: string | null
   id: string
   tags?: string[]
   mimeType?: string
@@ -80,6 +81,7 @@ const PhotoPage = React.memo(function PhotoPage({
   isActive: boolean
 }) {
   const [fullUri, setFullUri] = useState<string | null>(item.fullUri || null)
+  const [largeUri, setLargeUri] = useState<string | null>(item.largeUri || null)
   const [thumbUri, setThumbUri] = useState<string | null>(null)
   const [videoHeaders, setVideoHeaders] = useState<
     Record<string, string> | undefined
@@ -130,13 +132,18 @@ const PhotoPage = React.memo(function PhotoPage({
         })
         .finally(() => setLoading(false))
     } else {
-      if (item.fullUri) {
+      if (item.largeUri) {
+        setLargeUri(item.largeUri)
+        setImageReady(true)
+        setLoading(false)
+      } else if (item.fullUri) {
         setImageReady(true)
         setLoading(false)
       }
       getPhotoDetail(item.id)
-        .then(({ url, albums: photoAlbums }) => {
-          if (url) setFullUri(url)
+        .then(({ url, largeUri: newLargeUri, albums: photoAlbums }) => {
+          if (newLargeUri) setLargeUri(newLargeUri)
+          else if (url) setFullUri(url)
           setContainingAlbums(photoAlbums)
         })
         .catch(() => {})
@@ -334,7 +341,7 @@ const PhotoPage = React.memo(function PhotoPage({
       {item.mimeType?.startsWith('video/') ? (
         <VideoPlayer
           uri={
-            offlineCached ? `file://${offlinePath(userId, item.id)}` : fullUri
+            offlineCached ? `file://${offlinePath(userId, item.id)}` : (fullUri ?? item.uri)
           }
           headers={videoHeaders}
           posterUri={thumbUri || undefined}
@@ -352,7 +359,7 @@ const PhotoPage = React.memo(function PhotoPage({
               uri={
                 offlineCached
                   ? `file://${offlinePath(userId, item.id)}`
-                  : fullUri ?? item.uri
+                  : largeUri ?? fullUri ?? item.uri
               }
             />
           )}
@@ -646,11 +653,13 @@ export default function PhotoPreview() {
   useEffect(() => {
     if (activeIndex < items.length - 1) {
       const next = items[activeIndex + 1]
-      if (next.fullUri) Image.prefetch(next.fullUri)
+      const nextUri = next.largeUri || next.fullUri
+      if (nextUri) Image.prefetch(nextUri)
     }
     if (activeIndex > 0) {
       const prev = items[activeIndex - 1]
-      if (prev.fullUri) Image.prefetch(prev.fullUri)
+      const prevUri = prev.largeUri || prev.fullUri
+      if (prevUri) Image.prefetch(prevUri)
     }
   }, [activeIndex, items])
 

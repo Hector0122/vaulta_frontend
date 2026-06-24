@@ -1,6 +1,7 @@
 export type Photo = {
   uri: string
   fullUri: string
+  largeUri?: string | null
   date: string
   id: string
   favorite: boolean

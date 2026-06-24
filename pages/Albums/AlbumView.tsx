@@ -26,7 +26,7 @@ import {
 import { useToast } from '../../context/ToastContext'
 import type { StackNavProp, AlbumViewRouteProp } from '../../types/navigation'
 
-type Photo = { id: string; uri: string; createdAt: string }
+type Photo = { id: string; uri: string; fullUri?: string; largeUri?: string | null; createdAt: string }
 
 export default function AlbumView() {
   const route = useRoute<AlbumViewRouteProp>()
@@ -148,7 +148,7 @@ export default function AlbumView() {
                   return
                 }
                 navigation.navigate('PhotoPreview', {
-                  photos: photos.map(p => ({ uri: p.uri, id: p.id })),
+                  photos: photos.map(p => ({ uri: p.uri, fullUri: p.fullUri || p.uri, largeUri: p.largeUri, id: p.id })),
                   initialIndex: photos.indexOf(photo),
                 })
               }}

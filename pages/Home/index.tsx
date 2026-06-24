@@ -54,7 +54,7 @@ type HomeStackParamList = {
   Main: undefined
   Upload: { imageUri?: string; imageType?: string }
   PhotoPreview: {
-    photos: { uri: string; fullUri: string; id: string; tags?: string[]; mimeType?: string }[]
+    photos: { uri: string; fullUri: string; largeUri?: string | null; id: string; tags?: string[]; mimeType?: string }[]
     initialIndex: number
   }
   Profile: undefined
@@ -179,6 +179,7 @@ export function HomeScreen({ navigation }: Props) {
         const allPhotos = photos.map(p => ({
           uri: p.uri,
           fullUri: p.fullUri || p.uri,
+          largeUri: p.largeUri,
           id: p.id,
           tags: p.tags,
           mimeType: p.mimeType,
@@ -519,7 +520,7 @@ export function HomeScreen({ navigation }: Props) {
         colors={colors}
         onPressRecuerdo={r =>
           navigation.navigate('PhotoPreview', {
-            photos: [{ uri: r.uri, fullUri: r.fullUri || r.uri, id: r.id, mimeType: r.mimeType }],
+            photos: [{ uri: r.uri, fullUri: r.fullUri || r.uri, largeUri: r.largeUri, id: r.id, mimeType: r.mimeType }],
             initialIndex: 0,
           })
         }

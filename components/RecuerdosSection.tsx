@@ -8,6 +8,7 @@ type Recuerdo = {
   year: number
   uri: string
   fullUri: string
+  largeUri?: string | null
   id: string
   filename: string
   count: number

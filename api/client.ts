@@ -188,7 +188,7 @@ export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
     if (person) url += `&person=${encodeURIComponent(person)}`
     const headers = await authHeaders()
     const res = await fetchWithTimeout(url, { headers })
-    return handleJsonResponse<{ photos: { uri: string; fullUri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
+    return handleJsonResponse<{ photos: { uri: string; fullUri: string; largeUri: string | null; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
   })
 }
 
@@ -201,11 +201,11 @@ export async function getPhotoUrl(photoId: string): Promise<string> {
   })
 }
 
-export async function getPhotoDetail(photoId: string): Promise<{ url: string; albums: { id: string; name: string; vault: boolean }[] }> {
+export async function getPhotoDetail(photoId: string): Promise<{ url: string; largeUri: string | null; albums: { id: string; name: string; vault: boolean }[] }> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/detail`, { headers })
-    return handleJsonResponse<{ url: string; albums: { id: string; name: string; vault: boolean }[] }>(res)
+    return handleJsonResponse<{ url: string; largeUri: string | null; albums: { id: string; name: string; vault: boolean }[] }>(res)
   })
 }
 
