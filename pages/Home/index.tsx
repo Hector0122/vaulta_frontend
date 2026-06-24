@@ -53,7 +53,7 @@ type HomeStackParamList = {
   Main: undefined
   Upload: { imageUri?: string; imageType?: string }
   PhotoPreview: {
-    photos: { uri: string; id: string; tags?: string[]; mimeType?: string }[]
+    photos: { uri: string; fullUri: string; id: string; tags?: string[]; mimeType?: string }[]
     initialIndex: number
   }
   Profile: undefined
@@ -88,6 +88,7 @@ export function HomeScreen({ navigation }: Props) {
     {
       year: number
       uri: string
+      fullUri: string
       id: string
       filename: string
       count: number
@@ -95,6 +96,7 @@ export function HomeScreen({ navigation }: Props) {
       mimeType?: string
     }[]
   >([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [showFabMenu, setShowFabMenu] = useState(false)
   const loadPhotosRef = useRef<() => void>(() => {})
 
@@ -111,6 +113,8 @@ export function HomeScreen({ navigation }: Props) {
   const privateOnlyRef = useRef(privateOnly)
   const rangeStartRef = useRef(rangeStart)
   const rangeEndRef = useRef(rangeEnd)
+  const searchRef = useRef<string>('')
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     favoritesOnlyRef.current = favoritesOnly
@@ -148,6 +152,10 @@ export function HomeScreen({ navigation }: Props) {
       Object.fromEntries(photos.map(p => [p.uri, offlineIds.includes(p.id)])),
     [photos, offlineIds],
   )
+  const uriToFullUri = useMemo(
+    () => Object.fromEntries(photos.map(p => [p.uri, p.fullUri || p.uri])),
+    [photos],
+  )
 
   const selectedIds = selectedUris.map(uri => uriToId[uri]).filter(Boolean)
 
@@ -165,6 +173,7 @@ export function HomeScreen({ navigation }: Props) {
       } else {
         const allPhotos = photos.map(p => ({
           uri: p.uri,
+          fullUri: p.fullUri || p.uri,
           id: p.id,
           tags: p.tags,
           mimeType: p.mimeType,
@@ -228,9 +237,10 @@ export function HomeScreen({ navigation }: Props) {
     const timestamp = Date.now()
     const results = await Promise.allSettled(
       selectedUris.map(async (uri, i) => {
+        const fullUri = uriToFullUri[uri] || uri
         const ext = Platform.OS === 'android' ? 'jpg' : 'JPEG'
         const dest = `${RNFS.DocumentDirectoryPath}/download_${timestamp}_${i}.${ext}`
-        await RNFS.downloadFile({ fromUrl: uri, toFile: dest }).promise
+        await RNFS.downloadFile({ fromUrl: fullUri, toFile: dest }).promise
         if (Platform.OS === 'android') await RNFS.scanFile(dest)
       }),
     )
@@ -244,7 +254,8 @@ export function HomeScreen({ navigation }: Props) {
 
   const handleBatchShare = async () => {
     try {
-      await Share.open({ urls: selectedUris, type: 'image/jpeg' })
+      const fullUrls = selectedUris.map(uri => uriToFullUri[uri] || uri)
+      await Share.open({ urls: fullUrls, type: 'image/jpeg' })
     } catch {}
     clearSelection()
   }
@@ -276,6 +287,7 @@ export function HomeScreen({ navigation }: Props) {
           privateOnly: privOnly,
           dateFrom: dr.dateFrom,
           dateTo: dr.dateTo,
+          query: searchRef.current || undefined,
         })
         setPhotos(data.photos)
         setNextToken(data.nextToken)
@@ -305,6 +317,7 @@ export function HomeScreen({ navigation }: Props) {
         privateOnly: privateOnlyRef.current,
         dateFrom: dr.dateFrom,
         dateTo: dr.dateTo,
+        query: searchRef.current || undefined,
       })
       setPhotos(prev => [...prev, ...data.photos])
       setNextToken(data.nextToken)
@@ -319,6 +332,7 @@ export function HomeScreen({ navigation }: Props) {
         {
           year: number
           uri: string
+          fullUri: string
           id: string
           filename: string
           count: number
@@ -394,6 +408,33 @@ export function HomeScreen({ navigation }: Props) {
     setDateFilter(null, null)
   }, [setDateFilter])
 
+  const handleSearch = useCallback(
+    (q: string) => {
+      setSearchQuery(q)
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+      searchTimer.current = setTimeout(() => {
+        searchRef.current = q
+        setNextToken(null)
+        setHasMore(true)
+        loadPhotos()
+      }, 300)
+    },
+    [loadPhotos],
+  )
+
+  const handleYearPreset = useCallback(
+    (from: string, to: string) => {
+      rangeStartRef.current = from
+      rangeEndRef.current = to
+      setRangeStart(from)
+      setRangeEnd(to)
+      setNextToken(null)
+      setHasMore(true)
+      loadPhotos()
+    },
+    [loadPhotos],
+  )
+
   const toggleFilter = useCallback(
     () => {
       setFavoritesOnly(v => {
@@ -450,7 +491,7 @@ export function HomeScreen({ navigation }: Props) {
         colors={colors}
         onPressRecuerdo={r =>
           navigation.navigate('PhotoPreview', {
-            photos: [{ uri: r.uri, id: r.id, mimeType: r.mimeType }],
+            photos: [{ uri: r.uri, fullUri: r.fullUri || r.uri, id: r.id, mimeType: r.mimeType }],
             initialIndex: 0,
           })
         }
@@ -497,11 +538,14 @@ export function HomeScreen({ navigation }: Props) {
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
           favoritesOnly={favoritesOnly}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearch}
           onOpenDatePicker={() => setShowRangePicker(true)}
           onClearDateRange={handleClearDateRange}
           onToggleFavorites={() => toggleFilter()}
           onGoToProfile={() => navigation.navigate('Profile')}
           onGoToPeople={() => navigation.navigate('People')}
+          onYearPreset={handleYearPreset}
         />
       </>
     ),

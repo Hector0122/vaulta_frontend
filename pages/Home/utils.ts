@@ -1,5 +1,6 @@
 export type Photo = {
   uri: string
+  fullUri: string
   date: string
   id: string
   favorite: boolean

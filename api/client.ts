@@ -188,7 +188,7 @@ export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
     if (person) url += `&person=${encodeURIComponent(person)}`
     const headers = await authHeaders()
     const res = await fetchWithTimeout(url, { headers })
-    return handleJsonResponse<{ photos: { uri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
+    return handleJsonResponse<{ photos: { uri: string; fullUri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
   })
 }
 
@@ -344,7 +344,7 @@ export function fetchPhotosPageRaw(url: string) {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}${url}`, { headers })
-    return handleJsonResponse<{ photos: { uri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
+    return handleJsonResponse<{ photos: { uri: string; fullUri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
   })
 }
 

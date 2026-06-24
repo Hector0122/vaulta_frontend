@@ -40,7 +40,7 @@ export default function DateRangePicker({
           </View>
           <LazyCalendar
             current={rangeStart || undefined}
-            minDate="2020-01-01"
+            minDate="2000-01-01"
             maxDate={new Date().toISOString().split('T')[0]}
             onDayPress={onDayPress}
             markedDates={

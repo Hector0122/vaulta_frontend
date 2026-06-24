@@ -52,6 +52,7 @@ import {
 
 type PhotoItem = {
   uri: string
+  fullUri: string
   id: string
   tags?: string[]
   mimeType?: string
@@ -75,7 +76,7 @@ function PhotoPage({
   userId: string
   isActive: boolean
 }) {
-  const [fullUri, setFullUri] = useState<string | null>(null)
+  const [fullUri, setFullUri] = useState<string | null>(item.fullUri || null)
   const [thumbUri, setThumbUri] = useState<string | null>(null)
   const [videoHeaders, setVideoHeaders] = useState<
     Record<string, string> | undefined
@@ -103,8 +104,8 @@ function PhotoPage({
     if (loadedRef.current === item.id) return
     loadedRef.current = item.id
     setImageReady(false)
-    setFullUri(null)
     setLoading(true)
+    if (item.fullUri) setFullUri(item.fullUri)
     getWidgetPhotoIds().then(ids => setInWidget(ids.includes(item.id)))
     if (item.mimeType?.startsWith('video/')) {
       setThumbUri(item.uri)
@@ -115,25 +116,23 @@ function PhotoPage({
           setImageReady(true)
         })
         .catch(() => {
+          setFullUri(item.fullUri || `${BASE_URL}/photos/${item.id}/stream`)
           getToken().then(token => {
-            if (token) {
-              setFullUri(`${BASE_URL}/photos/${item.id}/stream`)
-              setVideoHeaders({ Authorization: `Bearer ${token}` })
-            }
-            setImageReady(true)
+            if (token) setVideoHeaders({ Authorization: `Bearer ${token}` })
           })
+          setImageReady(true)
         })
         .finally(() => setLoading(false))
     } else {
+      if (item.fullUri) {
+        setImageReady(true)
+        setLoading(false)
+      }
       getPhotoDetail(item.id)
-        .then(({ url, albums: photoAlbums }) => {
-          setFullUri(url)
+        .then(({ albums: photoAlbums }) => {
           setContainingAlbums(photoAlbums)
-          setImageReady(true)
         })
-        .catch(() => {
-          setImageReady(true)
-        })
+        .catch(() => {})
         .finally(() => setLoading(false))
     }
     isCached(userId, item.id).then(setOfflineCached)
@@ -609,6 +608,17 @@ export default function PhotoPreview() {
       }
     }, [screenWidth, initialIndex]),
   )
+
+  useEffect(() => {
+    if (activeIndex < items.length - 1) {
+      const next = items[activeIndex + 1]
+      if (next.fullUri) Image.prefetch(next.fullUri)
+    }
+    if (activeIndex > 0) {
+      const prev = items[activeIndex - 1]
+      if (prev.fullUri) Image.prefetch(prev.fullUri)
+    }
+  }, [activeIndex, items])
 
   const handleDelete = useCallback(
     (id: string) => {

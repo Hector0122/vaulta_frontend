@@ -7,6 +7,7 @@ import type { ThemeColors } from '../theme'
 type Recuerdo = {
   year: number
   uri: string
+  fullUri: string
   id: string
   filename: string
   count: number
