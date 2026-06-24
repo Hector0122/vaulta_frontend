@@ -324,7 +324,11 @@ export function HomeScreen({ navigation }: Props) {
         dateTo: dr.dateTo,
         query: searchRef.current || undefined,
       })
-      setPhotos(prev => [...prev, ...data.photos])
+      setPhotos(prev => {
+        const existingIds = new Set(prev.map(p => p.id))
+        const unique = data.photos.filter(p => !existingIds.has(p.id))
+        return [...prev, ...unique]
+      })
       setNextToken(data.nextToken)
       setHasMore(data.nextToken !== null)
     } catch {}

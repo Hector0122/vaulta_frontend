@@ -18,6 +18,7 @@ import {
   useRoute,
   useNavigation,
   useFocusEffect,
+  StackActions,
 } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import RNFS from 'react-native-fs'
@@ -65,7 +66,7 @@ type PhotoPreviewRouteProp = RouteProp<
   'PhotoPreview'
 >
 
-function PhotoPage({
+const PhotoPage = React.memo(function PhotoPage({
   item,
   onDelete,
   onFavoriteToggle,
@@ -102,7 +103,10 @@ function PhotoPage({
   const loadedRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!isActive) return
+    if (!isActive) {
+      setLoading(false)
+      return
+    }
     if (loadedRef.current === item.id) return
     loadedRef.current = item.id
     setImageReady(false)
@@ -492,6 +496,8 @@ function PhotoPage({
   )
 }
 
+)
+
 const pageStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   loader: { flex: 1 },
@@ -616,7 +622,7 @@ export default function PhotoPreview() {
             toValue: 700,
             duration: 200,
             useNativeDriver: true,
-          }).start(() => navigation.goBack())
+          }).start(() => navigation.dispatch(StackActions.pop(1)))
         } else {
           Animated.spring(dismissTranslateY, {
             toValue: 0,
@@ -662,7 +668,7 @@ export default function PhotoPreview() {
     (id: string) => {
       const remaining = items.filter(i => i.id !== id)
       if (remaining.length === 0) {
-        navigation.goBack()
+        navigation.dispatch(StackActions.pop(1))
         return
       }
       const _deletedIdx = items.findIndex(i => i.id === id)
