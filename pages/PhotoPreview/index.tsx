@@ -340,15 +340,13 @@ const PhotoPage = React.memo(function PhotoPage({
           posterUri={thumbUri || undefined}
         />
       ) : (
-        <>
-          {!imageReady && (
-            <Image
-              source={{ uri: item.uri }}
-              style={StyleSheet.absoluteFill}
-              blurRadius={8}
-              resizeMode="cover"
-            />
-          )}
+        <View style={StyleSheet.absoluteFill}>
+          <Image
+            source={{ uri: item.uri }}
+            style={StyleSheet.absoluteFill}
+            blurRadius={8}
+            resizeMode="cover"
+          />
           {imageReady && (
             <ZoomableImage
               uri={
@@ -358,7 +356,7 @@ const PhotoPage = React.memo(function PhotoPage({
               }
             />
           )}
-        </>
+        </View>
       )}
       {tags.length > 0 && (
         <View style={pageStyles.tagRow}>
