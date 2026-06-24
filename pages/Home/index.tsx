@@ -102,6 +102,7 @@ export function HomeScreen({ navigation }: Props) {
   const loadPhotosRef = useRef<() => void>(() => {})
   const flashListRef = useRef<FlashListRef<ListItem>>(null)
   const scrollOffsetRef = useRef(0)
+  const scrollRestoreRef = useRef(0)
   const lastLoadTimeRef = useRef(0)
 
   useEffect(() => {
@@ -304,6 +305,16 @@ export function HomeScreen({ navigation }: Props) {
       } finally {
         setLoading(false)
         setRefreshing(false)
+        const y = scrollRestoreRef.current
+        if (y > 0) {
+          scrollRestoreRef.current = 0
+          requestAnimationFrame(() => {
+            flashListRef.current?.scrollToOffset({
+              offset: y,
+              animated: false,
+            })
+          })
+        }
       }
     },
     [user?.id],
@@ -359,14 +370,16 @@ export function HomeScreen({ navigation }: Props) {
       clearSelection()
       const wasRecentlyLoaded = Date.now() - lastLoadTimeRef.current < 30000
       if (!wasRecentlyLoaded) {
+        scrollRestoreRef.current = scrollOffsetRef.current
         loadPhotos()
       } else if (scrollOffsetRef.current > 0) {
-        setTimeout(() => {
+        scrollRestoreRef.current = scrollOffsetRef.current
+        requestAnimationFrame(() => {
           flashListRef.current?.scrollToOffset({
             offset: scrollOffsetRef.current,
             animated: false,
           })
-        }, 50)
+        })
       }
       if (user?.id) getCachedIds(user.id).then(setOfflineIds)
       fetchRecuerdos()
