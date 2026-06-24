@@ -10,6 +10,7 @@ import {
   Platform,
   useWindowDimensions,
   ScrollView,
+  FlatList,
   Animated,
 } from 'react-native'
 import { PanGestureHandler, State as GestureState } from 'react-native-gesture-handler'
@@ -17,7 +18,6 @@ import {
   RouteProp,
   useRoute,
   useNavigation,
-  useFocusEffect,
   StackActions,
 } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
@@ -135,7 +135,8 @@ const PhotoPage = React.memo(function PhotoPage({
         setLoading(false)
       }
       getPhotoDetail(item.id)
-        .then(({ albums: photoAlbums }) => {
+        .then(({ url, albums: photoAlbums }) => {
+          if (url) setFullUri(url)
           setContainingAlbums(photoAlbums)
         })
         .catch(() => {})
@@ -597,7 +598,7 @@ export default function PhotoPreview() {
   const { photos: initialPhotos, initialIndex } = route.params
   const [items, setItems] = useState(initialPhotos)
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0)
-  const scrollRef = useRef<ScrollView>(null)
+  const scrollRef = useRef<FlatList<PhotoItem>>(null)
 
   const dismissTranslateY = useRef(new Animated.Value(0)).current
   const dismissOpacity = dismissTranslateY.interpolate({
@@ -634,24 +635,15 @@ export default function PhotoPreview() {
     },
     [dismissTranslateY, navigation],
   )
-  const onScrollEnd = useCallback(
-    (e: any) => {
-      const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth)
-      setActiveIndex(idx)
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: any[] }) => {
+      const first = viewableItems[0]
+      if (first) setActiveIndex(first.index ?? 0)
     },
-    [screenWidth],
+    [],
   )
 
-  useFocusEffect(
-    useCallback(() => {
-      if (scrollRef.current && initialIndex > 0) {
-        scrollRef.current?.scrollTo({
-          x: screenWidth * initialIndex,
-          animated: false,
-        })
-      }
-    }, [screenWidth, initialIndex]),
-  )
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current
 
   useEffect(() => {
     if (activeIndex < items.length - 1) {
@@ -696,17 +688,25 @@ export default function PhotoPreview() {
           opacity: dismissOpacity,
         }}
       >
-        <ScrollView
+        <FlatList
           ref={scrollRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           style={pageStyles.scrollView}
-          onMomentumScrollEnd={onScrollEnd}
-          onScrollEndDrag={onScrollEnd}
-        >
-          {items.map((item, index) => (
-            <View key={item.id} style={{ width: screenWidth }}>
+          data={items}
+          keyExtractor={(item: PhotoItem) => item.id}
+          initialScrollIndex={initialIndex}
+          getItemLayout={(_, index) => ({
+            length: screenWidth,
+            offset: screenWidth * index,
+            index,
+          })}
+          windowSize={3}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          renderItem={({ item, index }: { item: PhotoItem; index: number }) => (
+            <View style={{ width: screenWidth }}>
               <PhotoPage
                 item={item}
                 onDelete={handleDelete}
@@ -715,8 +715,8 @@ export default function PhotoPreview() {
                 isActive={index === activeIndex}
               />
             </View>
-          ))}
-        </ScrollView>
+          )}
+        />
       </Animated.View>
     </PanGestureHandler>
   )
