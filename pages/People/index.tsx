@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Modal,
   TextInput,
+  ScrollView,
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
@@ -310,6 +311,43 @@ export default function PeopleScreen() {
               maxLength={50}
               onSubmitEditing={handleSaveName}
             />
+            {people.length > 0 && (
+              <View style={styles.existingPeopleRow}>
+                <Text style={[styles.existingPeopleLabel, { color: colors.textSecondary }]}>
+                  Personas existentes:
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.chipScroll}
+                  keyboardShouldPersistTaps="always"
+                >
+                  {people.map(p => (
+                    <TouchableOpacity
+                      key={p.name}
+                      style={[
+                        styles.personChip,
+                        namingText === p.name
+                          ? { backgroundColor: colors.primary }
+                          : { backgroundColor: colors.border },
+                      ]}
+                      onPress={() => setNamingText(p.name)}
+                    >
+                      <Text
+                        style={[
+                          styles.personChipText,
+                          namingText === p.name
+                            ? { color: '#fff' }
+                            : { color: colors.text },
+                        ]}
+                      >
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.border }]}
@@ -490,8 +528,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
+  existingPeopleRow: { marginBottom: 16 },
+  existingPeopleLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  chipScroll: { flexDirection: 'row' },
+  personChip: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginRight: 8,
+  },
+  personChipText: { fontSize: 13, fontWeight: '500' },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

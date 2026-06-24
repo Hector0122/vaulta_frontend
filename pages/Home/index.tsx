@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
+import type { FlashListRef } from '@shopify/flash-list'
 
 import '../../utils/calendarLocales'
 import { StackNavigationProp } from '@react-navigation/stack'
@@ -99,6 +100,9 @@ export function HomeScreen({ navigation }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showFabMenu, setShowFabMenu] = useState(false)
   const loadPhotosRef = useRef<() => void>(() => {})
+  const flashListRef = useRef<FlashListRef<ListItem>>(null)
+  const scrollOffsetRef = useRef(0)
+  const lastLoadTimeRef = useRef(0)
 
   useEffect(() => {
     const messaging = getMessaging(getApp())
@@ -262,6 +266,7 @@ export function HomeScreen({ navigation }: Props) {
 
   const loadPhotos = useCallback(
     async (isRefresh = false) => {
+      lastLoadTimeRef.current = Date.now()
       if (isRefresh) setRefreshing(true)
       else setError(null)
 
@@ -348,7 +353,17 @@ export function HomeScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       clearSelection()
-      loadPhotos()
+      const wasRecentlyLoaded = Date.now() - lastLoadTimeRef.current < 30000
+      if (!wasRecentlyLoaded) {
+        loadPhotos()
+      } else if (scrollOffsetRef.current > 0) {
+        setTimeout(() => {
+          flashListRef.current?.scrollToOffset({
+            offset: scrollOffsetRef.current,
+            animated: false,
+          })
+        }, 50)
+      }
       if (user?.id) getCachedIds(user.id).then(setOfflineIds)
       fetchRecuerdos()
       updateWidgetWithRecentPhotos()
@@ -619,11 +634,16 @@ export function HomeScreen({ navigation }: Props) {
         </ScrollView>
       ) : (
         <FlashList
+          ref={flashListRef}
           style={styles.flashList}
           data={listData}
           keyExtractor={(item: ListItem) => item.key}
           numColumns={2}
           estimatedItemSize={250}
+          scrollEventThrottle={16}
+          onScroll={e => {
+            scrollOffsetRef.current = e.nativeEvent.contentOffset.y
+          }}
           renderItem={({ item }) => {
             if (item.type === 'header') {
               return (

@@ -10,7 +10,9 @@ import {
   Platform,
   useWindowDimensions,
   ScrollView,
+  Animated,
 } from 'react-native'
+import { PanGestureHandler, State as GestureState } from 'react-native-gesture-handler'
 import {
   RouteProp,
   useRoute,
@@ -590,6 +592,42 @@ export default function PhotoPreview() {
   const [items, setItems] = useState(initialPhotos)
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0)
   const scrollRef = useRef<ScrollView>(null)
+
+  const dismissTranslateY = useRef(new Animated.Value(0)).current
+  const dismissOpacity = dismissTranslateY.interpolate({
+    inputRange: [0, 100, 600],
+    outputRange: [1, 0.95, 0],
+    extrapolate: 'clamp',
+  })
+
+  const onDismissGesture = Animated.event(
+    [{ nativeEvent: { translationY: dismissTranslateY } }],
+    { useNativeDriver: true },
+  )
+
+  const handleDismissStateChange = useCallback(
+    (event: any) => {
+      const state = event.nativeEvent.state as number
+      const ty = event.nativeEvent.translationY as number
+      const vy = event.nativeEvent.velocityY as number
+      if (state === GestureState.END || state === GestureState.CANCELLED || state === GestureState.FAILED) {
+        if (ty > 100 || vy > 500) {
+          Animated.timing(dismissTranslateY, {
+            toValue: 700,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => navigation.goBack())
+        } else {
+          Animated.spring(dismissTranslateY, {
+            toValue: 0,
+            friction: 6,
+            useNativeDriver: true,
+          }).start()
+        }
+      }
+    },
+    [dismissTranslateY, navigation],
+  )
   const onScrollEnd = useCallback(
     (e: any) => {
       const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth)
@@ -638,26 +676,42 @@ export default function PhotoPreview() {
   }, [])
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      horizontal
-      pagingEnabled
-      showsHorizontalScrollIndicator={false}
-      style={pageStyles.scrollView}
-      onMomentumScrollEnd={onScrollEnd}
-      onScrollEndDrag={onScrollEnd}
+    <PanGestureHandler
+      onGestureEvent={onDismissGesture}
+      onHandlerStateChange={handleDismissStateChange}
+      activeOffsetY={[-20, 20]}
+      failOffsetX={[-20, 20]}
     >
-      {items.map((item, index) => (
-        <View key={item.id} style={{ width: screenWidth }}>
-          <PhotoPage
-            item={item}
-            onDelete={handleDelete}
-            onFavoriteToggle={handleFavoriteToggle}
-            userId={user?.id || ''}
-            isActive={index === activeIndex}
-          />
-        </View>
-      ))}
-    </ScrollView>
+      <Animated.View
+        style={{
+          flex: 1,
+          backgroundColor: '#000',
+          transform: [{ translateY: dismissTranslateY }],
+          opacity: dismissOpacity,
+        }}
+      >
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={pageStyles.scrollView}
+          onMomentumScrollEnd={onScrollEnd}
+          onScrollEndDrag={onScrollEnd}
+        >
+          {items.map((item, index) => (
+            <View key={item.id} style={{ width: screenWidth }}>
+              <PhotoPage
+                item={item}
+                onDelete={handleDelete}
+                onFavoriteToggle={handleFavoriteToggle}
+                userId={user?.id || ''}
+                isActive={index === activeIndex}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </Animated.View>
+    </PanGestureHandler>
   )
 }

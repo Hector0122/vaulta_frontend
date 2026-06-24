@@ -8,7 +8,7 @@ import {
   createBottomTabNavigator,
   BottomTabNavigationOptions,
 } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -39,7 +39,7 @@ import { runAutoSync } from './api/autoSync';
 import type { TabParamList, StackParamList } from './types/navigation';
 
 const Tab = createBottomTabNavigator<TabParamList>();
-const Stack = createStackNavigator<StackParamList>();
+const Stack = createNativeStackNavigator<StackParamList>();
 
 function tabBarIcon(
   { color, size }: { color: string; size: number },
@@ -170,7 +170,7 @@ function AppNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
-        cardStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       <Stack.Screen
