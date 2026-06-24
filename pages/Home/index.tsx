@@ -368,15 +368,11 @@ export function HomeScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       clearSelection()
-      const wasRecentlyLoaded = Date.now() - lastLoadTimeRef.current < 30000
-      if (!wasRecentlyLoaded) {
-        scrollRestoreRef.current = scrollOffsetRef.current
-        loadPhotos()
-      } else if (scrollOffsetRef.current > 0) {
-        scrollRestoreRef.current = scrollOffsetRef.current
+      const y = scrollOffsetRef.current
+      if (y > 0) {
         requestAnimationFrame(() => {
           flashListRef.current?.scrollToOffset({
-            offset: scrollOffsetRef.current,
+            offset: y,
             animated: false,
           })
         })
@@ -384,7 +380,7 @@ export function HomeScreen({ navigation }: Props) {
       if (user?.id) getCachedIds(user.id).then(setOfflineIds)
       fetchRecuerdos()
       updateWidgetWithRecentPhotos()
-    }, [loadPhotos, clearSelection, user?.id, fetchRecuerdos]),
+    }, [clearSelection, user?.id, fetchRecuerdos]),
   )
 
   const listData = useMemo(() => flattenWithHeaders(photos), [photos])
