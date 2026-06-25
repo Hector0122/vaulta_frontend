@@ -369,6 +369,7 @@ export function HomeScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       clearSelection()
+      loadPhotos()
       const y = scrollOffsetRef.current
       if (y > 0) {
         requestAnimationFrame(() => {
@@ -381,7 +382,7 @@ export function HomeScreen({ navigation }: Props) {
       if (user?.id) getCachedIds(user.id).then(setOfflineIds)
       fetchRecuerdos()
       updateWidgetWithRecentPhotos()
-    }, [clearSelection, user?.id, fetchRecuerdos]),
+    }, [clearSelection, user?.id, fetchRecuerdos, loadPhotos]),
   )
 
   const listData = useMemo(() => flattenWithHeaders(photos), [photos])
