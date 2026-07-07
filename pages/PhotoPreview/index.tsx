@@ -288,9 +288,17 @@ const PhotoPage = React.memo(function PhotoPage({
     const t = tagInput.trim()
     if (!t) return
     try {
-      const updated = await addTag(item.id, t)
-      setTags(updated)
+      const result = await addTag(item.id, t)
+      setTags(result.tags)
       setTagInput('')
+      if (result.linkedPerson) {
+        setTimeout(() => {
+          Alert.alert(
+            'Persona encontrada',
+            `"${result.linkedPerson}" también es una persona registrada en Personas.`,
+          )
+        }, 300)
+      }
     } catch {
       Alert.alert('Error', 'No se pudo añadir la etiqueta')
     }

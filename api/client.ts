@@ -238,7 +238,7 @@ export async function toggleFavorite(photoId: string): Promise<boolean> {
   })
 }
 
-export async function addTag(photoId: string, tag: string): Promise<string[]> {
+export async function addTag(photoId: string, tag: string): Promise<{ tags: string[]; linkedPerson: string | null }> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/tags`, {
@@ -246,8 +246,8 @@ export async function addTag(photoId: string, tag: string): Promise<string[]> {
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ tag }),
     })
-    const data = await handleJsonResponse<{ tags: string[] }>(res)
-    return data.tags
+    const data = await handleJsonResponse<{ tags: string[]; linkedPerson: string | null }>(res)
+    return data
   })
 }
 
@@ -367,6 +367,7 @@ export type UnconfirmedFace = {
   id: string
   photoId: string
   photoUri: string | null
+  suggestions: { personName: string; distance: number }[]
 }
 
 export async function getUnconfirmedFaces(): Promise<UnconfirmedFace[]> {

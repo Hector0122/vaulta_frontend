@@ -17,6 +17,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
 import {
+  addTag,
   getPeople,
   getUnconfirmedFaces,
   updateFace,
@@ -36,6 +37,7 @@ export default function PeopleScreen() {
   const [nameModalVisible, setNameModalVisible] = useState(false)
   const [namingFaceId, setNamingFaceId] = useState<string | null>(null)
   const [namingText, setNamingText] = useState('')
+  const [namingSuggestions, setNamingSuggestions] = useState<{ personName: string; distance: number }[]>([])
 
   const fetchData = useCallback(async () => {
     try {
@@ -60,16 +62,46 @@ export default function PeopleScreen() {
     }, [fetchData]),
   )
 
-  const openNameModal = useCallback((faceId: string) => {
+  const handleConfirmSuggestion = useCallback(async (faceId: string, personName: string) => {
+    try {
+      const result = await updateFace(faceId, { personName, confirmed: true })
+      setUnconfirmed((prev) => prev.filter((f) => f.id !== faceId))
+      if (result?.suggestedTag) {
+        setTimeout(() => {
+          Alert.alert(
+            'Agregar etiqueta',
+            `¿Agregar "${result.suggestedTag}" como etiqueta en esta foto?`,
+            [
+              { text: 'No', style: 'cancel' },
+              {
+                text: 'Sí',
+                onPress: async () => {
+                  try {
+                    await addTag(result.photoId, result.suggestedTag)
+                  } catch { /* tag already exists or error */ }
+                },
+              },
+            ],
+          )
+        }, 300)
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo confirmar la sugerencia')
+    }
+  }, [])
+
+  const openNameModal = useCallback((faceId: string, prefillName?: string, suggestions?: { personName: string; distance: number }[]) => {
     setNamingFaceId(faceId)
-    setNamingText('')
+    setNamingText(prefillName || '')
+    setNamingSuggestions(suggestions || [])
     setNameModalVisible(true)
   }, [])
 
   const handleSaveName = useCallback(async () => {
     if (!namingFaceId || !namingText.trim()) return
+    const face = unconfirmed.find((f) => f.id === namingFaceId)
     try {
-      await updateFace(namingFaceId, {
+      const result = await updateFace(namingFaceId, {
         personName: namingText.trim(),
         confirmed: true,
       })
@@ -77,10 +109,29 @@ export default function PeopleScreen() {
       setNameModalVisible(false)
       setNamingFaceId(null)
       fetchData()
+      if (result?.suggestedTag) {
+        setTimeout(() => {
+          Alert.alert(
+            'Agregar etiqueta',
+            `¿Agregar "${result.suggestedTag}" como etiqueta en esta foto?`,
+            [
+              { text: 'No', style: 'cancel' },
+              {
+                text: 'Sí',
+                onPress: async () => {
+                  try {
+                    await addTag(result.photoId, result.suggestedTag)
+                  } catch { /* tag already exists or error */ }
+                },
+              },
+            ],
+          )
+        }, 300)
+      }
     } catch {
       Alert.alert('Error', 'No se pudo guardar el nombre')
     }
-  }, [namingFaceId, namingText, fetchData])
+  }, [namingFaceId, namingText, unconfirmed, fetchData])
 
   const handleIgnore = useCallback(async (faceId: string) => {
     try {
@@ -161,46 +212,80 @@ export default function PeopleScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.unconfirmedRow}
-                  renderItem={({ item }) => (
-                    <View
-                      style={[
-                        styles.unconfirmedCard,
-                        { backgroundColor: colors.surface, borderColor: colors.border },
-                      ]}
-                    >
+                  renderItem={({ item }) => {
+                    const top = item.suggestions?.[0]
+                    return (
                       <View
                         style={[
-                          styles.unconfirmedThumb,
-                          { backgroundColor: colors.skeleton },
+                          styles.unconfirmedCard,
+                          { backgroundColor: colors.surface, borderColor: colors.border },
                         ]}
                       >
-                        {item.photoUri ? (
-                          <NitroImage
-                            image={{ url: item.photoUri }}
-                            style={styles.unconfirmedThumb}
-                            resizeMode="cover"
-                            recyclingKey={item.id}
-                          />
-                        ) : (
-                          <Icon name="face" size={32} color={colors.textTertiary} />
-                        )}
-                      </View>
-                      <View style={styles.unconfirmedActions}>
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-                          onPress={() => openNameModal(item.id)}
+                        <View
+                          style={[
+                            styles.unconfirmedThumb,
+                            { backgroundColor: colors.skeleton },
+                          ]}
                         >
-                          <Icon name="edit" size={14} color="#fff" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { backgroundColor: colors.border }]}
-                          onPress={() => handleIgnore(item.id)}
-                        >
-                          <Icon name="close" size={14} color={colors.textSecondary} />
-                        </TouchableOpacity>
+                          {item.photoUri ? (
+                            <NitroImage
+                              image={{ url: item.photoUri }}
+                              style={styles.unconfirmedThumb}
+                              resizeMode="cover"
+                              recyclingKey={item.id}
+                            />
+                          ) : (
+                            <Icon name="face" size={32} color={colors.textTertiary} />
+                          )}
+                        </View>
+                        <View style={styles.unconfirmedActions}>
+                          {top && top.distance < 0.30 ? (
+                            <TouchableOpacity
+                              style={[styles.suggestionChip, { backgroundColor: colors.primary }]}
+                              onPress={() => handleConfirmSuggestion(item.id, top.personName)}
+                            >
+                              <Text
+                                style={[styles.suggestionChipText, { color: '#fff' }]}
+                                numberOfLines={1}
+                              >
+                                {top.personName}
+                              </Text>
+                            </TouchableOpacity>
+                          ) : top && top.distance < 0.50 ? (
+                            <TouchableOpacity
+                              style={[styles.suggestionChip, { backgroundColor: colors.border }]}
+                              onPress={() => openNameModal(item.id, top.personName, item.suggestions)}
+                            >
+                              <Text
+                                style={[styles.suggestionChipText, { color: colors.text }]}
+                                numberOfLines={1}
+                              >
+                                {top.personName}?
+                              </Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              style={[styles.suggestionChip, { backgroundColor: colors.border }]}
+                              onPress={() => openNameModal(item.id, undefined, item.suggestions)}
+                            >
+                              <Icon name="edit" size={14} color={colors.textSecondary} />
+                              <Text
+                                style={[styles.suggestionChipText, { color: colors.textSecondary, marginLeft: 4 }]}
+                              >
+                                Nombrar
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: colors.border }]}
+                            onPress={() => handleIgnore(item.id)}
+                          >
+                            <Icon name="close" size={14} color={colors.textSecondary} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )
+                  }}
                 />
               </View>
             )}
@@ -311,6 +396,43 @@ export default function PeopleScreen() {
               maxLength={50}
               onSubmitEditing={handleSaveName}
             />
+            {namingSuggestions.length > 0 && (
+              <View style={styles.existingPeopleRow}>
+                <Text style={[styles.existingPeopleLabel, { color: colors.textSecondary }]}>
+                  Sugerencias:
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.chipScroll}
+                  keyboardShouldPersistTaps="always"
+                >
+                  {namingSuggestions.map((s) => (
+                    <TouchableOpacity
+                      key={s.personName}
+                      style={[
+                        styles.personChip,
+                        namingText === s.personName
+                          ? { backgroundColor: colors.primary }
+                          : { backgroundColor: colors.border },
+                      ]}
+                      onPress={() => setNamingText(s.personName)}
+                    >
+                      <Text
+                        style={[
+                          styles.personChipText,
+                          namingText === s.personName
+                            ? { color: '#fff' }
+                            : { color: colors.text },
+                        ]}
+                      >
+                        {s.personName}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             {people.length > 0 && (
               <View style={styles.existingPeopleRow}>
                 <Text style={[styles.existingPeopleLabel, { color: colors.textSecondary }]}>
@@ -455,12 +577,24 @@ const styles = StyleSheet.create({
   },
   unconfirmedRow: { paddingRight: 16 },
   unconfirmedCard: {
-    width: 80,
+    width: 120,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     padding: 6,
     marginRight: 10,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: 78,
+  },
+  suggestionChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   unconfirmedThumb: {
     width: 56,
