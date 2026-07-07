@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -10,7 +11,7 @@ import {
   RefreshControl,
   Modal,
   TextInput,
-  ScrollView,
+  Platform,
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
@@ -42,10 +43,23 @@ export default function PeopleScreen() {
   const [namingFaceId, setNamingFaceId] = useState<string | null>(null)
   const [namingTags, setNamingTags] = useState<string[]>([])
   const [namingInput, setNamingInput] = useState('')
-  const [namingSuggestions, setNamingSuggestions] = useState<{ personName: string; distance: number }[]>([])
-  const [scanStatus, setScanStatus] = useState<{ total: number; pending: number; detected: number } | null>(null)
-  const [scanJob, setScanJob] = useState<{ jobId: string; total: number } | null>(null)
-  const [scanProgress, setScanProgress] = useState<{ processed: number; facesFound: number; status: string } | null>(null)
+  const [namingSuggestions, setNamingSuggestions] = useState<
+    { personName: string; distance: number }[]
+  >([])
+  const [scanStatus, setScanStatus] = useState<{
+    total: number
+    pending: number
+    detected: number
+  } | null>(null)
+  const [scanJob, setScanJob] = useState<{
+    jobId: string
+    total: number
+  } | null>(null)
+  const [scanProgress, setScanProgress] = useState<{
+    processed: number
+    facesFound: number
+    status: string
+  } | null>(null)
   const [isScanning, setIsScanning] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -92,25 +106,35 @@ export default function PeopleScreen() {
     }, [fetchData, isScanning, scanJob]),
   )
 
-  const handleConfirmSuggestion = useCallback(async (faceId: string, personName: string) => {
-    try {
-      const result = await updateFace(faceId, { personName, confirmed: true })
-      setUnconfirmed((prev) => prev.filter((f) => f.id !== faceId))
-      if (result?.suggestedTag) {
-        addTag(result.photoId, result.suggestedTag).catch(() => {})
+  const handleConfirmSuggestion = useCallback(
+    async (faceId: string, personName: string) => {
+      try {
+        const result = await updateFace(faceId, { personName, confirmed: true })
+        setUnconfirmed(prev => prev.filter(f => f.id !== faceId))
+        if (result?.suggestedTag) {
+          addTag(result.photoId, result.suggestedTag).catch(() => {})
+        }
+      } catch {
+        Alert.alert('Error', 'No se pudo confirmar la sugerencia')
       }
-    } catch {
-      Alert.alert('Error', 'No se pudo confirmar la sugerencia')
-    }
-  }, [])
+    },
+    [],
+  )
 
-  const openNameModal = useCallback((faceId: string, prefillName?: string, suggestions?: { personName: string; distance: number }[]) => {
-    setNamingFaceId(faceId)
-    setNamingTags(prefillName ? [prefillName] : [])
-    setNamingInput('')
-    setNamingSuggestions(suggestions || [])
-    setNameModalVisible(true)
-  }, [])
+  const openNameModal = useCallback(
+    (
+      faceId: string,
+      prefillName?: string,
+      suggestions?: { personName: string; distance: number }[],
+    ) => {
+      setNamingFaceId(faceId)
+      setNamingTags(prefillName ? [prefillName] : [])
+      setNamingInput('')
+      setNamingSuggestions(suggestions || [])
+      setNameModalVisible(true)
+    },
+    [],
+  )
 
   const handleSaveName = useCallback(async () => {
     if (!namingFaceId || namingTags.length === 0) return
@@ -120,7 +144,7 @@ export default function PeopleScreen() {
         personName: names[0],
         confirmed: true,
       })
-      setUnconfirmed((prev) => prev.filter((f) => f.id !== namingFaceId))
+      setUnconfirmed(prev => prev.filter(f => f.id !== namingFaceId))
       setNameModalVisible(false)
       setNamingFaceId(null)
       fetchData()
@@ -135,7 +159,7 @@ export default function PeopleScreen() {
   const handleIgnore = useCallback(async (faceId: string) => {
     try {
       await updateFace(faceId, { ignored: true })
-      setUnconfirmed((prev) => prev.filter((f) => f.id !== faceId))
+      setUnconfirmed(prev => prev.filter(f => f.id !== faceId))
     } catch {
       Alert.alert('Error', 'No se pudo descartar la cara')
     }
@@ -144,13 +168,21 @@ export default function PeopleScreen() {
   const handleDeleteFace = useCallback(async (faceId: string) => {
     try {
       await deleteFace(faceId)
-      setUnconfirmed((prev) => prev.filter((f) => f.id !== faceId))
+      setUnconfirmed(prev => prev.filter(f => f.id !== faceId))
     } catch {
       Alert.alert('Error', 'No se pudo eliminar')
     }
   }, [])
 
-  const [searchResults, setSearchResults] = useState<{ results: { faceId: string; photoId: string; photoUri: string; distance: number }[]; personName: string } | null>(null)
+  const [searchResults, setSearchResults] = useState<{
+    results: {
+      faceId: string
+      photoId: string
+      photoUri: string
+      distance: number
+    }[]
+    personName: string
+  } | null>(null)
   const [selectedFaces, setSelectedFaces] = useState<Set<string>>(new Set())
   const [searching, setSearching] = useState<string | null>(null)
 
@@ -188,31 +220,45 @@ export default function PeopleScreen() {
       await stopFaceDetectAll(scanJob.jobId)
       setIsScanning(false)
       setScanJob(null)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [scanJob])
 
-  const handleConfirmMatches = useCallback(async (personName: string) => {
-    if (!searchResults || selectedFaces.size === 0) return
-    const count = selectedFaces.size
-    try {
-      await Promise.all(
-        searchResults.results
-          .filter((r) => selectedFaces.has(r.faceId))
-          .map((r) => updateFace(r.faceId, { personName, confirmed: true })),
-      )
-      Alert.alert('Hecho', `${count} ${count === 1 ? 'foto agregada' : 'fotos agregadas'} a ${personName}`)
-      setSearchResults(null)
-      setSelectedFaces(new Set())
-      fetchData()
-    } catch {
-      Alert.alert('Error', 'No se pudieron confirmar las coincidencias')
-    }
-  }, [searchResults, selectedFaces, fetchData])
+  const handleConfirmMatches = useCallback(
+    async (personName: string) => {
+      if (!searchResults || selectedFaces.size === 0) return
+      const count = selectedFaces.size
+      try {
+        await Promise.all(
+          searchResults.results
+            .filter(r => selectedFaces.has(r.faceId))
+            .map(r => updateFace(r.faceId, { personName, confirmed: true })),
+        )
+        Alert.alert(
+          'Hecho',
+          `${count} ${
+            count === 1 ? 'foto agregada' : 'fotos agregadas'
+          } a ${personName}`,
+        )
+        setSearchResults(null)
+        setSelectedFaces(new Set())
+        fetchData()
+      } catch {
+        Alert.alert('Error', 'No se pudieron confirmar las coincidencias')
+      }
+    },
+    [searchResults, selectedFaces, fetchData],
+  )
 
   if (loading) {
     return (
       <View
-        style={[styles.container, styles.center, { backgroundColor: colors.background }]}
+        style={[
+          styles.container,
+          styles.center,
+          { backgroundColor: colors.background },
+        ]}
       >
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
@@ -223,7 +269,7 @@ export default function PeopleScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={people}
-        keyExtractor={(item) => item.name}
+        keyExtractor={item => item.name}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
@@ -234,32 +280,64 @@ export default function PeopleScreen() {
               >
                 <Icon name="face" size={18} color="#fff" />
                 <Text style={styles.scanBtnText}>
-                  Escanear biblioteca ({scanStatus.pending.toLocaleString()} pendientes)
+                  Escanear biblioteca ({scanStatus.pending.toLocaleString()}{' '}
+                  pendientes)
                 </Text>
               </TouchableOpacity>
             )}
             {isScanning && scanProgress && (
-              <View style={[styles.progressCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.progressCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.progressBar,
+                    { backgroundColor: colors.border },
+                  ]}
+                >
                   <View
                     style={[
                       styles.progressFill,
                       {
                         backgroundColor: colors.primary,
-                        width: `${Math.min((scanProgress.processed / (scanJob?.total || 1)) * 100, 100)}%`,
+                        width: `${Math.min(
+                          (scanProgress.processed / (scanJob?.total || 1)) *
+                            100,
+                          100,
+                        )}%`,
                       },
                     ]}
                   />
                 </View>
                 <View style={styles.progressInfo}>
-                  <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-                    {scanProgress.processed.toLocaleString()} / {scanJob?.total.toLocaleString()} fotos
+                  <Text
+                    style={[
+                      styles.progressText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {scanProgress.processed.toLocaleString()} /{' '}
+                    {scanJob?.total.toLocaleString()} fotos
                   </Text>
-                  <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.progressText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {scanProgress.facesFound} caras detectadas
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.stopBtn} onPress={handleStopScan}>
+                <TouchableOpacity
+                  style={styles.stopBtn}
+                  onPress={handleStopScan}
+                >
                   <Text style={[styles.stopBtnText, { color: colors.danger }]}>
                     Detener
                   </Text>
@@ -273,7 +351,7 @@ export default function PeopleScreen() {
                 </Text>
                 <FlatList
                   data={unconfirmed}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={item => item.id}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.unconfirmedRow}
@@ -291,7 +369,10 @@ export default function PeopleScreen() {
                         }
                         style={[
                           styles.unconfirmedCard,
-                          { backgroundColor: colors.surface, borderColor: colors.border },
+                          {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                          },
                         ]}
                       >
                         <View
@@ -308,29 +389,53 @@ export default function PeopleScreen() {
                               recyclingKey={item.id}
                             />
                           ) : (
-                            <Icon name="face" size={32} color={colors.textTertiary} />
+                            <Icon
+                              name="face"
+                              size={32}
+                              color={colors.textTertiary}
+                            />
                           )}
                         </View>
                         <View style={styles.unconfirmedActions}>
-                          {top && top.distance < 0.30 ? (
+                          {top && top.distance < 0.3 ? (
                             <TouchableOpacity
-                              style={[styles.suggestionChip, { backgroundColor: colors.primary }]}
-                              onPress={() => handleConfirmSuggestion(item.id, top.personName)}
+                              style={[
+                                styles.suggestionChip,
+                                { backgroundColor: colors.primary },
+                              ]}
+                              onPress={() =>
+                                handleConfirmSuggestion(item.id, top.personName)
+                              }
                             >
                               <Text
-                                style={[styles.suggestionChipText, { color: '#fff' }]}
+                                style={[
+                                  styles.suggestionChipText,
+                                  { color: '#fff' },
+                                ]}
                                 numberOfLines={1}
                               >
                                 {top.personName}
                               </Text>
                             </TouchableOpacity>
-                          ) : top && top.distance < 0.50 ? (
+                          ) : top && top.distance < 0.5 ? (
                             <TouchableOpacity
-                              style={[styles.suggestionChip, { backgroundColor: colors.border }]}
-                              onPress={() => openNameModal(item.id, top.personName, item.suggestions)}
+                              style={[
+                                styles.suggestionChip,
+                                { backgroundColor: colors.border },
+                              ]}
+                              onPress={() =>
+                                openNameModal(
+                                  item.id,
+                                  top.personName,
+                                  item.suggestions,
+                                )
+                              }
                             >
                               <Text
-                                style={[styles.suggestionChipText, { color: colors.text }]}
+                                style={[
+                                  styles.suggestionChipText,
+                                  { color: colors.text },
+                                ]}
                                 numberOfLines={1}
                               >
                                 {top.personName}
@@ -338,22 +443,48 @@ export default function PeopleScreen() {
                             </TouchableOpacity>
                           ) : (
                             <TouchableOpacity
-                              style={[styles.suggestionChip, { backgroundColor: colors.border }]}
-                              onPress={() => openNameModal(item.id, undefined, item.suggestions)}
+                              style={[
+                                styles.suggestionChip,
+                                { backgroundColor: colors.border },
+                              ]}
+                              onPress={() =>
+                                openNameModal(
+                                  item.id,
+                                  undefined,
+                                  item.suggestions,
+                                )
+                              }
                             >
-                              <Icon name="edit" size={14} color={colors.textSecondary} />
+                              <Icon
+                                name="edit"
+                                size={14}
+                                color={colors.textSecondary}
+                              />
                               <Text
-                                style={[styles.suggestionChipText, { color: colors.textSecondary, marginLeft: 4 }]}
+                                style={[
+                                  styles.suggestionChipText,
+                                  {
+                                    color: colors.textSecondary,
+                                    marginLeft: 4,
+                                  },
+                                ]}
                               >
                                 Nombrar
                               </Text>
                             </TouchableOpacity>
                           )}
                           <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: colors.border }]}
+                            style={[
+                              styles.actionBtn,
+                              { backgroundColor: colors.border },
+                            ]}
                             onPress={() => handleIgnore(item.id)}
                           >
-                            <Icon name="close" size={14} color={colors.textSecondary} />
+                            <Icon
+                              name="close"
+                              size={14}
+                              color={colors.textSecondary}
+                            />
                           </TouchableOpacity>
                         </View>
                       </TouchableOpacity>
@@ -383,10 +514,7 @@ export default function PeopleScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             activeOpacity={0.7}
-            style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
+            style={[styles.card, { backgroundColor: colors.surface }]}
             onPress={() =>
               navigation.navigate('PersonView', { personName: item.name })
             }
@@ -404,7 +532,10 @@ export default function PeopleScreen() {
               )}
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>
+              <Text
+                style={[styles.cardName, { color: colors.text }]}
+                numberOfLines={1}
+              >
                 {item.name}
               </Text>
               <Text style={[styles.cardCount, { color: colors.textTertiary }]}>
@@ -413,7 +544,6 @@ export default function PeopleScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.filterPersonBtn, { backgroundColor: colors.primary + '20' }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={() => handleFindMore(item.name)}
               disabled={searching === item.name}
@@ -424,7 +554,6 @@ export default function PeopleScreen() {
                 <Icon name="search" size={18} color={colors.primary} />
               )}
             </TouchableOpacity>
-            <Icon name="chevron-right" size={22} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
         refreshControl={
@@ -446,20 +575,23 @@ export default function PeopleScreen() {
         onRequestClose={() => setNameModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View
-            style={[styles.modalCard, { backgroundColor: colors.surface }]}
-          >
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               ¿Quién es esta persona?
             </Text>
 
             {namingTags.length > 0 && (
               <View style={styles.tagRow}>
-                {namingTags.map((t) => (
+                {namingTags.map(t => (
                   <TouchableOpacity
                     key={t}
-                    style={[styles.tagChip, { backgroundColor: colors.primary }]}
-                    onPress={() => setNamingTags((prev) => prev.filter((x) => x !== t))}
+                    style={[
+                      styles.tagChip,
+                      { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() =>
+                      setNamingTags(prev => prev.filter(x => x !== t))
+                    }
                   >
                     <Text style={styles.tagChipText}>{t} ✕</Text>
                   </TouchableOpacity>
@@ -487,7 +619,7 @@ export default function PeopleScreen() {
                 onSubmitEditing={() => {
                   const t = namingInput.trim()
                   if (t && !namingTags.includes(t)) {
-                    setNamingTags((prev) => [...prev, t])
+                    setNamingTags(prev => [...prev, t])
                     setNamingInput('')
                   }
                 }}
@@ -497,7 +629,7 @@ export default function PeopleScreen() {
                 onPress={() => {
                   const t = namingInput.trim()
                   if (t && !namingTags.includes(t)) {
-                    setNamingTags((prev) => [...prev, t])
+                    setNamingTags(prev => [...prev, t])
                     setNamingInput('')
                   }
                 }}
@@ -508,7 +640,12 @@ export default function PeopleScreen() {
 
             {namingSuggestions.length > 0 && (
               <View style={styles.existingPeopleRow}>
-                <Text style={[styles.existingPeopleLabel, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.existingPeopleLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   Sugerencias:
                 </Text>
                 <ScrollView
@@ -517,7 +654,7 @@ export default function PeopleScreen() {
                   style={styles.chipScroll}
                   keyboardShouldPersistTaps="always"
                 >
-                  {namingSuggestions.map((s) => (
+                  {namingSuggestions.map(s => (
                     <TouchableOpacity
                       key={s.personName}
                       style={[
@@ -528,7 +665,7 @@ export default function PeopleScreen() {
                       ]}
                       onPress={() => {
                         if (!namingTags.includes(s.personName)) {
-                          setNamingTags((prev) => [...prev, s.personName])
+                          setNamingTags(prev => [...prev, s.personName])
                         }
                       }}
                     >
@@ -549,7 +686,12 @@ export default function PeopleScreen() {
             )}
             {people.length > 0 && (
               <View style={styles.existingPeopleRow}>
-                <Text style={[styles.existingPeopleLabel, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.existingPeopleLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   Personas existentes:
                 </Text>
                 <ScrollView
@@ -569,7 +711,7 @@ export default function PeopleScreen() {
                       ]}
                       onPress={() => {
                         if (!namingTags.includes(p.name)) {
-                          setNamingTags((prev) => [...prev, p.name])
+                          setNamingTags(prev => [...prev, p.name])
                         }
                       }}
                     >
@@ -633,72 +775,102 @@ export default function PeopleScreen() {
                 <View style={styles.resultsToolbar}>
                   <TouchableOpacity
                     onPress={() =>
-                      setSelectedFaces(new Set(searchResults.results.map((r) => r.faceId)))
+                      setSelectedFaces(
+                        new Set(searchResults.results.map(r => r.faceId)),
+                      )
                     }
                   >
-                    <Text style={[styles.toolbarLink, { color: colors.primary }]}>
+                    <Text
+                      style={[styles.toolbarLink, { color: colors.primary }]}
+                    >
                       Seleccionar todas
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setSelectedFaces(new Set())}
-                  >
-                    <Text style={[styles.toolbarLink, { color: colors.textTertiary }]}>
+                  <TouchableOpacity onPress={() => setSelectedFaces(new Set())}>
+                    <Text
+                      style={[
+                        styles.toolbarLink,
+                        { color: colors.textTertiary },
+                      ]}
+                    >
                       Deseleccionar
                     </Text>
                   </TouchableOpacity>
                 </View>
-                <FlatList
-                  data={searchResults.results}
-                  keyExtractor={(item) => item.faceId}
-                  numColumns={3}
-                  contentContainerStyle={styles.resultsGrid}
-                  renderItem={({ item }) => {
-                    const isSelected = selectedFaces.has(item.faceId)
-                    return (
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => {
-                          setSelectedFaces((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(item.faceId)) next.delete(item.faceId)
-                            else next.add(item.faceId)
-                            return next
-                          })
-                        }}
-                        style={[
-                          styles.resultThumb,
-                          { backgroundColor: colors.skeleton },
-                        ]}
-                      >
-                        <NitroImage
-                          image={{ url: item.photoUri }}
-                          style={styles.resultThumb}
-                          resizeMode="cover"
-                          recyclingKey={item.faceId}
-                        />
-                        <View
-                          style={[
-                            styles.resultCheckOverlay,
-                            isSelected && { backgroundColor: colors.primary + '99' },
-                          ]}
-                        >
-                          {isSelected && (
-                            <Icon name="check" size={16} color="#fff" />
-                          )}
+                {(() => {
+                  const r = searchResults.results
+                  const rows: any[][] = []
+                  for (let i = 0; i < r.length; i += 3)
+                    rows.push(r.slice(i, i + 3))
+                  return (
+                    <FlatList
+                      data={rows}
+                      keyExtractor={(_, i) => String(i)}
+                      contentContainerStyle={styles.resultsGrid}
+                      renderItem={({ item: row, index: rowIndex }) => (
+                        <View style={{ flexDirection: 'row' }}>
+                          {row.map((item: any, itemIndex: number) => {
+                            const isSelected = selectedFaces.has(item.faceId)
+                            return (
+                              <TouchableOpacity
+                                key={item.faceId}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  setSelectedFaces(prev => {
+                                    const next = new Set(prev)
+                                    if (next.has(item.faceId))
+                                      next.delete(item.faceId)
+                                    else next.add(item.faceId)
+                                    return next
+                                  })
+                                }}
+                                style={[
+                                  styles.resultThumb,
+                                  {
+                                    backgroundColor: colors.skeleton,
+                                    marginRight:
+                                      itemIndex !== row.length - 1 ? 6 : 0,
+                                    marginBottom: 6,
+                                  },
+                                ]}
+                              >
+                                <NitroImage
+                                  image={{ url: item.photoUri }}
+                                  style={{ flex: 1, aspectRatio: 1 }}
+                                  resizeMode="cover"
+                                  recyclingKey={item.faceId}
+                                />
+                                <View
+                                  style={[
+                                    styles.resultCheckOverlay,
+                                    isSelected && {
+                                      backgroundColor: colors.primary + '99',
+                                    },
+                                  ]}
+                                >
+                                  {isSelected && (
+                                    <Icon name="check" size={16} color="#fff" />
+                                  )}
+                                </View>
+                                <View style={styles.resultDistance}>
+                                  <Text style={styles.resultDistanceText}>
+                                    {(1 - item.distance).toFixed(2)}
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            )
+                          })}
                         </View>
-                        <View style={styles.resultDistance}>
-                          <Text style={styles.resultDistanceText}>
-                            {(1 - item.distance).toFixed(2)}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    )
-                  }}
-                />
+                      )}
+                    />
+                  )
+                })()}
                 <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={[styles.modalBtn, { backgroundColor: colors.border }]}
+                    style={[
+                      styles.modalBtn,
+                      { backgroundColor: colors.border },
+                    ]}
                     onPress={() => {
                       setSearchResults(null)
                       setSelectedFaces(new Set())
@@ -712,19 +884,30 @@ export default function PeopleScreen() {
                     style={[
                       styles.modalBtn,
                       {
-                        backgroundColor: selectedFaces.size > 0 ? colors.primary : colors.border,
+                        backgroundColor:
+                          selectedFaces.size > 0
+                            ? colors.primary
+                            : colors.border,
                       },
                     ]}
-                    onPress={() => handleConfirmMatches(searchResults.personName)}
+                    onPress={() =>
+                      handleConfirmMatches(searchResults.personName)
+                    }
                     disabled={selectedFaces.size === 0}
                   >
                     <Text
                       style={[
                         styles.modalBtnText,
-                        { color: selectedFaces.size > 0 ? '#fff' : colors.textTertiary },
+                        {
+                          color:
+                            selectedFaces.size > 0
+                              ? '#fff'
+                              : colors.textTertiary,
+                        },
                       ]}
                     >
-                      Confirmar {selectedFaces.size > 0 ? `(${selectedFaces.size})` : ''}
+                      Confirmar{' '}
+                      {selectedFaces.size > 0 ? `(${selectedFaces.size})` : ''}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -732,7 +915,9 @@ export default function PeopleScreen() {
             ) : (
               <View style={styles.empty}>
                 <Icon name="search-off" size={48} color={colors.textTertiary} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   No se encontraron coincidencias
                 </Text>
               </View>
@@ -798,32 +983,38 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 10,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: { elevation: 2 },
+    }),
   },
   thumb: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  cardInfo: { flex: 1, marginLeft: 12 },
-  filterPersonBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 4,
-  },
-  cardName: { fontSize: 16, fontWeight: '600' },
+  cardInfo: { flex: 1, marginLeft: 14 },
+  cardName: { fontSize: 17, fontWeight: '600' },
   cardCount: { fontSize: 13, marginTop: 2 },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: 16, fontWeight: '600', marginTop: 12 },
-  emptyHint: { fontSize: 13, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
+  emptyHint: {
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -872,6 +1063,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 10,
+    marginTop: 10,
   },
   modalBtn: {
     borderRadius: 8,
@@ -915,10 +1107,9 @@ const styles = StyleSheet.create({
   },
   resultsGrid: { paddingBottom: 12 },
   resultThumb: {
-    width: 80,
-    height: 80,
+    flex: 1,
     borderRadius: 6,
-    margin: 3,
+    overflow: 'hidden',
   },
   resultsToolbar: {
     flexDirection: 'row',

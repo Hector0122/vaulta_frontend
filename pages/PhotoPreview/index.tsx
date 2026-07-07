@@ -135,15 +135,18 @@ const PhotoPage = React.memo(function PhotoPage({
       if (item.largeUri) {
         setLargeUri(item.largeUri)
         setImageReady(true)
-        setLoading(false)
       } else if (item.fullUri) {
         setImageReady(true)
-        setLoading(false)
       }
       getPhotoDetail(item.id)
         .then(({ url, largeUri: newLargeUri, albums: photoAlbums }) => {
-          if (newLargeUri) setLargeUri(newLargeUri)
-          else if (url) setFullUri(url)
+          if (newLargeUri) {
+            setLargeUri(newLargeUri)
+            setImageReady(true)
+          } else if (url) {
+            setFullUri(url)
+            setImageReady(true)
+          }
           setContainingAlbums(photoAlbums)
         })
         .catch(() => {})

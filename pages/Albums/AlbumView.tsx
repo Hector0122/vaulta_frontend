@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  useWindowDimensions,
   Alert,
   RefreshControl,
   Modal,
@@ -33,7 +32,6 @@ export default function AlbumView() {
   const navigation = useNavigation<StackNavProp>()
   const { albumId, albumName } = route.params
   const { colors } = useTheme()
-  const { width } = useWindowDimensions()
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -52,14 +50,12 @@ export default function AlbumView() {
 
   const colCount = 3
   const gap = 4
-  const listPad = 4
-  const thumbSize = (width - listPad * 2 - gap * (colCount - 1)) / colCount
 
   const fetchPhotos = useCallback(
     async (from?: string | null, to?: string | null) => {
       try {
-        const data = await authenticatedGet<any[]>(`albums/${albumId}/photos`)
-        let filtered = data.map(p => ({
+        const data = await authenticatedGet<{ photos: any[] }>(`albums/${albumId}/photos`)
+        let filtered = data.photos.map(p => ({
           id: p.id,
           uri: p.uri,
           createdAt: p.createdAt,
@@ -78,7 +74,8 @@ export default function AlbumView() {
           return db - da || b.id.localeCompare(a.id)
         })
         setPhotos(filtered)
-      } catch {
+      } catch (e) {
+        console.warn('AlbumView fetchPhotos error:', e)
         setPhotos([])
       }
     },
@@ -138,7 +135,7 @@ export default function AlbumView() {
   const renderItem = useCallback(
     ({ item: row }: { item: Photo[] }) => (
       <View style={styles.row}>
-        {row.map(photo => {
+        {row.map((photo, itemIndex) => {
           const isSelected = selected.has(photo.id)
           return (
             <TouchableOpacity
@@ -157,34 +154,34 @@ export default function AlbumView() {
                 setSelecting(true)
                 toggleSelect(photo.id)
               }}
+              style={{
+                flex: 1,
+                marginBottom: gap,
+                marginRight: itemIndex !== row.length - 1 ? gap : 0,
+                overflow: 'hidden',
+              }}
             >
-              <View>
-                <NitroImage
-                  image={{ url: photo.uri }}
-                  style={{
-                    width: thumbSize,
-                    height: thumbSize,
-                    opacity: isSelected ? 0.6 : 1,
-                  }}
-                  resizeMode="cover"
-                />
-                {isSelected && (
-                  <View
-                    style={[
-                      styles.checkOverlay,
-                      { backgroundColor: colors.primary + 'cc' },
-                    ]}
-                  >
-                    <Icon name="check" size={22} color="#fff" />
-                  </View>
-                )}
-              </View>
+              <NitroImage
+                image={{ url: photo.uri }}
+                style={{ flex: 1, aspectRatio: 1, opacity: isSelected ? 0.6 : 1 }}
+                resizeMode="cover"
+              />
+              {isSelected && (
+                <View
+                  style={[
+                    styles.checkOverlay,
+                    { backgroundColor: colors.primary + 'cc' },
+                  ]}
+                >
+                  <Icon name="check" size={22} color="#fff" />
+                </View>
+              )}
             </TouchableOpacity>
           )
         })}
       </View>
     ),
-    [selected, selecting, photos, navigation, colors, thumbSize, toggleSelect],
+    [selected, selecting, photos, navigation, colors, toggleSelect],
   )
 
   async function handleRemove() {
@@ -554,7 +551,7 @@ export default function AlbumView() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingHorizontal: 4 },
-  row: { flexDirection: 'row', marginBottom: 4, gap: 4 },
+  row: { flexDirection: 'row' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 16, marginTop: 16 },
   addBtn: {

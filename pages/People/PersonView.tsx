@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  useWindowDimensions,
+  Alert,
   RefreshControl,
   Modal,
   TextInput,
-  Alert,
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
@@ -26,7 +25,6 @@ export default function PersonView() {
   const navigation = useNavigation<StackNavProp>()
   const { personName } = route.params
   const { colors } = useTheme()
-  const { width } = useWindowDimensions()
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -36,8 +34,11 @@ export default function PersonView() {
 
   const colCount = 3
   const gap = 4
-  const pad = 4
-  const thumbSize = (width - pad * 2 - gap * (colCount - 1)) / colCount
+
+  const rows: Photo[][] = []
+  for (let i = 0; i < photos.length; i += colCount) {
+    rows.push(photos.slice(i, i + colCount))
+  }
 
   const fetchPhotos = useCallback(async () => {
     try {
@@ -134,33 +135,45 @@ export default function PersonView() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <FlatList
-        data={photos}
-        keyExtractor={(item) => item.id}
-        numColumns={colCount}
+        data={rows}
+        keyExtractor={(_, i) => String(i)}
         contentContainerStyle={[
           styles.grid,
           photos.length === 0 && styles.emptyGrid,
         ]}
-        columnWrapperStyle={photos.length > 0 ? { gap } : undefined}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handlePhotoPress(index)}
-            onLongPress={() => handleRemoveFace(item.id)}
-            style={{ marginBottom: gap }}
-          >
-            <NitroImage
-              image={{ url: item.uri }}
-              style={[styles.thumb, { width: thumbSize, height: thumbSize, backgroundColor: colors.skeleton }]}
-              resizeMode="cover"
-              recyclingKey={item.id}
-            />
-            {item.mimeType?.startsWith('video/') && (
-              <View style={styles.videoBadge}>
-                <Icon name="play-arrow" size={14} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
+        renderItem={({ item: row, index: rowIndex }) => (
+          <View style={{ flexDirection: 'row' }}>
+            {row.map((photo, itemIndex) => {
+              const globalIndex = rowIndex * colCount + itemIndex
+              return (
+                <TouchableOpacity
+                  key={photo.id}
+                  activeOpacity={0.8}
+                  onPress={() => handlePhotoPress(globalIndex)}
+                  onLongPress={() => handleRemoveFace(photo.id)}
+                  style={[
+                    styles.thumb,
+                    {
+                      marginBottom: gap,
+                      marginRight: itemIndex !== row.length - 1 ? gap : 0,
+                    },
+                  ]}
+                >
+                  <NitroImage
+                    image={{ url: photo.uri }}
+                    style={{ flex: 1, aspectRatio: 1 }}
+                    resizeMode="cover"
+                    recyclingKey={photo.id}
+                  />
+                  {photo.mimeType?.startsWith('video/') && (
+                    <View style={styles.videoBadge}>
+                      <Icon name="play-arrow" size={14} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )
+            })}
+          </View>
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -246,7 +259,7 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center' },
   grid: { padding: 4, flexGrow: 1 },
   emptyGrid: { justifyContent: 'center', alignItems: 'center' },
-  thumb: { borderRadius: 2 },
+  thumb: { flex: 1, borderRadius: 2, overflow: 'hidden' },
   videoBadge: {
     position: 'absolute',
     top: 6,
