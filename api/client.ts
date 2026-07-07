@@ -390,8 +390,20 @@ export async function detectBatchFaces(photoIds: string[]): Promise<{ processed:
   return authenticatedPost('faces/detect-batch', { photoIds })
 }
 
-export async function detectAllFaces(): Promise<{ processed: number; facesFound: number; failed: number }> {
+export async function detectAllFaces(): Promise<{ jobId: string; total: number; status: string }> {
   return authenticatedPost('faces/detect-all', {})
+}
+
+export async function getFaceDetectStatus(): Promise<{ total: number; pending: number; detected: number }> {
+  return authenticatedGet('faces/detect-status')
+}
+
+export async function getFaceDetectProgress(jobId: string): Promise<{ status: string; total: number; processed: number; facesFound: number; failed: number }> {
+  return authenticatedGet(`faces/detect-progress/${jobId}`)
+}
+
+export async function stopFaceDetectAll(jobId: string): Promise<{ stopped: boolean }> {
+  return authenticatedPost('faces/detect-stop', { jobId })
 }
 
 export async function confirmAllForPerson(personName: string): Promise<{ confirmed: number }> {

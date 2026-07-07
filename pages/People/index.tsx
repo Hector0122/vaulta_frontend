@@ -23,6 +23,10 @@ import {
   updateFace,
   deleteFace,
   findMoreFaces,
+  detectAllFaces,
+  getFaceDetectStatus,
+  getFaceDetectProgress,
+  stopFaceDetectAll,
 } from '../../api/client'
 import type { StackNavProp } from '../../types/navigation'
 import type { Person, UnconfirmedFace } from '../../api/client'
@@ -38,15 +42,21 @@ export default function PeopleScreen() {
   const [namingFaceId, setNamingFaceId] = useState<string | null>(null)
   const [namingText, setNamingText] = useState('')
   const [namingSuggestions, setNamingSuggestions] = useState<{ personName: string; distance: number }[]>([])
+  const [scanStatus, setScanStatus] = useState<{ total: number; pending: number; detected: number } | null>(null)
+  const [scanJob, setScanJob] = useState<{ jobId: string; total: number } | null>(null)
+  const [scanProgress, setScanProgress] = useState<{ processed: number; facesFound: number; status: string } | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
-      const [peopleData, unconfirmedData] = await Promise.all([
+      const [peopleData, unconfirmedData, statusData] = await Promise.all([
         getPeople(),
         getUnconfirmedFaces(),
+        getFaceDetectStatus(),
       ])
       setPeople(peopleData)
       setUnconfirmed(unconfirmedData)
+      setScanStatus(statusData)
     } catch {
       Alert.alert('Error', 'No se pudieron cargar las personas')
     } finally {
@@ -59,7 +69,26 @@ export default function PeopleScreen() {
     useCallback(() => {
       setLoading(true)
       fetchData()
-    }, [fetchData]),
+
+      const interval = setInterval(async () => {
+        if (isScanning && scanJob) {
+          try {
+            const p = await getFaceDetectProgress(scanJob.jobId)
+            setScanProgress(p)
+            if (p.status === 'completed') {
+              setIsScanning(false)
+              setScanJob(null)
+              fetchData()
+            } else if (p.status === 'stopped') {
+              setIsScanning(false)
+              setScanJob(null)
+            }
+          } catch {}
+        }
+      }, 3000)
+
+      return () => clearInterval(interval)
+    }, [fetchData, isScanning, scanJob]),
   )
 
   const handleConfirmSuggestion = useCallback(async (faceId: string, personName: string) => {
@@ -166,6 +195,30 @@ export default function PeopleScreen() {
     }
   }, [])
 
+  const handleStartScan = useCallback(async () => {
+    try {
+      const result = await detectAllFaces()
+      if (result.status === 'nothing_to_scan') {
+        Alert.alert('Listo', 'No hay fotos pendientes de escanear')
+        return
+      }
+      setScanJob({ jobId: result.jobId, total: result.total })
+      setScanProgress({ processed: 0, facesFound: 0, status: 'running' })
+      setIsScanning(true)
+    } catch {
+      Alert.alert('Error', 'No se pudo iniciar el escaneo')
+    }
+  }, [])
+
+  const handleStopScan = useCallback(async () => {
+    if (!scanJob) return
+    try {
+      await stopFaceDetectAll(scanJob.jobId)
+      setIsScanning(false)
+      setScanJob(null)
+    } catch { /* ignore */ }
+  }, [scanJob])
+
   const handleConfirmMatches = useCallback(async (personName: string) => {
     if (!searchResults || searchResults.results.length === 0) return
     const count = searchResults.results.length
@@ -201,6 +254,45 @@ export default function PeopleScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
+            {scanStatus && scanStatus.pending > 0 && !isScanning && (
+              <TouchableOpacity
+                style={[styles.scanBtn, { backgroundColor: colors.primary }]}
+                onPress={handleStartScan}
+              >
+                <Icon name="face" size={18} color="#fff" />
+                <Text style={styles.scanBtnText}>
+                  Escanear biblioteca ({scanStatus.pending.toLocaleString()} pendientes)
+                </Text>
+              </TouchableOpacity>
+            )}
+            {isScanning && scanProgress && (
+              <View style={[styles.progressCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        backgroundColor: colors.primary,
+                        width: `${Math.min((scanProgress.processed / (scanJob?.total || 1)) * 100, 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.progressInfo}>
+                  <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                    {scanProgress.processed.toLocaleString()} / {scanJob?.total.toLocaleString()} fotos
+                  </Text>
+                  <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                    {scanProgress.facesFound} caras detectadas
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.stopBtn} onPress={handleStopScan}>
+                  <Text style={[styles.stopBtnText, { color: colors.danger }]}>
+                    Detener
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {unconfirmed.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -685,6 +777,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
+  scanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  scanBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  progressCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+  },
+  progressBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: { height: '100%', borderRadius: 3 },
+  progressInfo: { flexDirection: 'row', justifyContent: 'space-between' },
+  progressText: { fontSize: 13 },
+  stopBtn: { alignSelf: 'flex-end', marginTop: 4 },
+  stopBtnText: { fontSize: 13, fontWeight: '600' },
   resultsCard: {
     width: '90%',
     maxHeight: '80%',
