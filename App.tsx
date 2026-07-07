@@ -210,7 +210,7 @@ function AppNavigator() {
       <Stack.Screen
         name="Duplicates"
         component={DuplicatesScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Duplicados' }}
       />
       <Stack.Screen
         name="Trash"

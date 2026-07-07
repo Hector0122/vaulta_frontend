@@ -8,7 +8,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { login as apiLogin, register as apiRegister } from '../api/auth';
-import { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, setOnUnauthorized, clearOnUnauthorized, authenticatedPost } from '../api/client';
+import { getToken, setToken, clearToken, setRefreshToken, clearRefreshToken, setOnUnauthorized, clearOnUnauthorized, authenticatedPost, refreshAccessToken } from '../api/client';
 import { clearCachedPhotos } from '../api/cache';
 import { clearAllOffline } from '../api/offline';
 import { registerFcmToken } from '../api/notifications';
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const enabled = storage.getBoolean(BIOMETRIC_KEY) ?? false
       if (!cancelled) setBiometricEnabled(enabled)
 
-      const token = await getToken()
+      let token = await getToken()
       if (token) {
         try {
           const parts = token.split('.');
@@ -86,7 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .join(''),
             );
             const payload = JSON.parse(json);
-            if (!cancelled) {
+            const now = Math.floor(Date.now() / 1000);
+            const isExpired = payload.exp && payload.exp < now;
+            if (isExpired) {
+              const refreshed = await refreshAccessToken();
+              if (!refreshed) {
+                await clearToken();
+                await clearRefreshToken();
+                token = null;
+              } else {
+                token = await getToken();
+              }
+            }
+            if (token && !cancelled) {
               if (enabled && available) setBiometricNeeded(true)
               setUser({ id: payload.sub, email: payload.email || '', name: payload.name || '' })
             }

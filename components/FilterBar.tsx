@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, TextInput } from 'react-native'
+import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import type { ThemeColors } from '../theme'
@@ -43,11 +43,20 @@ export default function FilterBar({
         },
       ]}
     >
-      <View style={styles.searchRow}>
-        <Icon name="search" size={18} color={colors.textTertiary} />
+      <View
+        style={[
+          styles.searchRow,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.border,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <Icon name="search" size={18} color={colors.primary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar fotos..."
+          placeholder="Buscar por nombre o etiqueta..."
           placeholderTextColor={colors.textTertiary}
           value={searchQuery}
           onChangeText={onSearchChange}
@@ -77,6 +86,8 @@ export default function FilterBar({
               styles.rangeFieldText,
               { color: rangeStart ? colors.text : colors.textTertiary },
             ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {rangeStart
               ? `${rangeStart.split('-').reverse().join('/')} — ${
@@ -130,7 +141,14 @@ function YearPresets({ colors, rangeStart, onSelectPreset }: YearPresetsProps) {
   const years = Array.from({ length: 8 }, (_, i) => currentYear - i)
 
   return (
-    <View style={[styles.presetsRow, { borderTopColor: colors.borderLight }]}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={[
+        styles.presetsRow,
+        { borderTopColor: colors.borderLight },
+      ]}
+    >
       {!rangeStart && (
         <>
           <TouchableOpacity
@@ -150,7 +168,7 @@ function YearPresets({ colors, rangeStart, onSelectPreset }: YearPresetsProps) {
           ))}
         </>
       )}
-    </View>
+    </ScrollView>
   )
 }
 
@@ -161,9 +179,12 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    marginHorizontal: 12,
+    marginVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     gap: 8,
+    borderRadius: 10,
   },
   searchInput: {
     flex: 1,

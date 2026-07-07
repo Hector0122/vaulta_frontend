@@ -8,6 +8,7 @@ type Props = {
   colors: ThemeColors
   rangeStart: string | null
   favoritesOnly: boolean
+  searchQuery: string
   loadPhotos: () => void
 }
 
@@ -16,6 +17,7 @@ export function HomeEmptyState({
   colors,
   rangeStart,
   favoritesOnly,
+  searchQuery,
   loadPhotos,
 }: Props) {
   if (error) {
@@ -48,7 +50,7 @@ export function HomeEmptyState({
         size={72}
         color={colors.textTertiary}
       />
-      {rangeStart || favoritesOnly ? (
+      {rangeStart || favoritesOnly || searchQuery ? (
         <>
           <Text
             style={[styles.stateText, { color: colors.textSecondary }]}
@@ -58,7 +60,9 @@ export function HomeEmptyState({
           <Text
             style={[styles.stateSubtext, { color: colors.textTertiary }]}
           >
-            No hay fotos que coincidan con este filtro
+            {searchQuery
+              ? `No se encontraron fotos para "${searchQuery}"`
+              : 'No hay fotos que coincidan con este filtro'}
           </Text>
         </>
       ) : (

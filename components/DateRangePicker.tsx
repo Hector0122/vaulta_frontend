@@ -1,29 +1,30 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, Modal } from 'react-native'
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
-import LazyCalendar from './LazyCalendar'
 import type { ThemeColors } from '../theme'
 
 type Props = {
   visible: boolean
   rangeStart: string | null
-  rangeEnd: string | null
   colors: ThemeColors
-  onDayPress: (day: { dateString: string }) => void
-  onSelectToday: () => void
+  onSelectYear: (year: number) => void
   onClose: () => void
 }
 
 export default function DateRangePicker({
   visible,
   rangeStart,
-  rangeEnd,
   colors,
-  onDayPress,
-  onSelectToday,
+  onSelectYear,
   onClose,
 }: Props) {
+  const currentYear = new Date().getFullYear()
+  const years = Array.from(
+    { length: currentYear - 1999 + 1 },
+    (_, i) => currentYear - i,
+  )
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
@@ -32,104 +33,50 @@ export default function DateRangePicker({
         >
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {rangeStart ? 'Selecciona fecha fin' : 'Selecciona fecha inicio'}
+              Seleccionar año
             </Text>
             <TouchableOpacity onPress={onClose}>
               <Icon name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
-          <LazyCalendar
-            current={rangeStart || undefined}
-            minDate="2000-01-01"
-            maxDate={new Date().toISOString().split('T')[0]}
-            onDayPress={onDayPress}
-            markedDates={
-              rangeStart
-                ? {
-                    [rangeStart]: {
-                      selected: true,
-                      color: colors.primary,
-                      startingDay: !rangeEnd || rangeStart <= rangeEnd,
-                      ...(rangeEnd ? {} : { endingDay: true }),
-                      ...(rangeEnd && rangeStart === rangeEnd
-                        ? { endingDay: true }
-                        : {}),
+          <ScrollView contentContainerStyle={styles.yearList}>
+            {years.map(year => {
+              const selected = rangeStart?.startsWith(String(year))
+              return (
+                <TouchableOpacity
+                  key={year}
+                  style={[
+                    styles.yearRow,
+                    {
+                      backgroundColor: selected
+                        ? colors.primary + '20'
+                        : 'transparent',
                     },
-                    ...(rangeEnd && rangeEnd !== rangeStart
-                      ? Object.fromEntries(
-                          (() => {
-                            const dates: [
-                              string,
-                              {
-                                selected: boolean
-                                color: string
-                                startingDay?: boolean
-                                endingDay?: boolean
-                              },
-                            ][] = []
-                            const start = new Date(rangeStart)
-                            const end = new Date(rangeEnd)
-                            if (start > end) return dates
-                            const cursor = new Date(start)
-                            while (cursor <= end) {
-                              const ds = cursor.toISOString().split('T')[0]
-                              if (ds === rangeStart) {
-                                dates.push([
-                                  ds,
-                                  {
-                                    selected: true,
-                                    color: colors.primary,
-                                    startingDay: true,
-                                  },
-                                ])
-                              } else if (ds === rangeEnd) {
-                                dates.push([
-                                  ds,
-                                  {
-                                    selected: true,
-                                    color: colors.primary,
-                                    endingDay: true,
-                                  },
-                                ])
-                              } else {
-                                dates.push([
-                                  ds,
-                                  {
-                                    selected: true,
-                                    color: colors.primary + '40',
-                                  },
-                                ])
-                              }
-                              cursor.setDate(cursor.getDate() + 1)
-                            }
-                            return dates
-                          })(),
-                        )
-                      : {}),
-                  }
-                : {}
-            }
-            markingType="period"
-            theme={{
-              todayTextColor: colors.primary,
-              selectedDayBackgroundColor: colors.primary,
-              arrowColor: colors.primary,
-              textSectionTitleColor: colors.textSecondary,
-              todayBackgroundColor: colors.primary + '20',
-              calendarBackground: colors.surface,
-              dayTextColor: colors.text,
-              monthTextColor: colors.text,
-              textDisabledColor: colors.textTertiary,
-            }}
-          />
-          {rangeStart && !rangeEnd && (
-            <TouchableOpacity
-              style={[styles.applyBtn, { backgroundColor: colors.primary }]}
-              onPress={onSelectToday}
-            >
-              <Text style={styles.applyBtnText}>Este día</Text>
-            </TouchableOpacity>
-          )}
+                  ]}
+                  onPress={() => onSelectYear(year)}
+                >
+                  <Text
+                    style={[
+                      styles.yearText,
+                      {
+                        color: selected ? colors.primary : colors.text,
+                        fontWeight: selected ? '700' : '400',
+                      },
+                    ]}
+                  >
+                    {year}
+                  </Text>
+                  {selected && (
+                    <Icon
+                      name="check"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              )
+            })}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -147,7 +94,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 16,
     paddingBottom: 32,
-    maxHeight: '85%',
+    maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -156,11 +103,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalTitle: { fontSize: 17, fontWeight: '600' },
-  applyBtn: {
-    marginTop: 12,
-    borderRadius: 8,
-    paddingVertical: 12,
+  yearList: { paddingBottom: 16 },
+  yearRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 4,
   },
-  applyBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  yearText: { fontSize: 16 },
 })

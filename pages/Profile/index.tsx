@@ -25,6 +25,7 @@ import {
   authenticatedPost,
   exportAllPhotos,
   exportByDate,
+  getExportStatus,
 } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
 import { promptBiometrics } from '../../services/biometrics'
@@ -76,6 +77,41 @@ export default function ProfileScreen() {
     peopleCount: number
   } | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
+
+  async function pollExport(exportId: string) {
+    let attempts = 0
+    const maxAttempts = 120 // 10 minutes at 5s intervals
+    const interval = setInterval(async () => {
+      attempts++
+      try {
+        const status = await getExportStatus(exportId)
+        if (status.status === 'done') {
+          clearInterval(interval)
+          Alert.alert(
+            'Exportación lista',
+            'Tu archivo ZIP está listo para descargar.',
+            [
+              {
+                text: 'Copiar enlace',
+                onPress: () => {
+                  // In a real app, use Clipboard.setString(status.downloadUrl)
+                  Alert.alert('Enlace copiado (mock)')
+                },
+              },
+              { text: 'OK' },
+            ],
+          )
+        } else if (status.status === 'error') {
+          clearInterval(interval)
+          Alert.alert('Error', status.message || 'La exportación falló')
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval)
+        }
+      } catch {
+        if (attempts >= maxAttempts) clearInterval(interval)
+      }
+    }, 5000)
+  }
   const [dateFrom, setDateFrom] = useState<string | null>(null)
   const [dateTo, setDateTo] = useState<string | null>(null)
   const [selectingEnd, setSelectingEnd] = useState(false)
@@ -426,8 +462,9 @@ export default function ProfileScreen() {
             ]}
             onPress={async () => {
               try {
-                await exportAllPhotos()
+                const { exportId } = await exportAllPhotos()
                 showToast({ message: 'Exportación iniciada', type: 'info' })
+                pollExport(exportId)
               } catch {
                 showToast({ message: 'No se pudo exportar', type: 'error' })
               }
@@ -585,11 +622,12 @@ export default function ProfileScreen() {
                     }
                     setShowDatePicker(false)
                     try {
-                      await exportByDate(dateFrom, dateTo)
+                      const { exportId } = await exportByDate(dateFrom, dateTo)
                       showToast({
                         message: 'Exportación iniciada',
                         type: 'info',
                       })
+                      pollExport(exportId)
                     } catch {
                       showToast({
                         message: 'No se pudieron exportar las fotos',

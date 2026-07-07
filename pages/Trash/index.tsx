@@ -27,6 +27,70 @@ type TrashItem = {
   size: number
 }
 
+function TrashItemCard({
+  item,
+  colors,
+  onRestore,
+  onDelete,
+}: {
+  item: TrashItem
+  colors: any
+  onRestore: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [imgError, setImgError] = useState(false)
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+      {imgError ? (
+        <View
+          style={[
+            styles.thumb,
+            {
+              backgroundColor: colors.inputBg,
+              justifyContent: 'center',
+              alignItems: 'center',
+            },
+          ]}
+        >
+          <Icon name="broken-image" size={24} color={colors.textTertiary} />
+        </View>
+      ) : (
+        <Image
+          source={{ uri: item.uri }}
+          style={styles.thumb}
+          onError={() => setImgError(true)}
+        />
+      )}
+      <View style={styles.info}>
+        <Text
+          style={[styles.filename, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {item.filename}
+        </Text>
+        <Text style={[styles.date, { color: colors.textTertiary }]}>
+          Eliminada: {new Date(item.deletedAt).toLocaleDateString()}
+        </Text>
+      </View>
+      <View style={styles.actions}>
+        <TouchableOpacity
+          onPress={() => onRestore(item.id)}
+          style={styles.actionBtn}
+        >
+          <Icon name="restore" size={22} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => onDelete(item.id)}
+          style={styles.actionBtn}
+        >
+          <Icon name="delete-forever" size={22} color={colors.danger} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+}
+
 export default function TrashScreen() {
   const { colors } = useTheme()
   const [items, setItems] = useState<TrashItem[]>([])
@@ -50,36 +114,42 @@ export default function TrashScreen() {
     }, [fetchTrash]),
   )
 
-  const handleRestore = useCallback(async (id: string) => {
-    try {
-      await restorePhoto(id)
-      fetchTrash()
-    } catch {
-      Alert.alert('Error', 'No se pudo restaurar')
-    }
-  }, [fetchTrash])
+  const handleRestore = useCallback(
+    async (id: string) => {
+      try {
+        await restorePhoto(id)
+        fetchTrash()
+      } catch {
+        Alert.alert('Error', 'No se pudo restaurar')
+      }
+    },
+    [fetchTrash],
+  )
 
-  const handlePermanentDelete = useCallback(async (id: string) => {
-    Alert.alert(
-      'Eliminar permanentemente',
-      'Esta foto se borrará de S3 y no podrá recuperarse.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await permanentlyDeletePhoto(id)
-              fetchTrash()
-            } catch {
-              Alert.alert('Error', 'No se pudo eliminar')
-            }
+  const handlePermanentDelete = useCallback(
+    async (id: string) => {
+      Alert.alert(
+        'Eliminar permanentemente',
+        'Esta foto se borrará de S3 y no podrá recuperarse.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await permanentlyDeletePhoto(id)
+                fetchTrash()
+              } catch {
+                Alert.alert('Error', 'No se pudo eliminar')
+              }
+            },
           },
-        },
-      ],
-    )
-  }, [fetchTrash])
+        ],
+      )
+    },
+    [fetchTrash],
+  )
 
   async function handleEmptyTrash() {
     Alert.alert(
@@ -99,7 +169,8 @@ export default function TrashScreen() {
                 `Se eliminaron ${res.deleted} fotos permanentemente`,
               )
             } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : 'Error desconocido'
+              const msg =
+                e instanceof Error ? e.message : 'Error desconocido'
               Alert.alert('Error', `No se pudo vaciar la papelera: ${msg}`)
             }
           },
@@ -110,34 +181,12 @@ export default function TrashScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: TrashItem }) => (
-      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
-        <Image source={{ uri: item.uri }} style={styles.thumb} />
-        <View style={styles.info}>
-          <Text
-            style={[styles.filename, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {item.filename}
-          </Text>
-          <Text style={[styles.date, { color: colors.textTertiary }]}>
-            Eliminada: {new Date(item.deletedAt).toLocaleDateString()}
-          </Text>
-        </View>
-        <View style={styles.actions}>
-          <TouchableOpacity
-            onPress={() => handleRestore(item.id)}
-            style={styles.actionBtn}
-          >
-            <Icon name="restore" size={22} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handlePermanentDelete(item.id)}
-            style={styles.actionBtn}
-          >
-            <Icon name="delete-forever" size={22} color={colors.danger} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TrashItemCard
+        item={item}
+        colors={colors}
+        onRestore={handleRestore}
+        onDelete={handlePermanentDelete}
+      />
     ),
     [colors, handleRestore, handlePermanentDelete],
   )

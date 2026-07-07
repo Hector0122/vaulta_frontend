@@ -120,6 +120,7 @@ export function HomeScreen({ navigation }: Props) {
   const rangeEndRef = useRef(rangeEnd)
   const searchRef = useRef<string>('')
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchAbortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     favoritesOnlyRef.current = favoritesOnly
@@ -267,7 +268,7 @@ export function HomeScreen({ navigation }: Props) {
   }
 
   const loadPhotos = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, signal?: AbortSignal) => {
       lastLoadTimeRef.current = Date.now()
       if (isRefresh) setRefreshing(true)
       else setError(null)
@@ -288,14 +289,17 @@ export function HomeScreen({ navigation }: Props) {
       }
 
       try {
-        const data = await fetchPhotosPage({
-          maxKeys: 50,
-          favoritesOnly: favOnly,
-          privateOnly: privOnly,
-          dateFrom: dr.dateFrom,
-          dateTo: dr.dateTo,
-          query: searchRef.current || undefined,
-        })
+        const data = await fetchPhotosPage(
+          {
+            maxKeys: 50,
+            favoritesOnly: favOnly,
+            privateOnly: privOnly,
+            dateFrom: dr.dateFrom,
+            dateTo: dr.dateTo,
+            query: searchRef.current || undefined,
+          },
+          signal,
+        )
         setPhotos(data.photos)
         setNextToken(data.nextToken)
         setHasMore(data.nextToken !== null)
@@ -400,39 +404,15 @@ export function HomeScreen({ navigation }: Props) {
     [loadPhotos],
   )
 
-  const handleDayPress = useCallback(
-    (day: { dateString: string }) => {
-      if (
-        !rangeStartRef.current ||
-        (rangeStartRef.current && rangeEndRef.current)
-      ) {
-        rangeStartRef.current = day.dateString
-        rangeEndRef.current = null
-        setRangeStart(day.dateString)
-        setRangeEnd(null)
-      } else {
-        if (day.dateString < rangeStartRef.current) {
-          rangeEndRef.current = rangeStartRef.current
-          rangeStartRef.current = day.dateString
-          setRangeEnd(rangeStartRef.current)
-          setRangeStart(day.dateString)
-        } else {
-          rangeEndRef.current = day.dateString
-          setRangeEnd(day.dateString)
-        }
-        setShowRangePicker(false)
-        setNextToken(null)
-        setHasMore(true)
-        loadPhotos()
-      }
+  const handleSelectYear = useCallback(
+    (year: number) => {
+      const from = `${year}-01-01`
+      const to = `${year}-12-31`
+      setDateFilter(from, to)
+      setShowRangePicker(false)
     },
-    [loadPhotos],
+    [setDateFilter],
   )
-
-  const handleSelectToday = useCallback(() => {
-    setDateFilter(rangeStart, rangeStart)
-    setShowRangePicker(false)
-  }, [rangeStart, setDateFilter])
 
   const handleClearDateRange = useCallback(() => {
     setDateFilter(null, null)
@@ -442,12 +422,26 @@ export function HomeScreen({ navigation }: Props) {
     (q: string) => {
       setSearchQuery(q)
       if (searchTimer.current) clearTimeout(searchTimer.current)
-      searchTimer.current = setTimeout(() => {
-        searchRef.current = q
-        setNextToken(null)
-        setHasMore(true)
-        loadPhotos()
-      }, 300)
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort()
+        searchAbortRef.current = null
+      }
+
+      // Allow clearing search immediately
+      if (!q || q.length >= 2) {
+        searchTimer.current = setTimeout(() => {
+          searchRef.current = q
+          setNextToken(null)
+          setHasMore(true)
+          const controller = new AbortController()
+          searchAbortRef.current = controller
+          loadPhotos(false, controller.signal).finally(() => {
+            if (searchAbortRef.current === controller) {
+              searchAbortRef.current = null
+            }
+          })
+        }, 800)
+      }
     },
     [loadPhotos],
   )
@@ -632,10 +626,8 @@ export function HomeScreen({ navigation }: Props) {
           <DateRangePicker
             visible={showRangePicker}
             rangeStart={rangeStart}
-            rangeEnd={rangeEnd}
             colors={colors}
-            onDayPress={handleDayPress}
-            onSelectToday={handleSelectToday}
+            onSelectYear={handleSelectYear}
             onClose={() => setShowRangePicker(false)}
           />
           {renderRecuerdos()}
@@ -644,6 +636,7 @@ export function HomeScreen({ navigation }: Props) {
             colors={colors}
             rangeStart={rangeStart}
             favoritesOnly={favoritesOnly}
+            searchQuery={searchQuery}
             loadPhotos={() => loadPhotos()}
           />
         </ScrollView>
@@ -710,10 +703,8 @@ export function HomeScreen({ navigation }: Props) {
               <DateRangePicker
                 visible={showRangePicker}
                 rangeStart={rangeStart}
-                rangeEnd={rangeEnd}
                 colors={colors}
-                onDayPress={handleDayPress}
-                onSelectToday={handleSelectToday}
+                onSelectYear={handleSelectYear}
                 onClose={() => setShowRangePicker(false)}
               />
               {renderRecuerdos()}

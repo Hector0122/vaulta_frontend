@@ -11,7 +11,6 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../theme'
 import {
   authenticatedGet,
@@ -32,7 +31,6 @@ type DuplicateGroup = {
 export default function DuplicatesScreen() {
   const navigation = useNavigation()
   const { colors } = useTheme()
-  const { top } = useSafeAreaInsets()
   const [groups, setGroups] = useState<DuplicateGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
@@ -123,6 +121,18 @@ export default function DuplicatesScreen() {
     setSelected(toDelete)
   }
 
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={selectAllKeepBest}>
+          <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>
+            Conservar mejor
+          </Text>
+        </TouchableOpacity>
+      ),
+    })
+  }, [navigation, colors.primary, selectAllKeepBest])
+
   const renderGroup = useCallback(
     ({ item: group }: { item: DuplicateGroup }) => {
       const bestId = pickBestId(group)
@@ -208,27 +218,6 @@ export default function DuplicatesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.border,
-            paddingTop: top + 12,
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Duplicados</Text>
-        <TouchableOpacity onPress={selectAllKeepBest}>
-          <Text style={[styles.selectAll, { color: colors.primary }]}>
-            Conservar mejor
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
         data={groups}
         keyExtractor={(_, i) => String(i)}
@@ -264,16 +253,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 16, marginTop: 16 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  title: { fontSize: 18, fontWeight: '700' },
-  selectAll: { fontSize: 15, fontWeight: '600' },
   list: { padding: 12, gap: 12, paddingBottom: 80 },
   group: {
     borderRadius: 12,

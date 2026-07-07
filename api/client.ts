@@ -175,7 +175,10 @@ export interface FetchPhotosOptions {
   person?: string
 }
 
-export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
+export async function fetchPhotosPage(
+  options: FetchPhotosOptions = {},
+  signal?: AbortSignal,
+) {
   const { pageToken, maxKeys = 50, query, favoritesOnly, privateOnly, dateFrom, dateTo, person } = options
   return autoRetry(async () => {
     let url = `${BASE_URL}/photos?maxKeys=${maxKeys}`
@@ -187,7 +190,7 @@ export async function fetchPhotosPage(options: FetchPhotosOptions = {}) {
     if (dateTo) url += `&dateTo=${encodeURIComponent(dateTo)}`
     if (person) url += `&person=${encodeURIComponent(person)}`
     const headers = await authHeaders()
-    const res = await fetchWithTimeout(url, { headers })
+    const res = await fetchWithTimeout(url, { headers, signal })
     return handleJsonResponse<{ photos: { uri: string; fullUri: string; largeUri: string | null; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
   })
 }
