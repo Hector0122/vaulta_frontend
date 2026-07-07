@@ -15,8 +15,8 @@ export function SkeletonBox({
   style,
   borderRadius = 6,
 }: {
-  width?: number | string
-  height?: number | string
+  width?: number | `${number}%`
+  height?: number | `${number}%`
   style?: ViewStyle
   borderRadius?: number
 }) {

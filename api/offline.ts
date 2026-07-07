@@ -83,6 +83,6 @@ export async function clearAllOffline(userId: string): Promise<void> {
     const dir = offlineDir(userId);
     const exists = await RNFS.exists(dir);
     if (exists) await RNFS.unlink(dir);
-    storage.delete(offlineIdsKey(userId));
+    storage.remove(offlineIdsKey(userId));
   } catch {}
 }

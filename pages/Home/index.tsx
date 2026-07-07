@@ -574,18 +574,20 @@ export function HomeScreen({ navigation }: Props) {
       </>
     ),
     [
-      selecting,
-      colors,
       clearSelection,
-      selectedUris,
-      photos,
-      rangeStart,
-      rangeEnd,
+      colors,
       favoritesOnly,
       handleClearDateRange,
-      toggleFilter,
-      navigation,
+      handleSearch,
       loadPhotos,
+      navigation,
+      photos,
+      rangeEnd,
+      rangeStart,
+      searchQuery,
+      selectedUris,
+      selecting,
+      toggleFilter,
     ],
   )
 
@@ -602,7 +604,7 @@ export function HomeScreen({ navigation }: Props) {
           { backgroundColor: colors.background },
         ]}
       >
-        <SkeletonPhotoGrid colors={colors} />
+        <SkeletonPhotoGrid _colors={colors} />
       </View>
     )
   }
@@ -647,7 +649,7 @@ export function HomeScreen({ navigation }: Props) {
           data={listData}
           keyExtractor={(item: ListItem) => item.key}
           numColumns={2}
-          estimatedItemSize={250}
+
           scrollEventThrottle={16}
           onScroll={e => {
             scrollOffsetRef.current = e.nativeEvent.contentOffset.y
@@ -741,10 +743,7 @@ export function HomeScreen({ navigation }: Props) {
           extraData={extraData}
           overrideItemLayout={(layout, item: ListItem) => {
             if (item.type === 'header') {
-              layout.size = 45
               layout.span = 2
-            } else {
-              layout.size = 256 // 250 image + 3*2 padding
             }
           }}
         />

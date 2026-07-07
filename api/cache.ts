@@ -1,6 +1,6 @@
 import { storage } from './storage';
 
-export type CachedPhoto = { uri: string; fullUri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean };
+export type CachedPhoto = { uri: string; fullUri: string; date: string; id: string; mimeType: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean };
 
 const CACHE_TTL_MS = 50 * 60 * 1000;
 
@@ -35,7 +35,7 @@ export async function saveCachedPhotos(userId: string, photos: CachedPhoto[]): P
 
 export async function clearCachedPhotos(userId: string): Promise<void> {
   try {
-    storage.delete(cacheKey(userId));
-    storage.delete(metaKey(userId));
+    storage.remove(cacheKey(userId));
+    storage.remove(metaKey(userId));
   } catch { console.warn('[Cache] Failed to clear cache') }
 }
