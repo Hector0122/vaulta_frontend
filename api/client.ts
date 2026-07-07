@@ -382,6 +382,10 @@ export async function deleteFace(faceId: string): Promise<void> {
   await authenticatedDelete(`faces/${faceId}`)
 }
 
+export async function removeFaceFromPhoto(photoId: string, personName: string): Promise<{ deleted: number }> {
+  return authenticatedDelete(`faces/by-photo/${photoId}?person=${encodeURIComponent(personName)}`)
+}
+
 export async function detectFaces(photoId: string): Promise<{ facesFound: number }> {
   return authenticatedPost(`faces/detect/${photoId}`, {})
 }

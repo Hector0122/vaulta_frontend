@@ -16,7 +16,7 @@ import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useTheme } from '../../theme'
-import { authenticatedGet, mergePeople } from '../../api/client'
+import { authenticatedGet, mergePeople, removeFaceFromPhoto } from '../../api/client'
 import type { StackNavProp } from '../../types/navigation'
 
 type Photo = { id: string; uri: string; date: string; mimeType: string }
@@ -35,8 +35,9 @@ export default function PersonView() {
   const [merging, setMerging] = useState(false)
 
   const colCount = 3
-  const gap = 2
-  const thumbSize = (width - gap * (colCount - 1)) / colCount
+  const gap = 4
+  const pad = 4
+  const thumbSize = (width - pad * 2 - gap * (colCount - 1)) / colCount
 
   const fetchPhotos = useCallback(async () => {
     try {
@@ -97,6 +98,31 @@ export default function PersonView() {
     [photos, navigation],
   )
 
+  const handleRemoveFace = useCallback(
+    (photoId: string) => {
+      Alert.alert(
+        'Quitar de esta persona',
+        `¿Quitar esta foto de "${personName}"?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Quitar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await removeFaceFromPhoto(photoId, personName)
+                setPhotos((prev) => prev.filter((p) => p.id !== photoId))
+              } catch {
+                Alert.alert('Error', 'No se pudo quitar la foto')
+              }
+            },
+          },
+        ],
+      )
+    },
+    [personName],
+  )
+
   if (loading) {
     return (
       <View style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
@@ -120,6 +146,7 @@ export default function PersonView() {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => handlePhotoPress(index)}
+            onLongPress={() => handleRemoveFace(item.id)}
             style={{ marginBottom: gap }}
           >
             <NitroImage
@@ -217,7 +244,7 @@ export default function PersonView() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { justifyContent: 'center', alignItems: 'center' },
-  grid: { padding: 2, flexGrow: 1 },
+  grid: { padding: 4, flexGrow: 1 },
   emptyGrid: { justifyContent: 'center', alignItems: 'center' },
   thumb: { borderRadius: 2 },
   videoBadge: {

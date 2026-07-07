@@ -40,7 +40,8 @@ export default function PeopleScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [nameModalVisible, setNameModalVisible] = useState(false)
   const [namingFaceId, setNamingFaceId] = useState<string | null>(null)
-  const [namingText, setNamingText] = useState('')
+  const [namingTags, setNamingTags] = useState<string[]>([])
+  const [namingInput, setNamingInput] = useState('')
   const [namingSuggestions, setNamingSuggestions] = useState<{ personName: string; distance: number }[]>([])
   const [scanStatus, setScanStatus] = useState<{ total: number; pending: number; detected: number } | null>(null)
   const [scanJob, setScanJob] = useState<{ jobId: string; total: number } | null>(null)
@@ -96,23 +97,7 @@ export default function PeopleScreen() {
       const result = await updateFace(faceId, { personName, confirmed: true })
       setUnconfirmed((prev) => prev.filter((f) => f.id !== faceId))
       if (result?.suggestedTag) {
-        setTimeout(() => {
-          Alert.alert(
-            'Agregar etiqueta',
-            `¿Agregar "${result.suggestedTag}" como etiqueta en esta foto?`,
-            [
-              { text: 'No', style: 'cancel' },
-              {
-                text: 'Sí',
-                onPress: async () => {
-                  try {
-                    await addTag(result.photoId, result.suggestedTag)
-                  } catch { /* tag already exists or error */ }
-                },
-              },
-            ],
-          )
-        }, 300)
+        addTag(result.photoId, result.suggestedTag).catch(() => {})
       }
     } catch {
       Alert.alert('Error', 'No se pudo confirmar la sugerencia')
@@ -121,46 +106,31 @@ export default function PeopleScreen() {
 
   const openNameModal = useCallback((faceId: string, prefillName?: string, suggestions?: { personName: string; distance: number }[]) => {
     setNamingFaceId(faceId)
-    setNamingText(prefillName || '')
+    setNamingTags(prefillName ? [prefillName] : [])
+    setNamingInput('')
     setNamingSuggestions(suggestions || [])
     setNameModalVisible(true)
   }, [])
 
   const handleSaveName = useCallback(async () => {
-    if (!namingFaceId || !namingText.trim()) return
-    const face = unconfirmed.find((f) => f.id === namingFaceId)
+    if (!namingFaceId || namingTags.length === 0) return
+    const names = namingTags
     try {
       const result = await updateFace(namingFaceId, {
-        personName: namingText.trim(),
+        personName: names[0],
         confirmed: true,
       })
       setUnconfirmed((prev) => prev.filter((f) => f.id !== namingFaceId))
       setNameModalVisible(false)
       setNamingFaceId(null)
       fetchData()
-      if (result?.suggestedTag) {
-        setTimeout(() => {
-          Alert.alert(
-            'Agregar etiqueta',
-            `¿Agregar "${result.suggestedTag}" como etiqueta en esta foto?`,
-            [
-              { text: 'No', style: 'cancel' },
-              {
-                text: 'Sí',
-                onPress: async () => {
-                  try {
-                    await addTag(result.photoId, result.suggestedTag)
-                  } catch { /* tag already exists or error */ }
-                },
-              },
-            ],
-          )
-        }, 300)
+      for (const name of names) {
+        addTag(result?.photoId || '', name).catch(() => {})
       }
     } catch {
       Alert.alert('Error', 'No se pudo guardar el nombre')
     }
-  }, [namingFaceId, namingText, unconfirmed, fetchData])
+  }, [namingFaceId, namingTags, fetchData])
 
   const handleIgnore = useCallback(async (faceId: string) => {
     try {
@@ -181,6 +151,7 @@ export default function PeopleScreen() {
   }, [])
 
   const [searchResults, setSearchResults] = useState<{ results: { faceId: string; photoId: string; photoUri: string; distance: number }[]; personName: string } | null>(null)
+  const [selectedFaces, setSelectedFaces] = useState<Set<string>>(new Set())
   const [searching, setSearching] = useState<string | null>(null)
 
   const handleFindMore = useCallback(async (personName: string) => {
@@ -188,6 +159,7 @@ export default function PeopleScreen() {
     try {
       const results = await findMoreFaces(personName)
       setSearchResults({ results, personName })
+      setSelectedFaces(new Set())
     } catch {
       Alert.alert('Error', `No se pudieron buscar más fotos de ${personName}`)
     } finally {
@@ -220,21 +192,22 @@ export default function PeopleScreen() {
   }, [scanJob])
 
   const handleConfirmMatches = useCallback(async (personName: string) => {
-    if (!searchResults || searchResults.results.length === 0) return
-    const count = searchResults.results.length
+    if (!searchResults || selectedFaces.size === 0) return
+    const count = selectedFaces.size
     try {
       await Promise.all(
-        searchResults.results.map((r) =>
-          updateFace(r.faceId, { personName, confirmed: true }),
-        ),
+        searchResults.results
+          .filter((r) => selectedFaces.has(r.faceId))
+          .map((r) => updateFace(r.faceId, { personName, confirmed: true })),
       )
       Alert.alert('Hecho', `${count} ${count === 1 ? 'foto agregada' : 'fotos agregadas'} a ${personName}`)
       setSearchResults(null)
+      setSelectedFaces(new Set())
       fetchData()
     } catch {
       Alert.alert('Error', 'No se pudieron confirmar las coincidencias')
     }
-  }, [searchResults, fetchData])
+  }, [searchResults, selectedFaces, fetchData])
 
   if (loading) {
     return (
@@ -307,7 +280,15 @@ export default function PeopleScreen() {
                   renderItem={({ item }) => {
                     const top = item.suggestions?.[0]
                     return (
-                      <View
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() =>
+                          item.photoUri &&
+                          navigation.navigate('PhotoPreview', {
+                            photos: [{ uri: item.photoUri, id: item.photoId }],
+                            initialIndex: 0,
+                          })
+                        }
                         style={[
                           styles.unconfirmedCard,
                           { backgroundColor: colors.surface, borderColor: colors.border },
@@ -352,7 +333,7 @@ export default function PeopleScreen() {
                                 style={[styles.suggestionChipText, { color: colors.text }]}
                                 numberOfLines={1}
                               >
-                                {top.personName}?
+                                {top.personName}
                               </Text>
                             </TouchableOpacity>
                           ) : (
@@ -375,7 +356,7 @@ export default function PeopleScreen() {
                             <Icon name="close" size={14} color={colors.textSecondary} />
                           </TouchableOpacity>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     )
                   }}
                 />
@@ -471,23 +452,60 @@ export default function PeopleScreen() {
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               ¿Quién es esta persona?
             </Text>
-            <TextInput
-              style={[
-                styles.modalInput,
-                {
-                  backgroundColor: colors.inputBg,
-                  borderColor: colors.border,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="Nombre de la persona"
-              placeholderTextColor={colors.textTertiary}
-              value={namingText}
-              onChangeText={setNamingText}
-              autoFocus
-              maxLength={50}
-              onSubmitEditing={handleSaveName}
-            />
+
+            {namingTags.length > 0 && (
+              <View style={styles.tagRow}>
+                {namingTags.map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.tagChip, { backgroundColor: colors.primary }]}
+                    onPress={() => setNamingTags((prev) => prev.filter((x) => x !== t))}
+                  >
+                    <Text style={styles.tagChipText}>{t} ✕</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.namingInputRow}>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.border,
+                    color: colors.text,
+                    flex: 1,
+                  },
+                ]}
+                placeholder="Nombre de la persona"
+                placeholderTextColor={colors.textTertiary}
+                value={namingInput}
+                onChangeText={setNamingInput}
+                autoFocus
+                maxLength={50}
+                onSubmitEditing={() => {
+                  const t = namingInput.trim()
+                  if (t && !namingTags.includes(t)) {
+                    setNamingTags((prev) => [...prev, t])
+                    setNamingInput('')
+                  }
+                }}
+              />
+              <TouchableOpacity
+                style={[styles.addTagBtn, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  const t = namingInput.trim()
+                  if (t && !namingTags.includes(t)) {
+                    setNamingTags((prev) => [...prev, t])
+                    setNamingInput('')
+                  }
+                }}
+              >
+                <Icon name="add" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
             {namingSuggestions.length > 0 && (
               <View style={styles.existingPeopleRow}>
                 <Text style={[styles.existingPeopleLabel, { color: colors.textSecondary }]}>
@@ -504,16 +522,20 @@ export default function PeopleScreen() {
                       key={s.personName}
                       style={[
                         styles.personChip,
-                        namingText === s.personName
+                        namingTags.includes(s.personName)
                           ? { backgroundColor: colors.primary }
                           : { backgroundColor: colors.border },
                       ]}
-                      onPress={() => setNamingText(s.personName)}
+                      onPress={() => {
+                        if (!namingTags.includes(s.personName)) {
+                          setNamingTags((prev) => [...prev, s.personName])
+                        }
+                      }}
                     >
                       <Text
                         style={[
                           styles.personChipText,
-                          namingText === s.personName
+                          namingTags.includes(s.personName)
                             ? { color: '#fff' }
                             : { color: colors.text },
                         ]}
@@ -541,16 +563,20 @@ export default function PeopleScreen() {
                       key={p.name}
                       style={[
                         styles.personChip,
-                        namingText === p.name
+                        namingTags.includes(p.name)
                           ? { backgroundColor: colors.primary }
                           : { backgroundColor: colors.border },
                       ]}
-                      onPress={() => setNamingText(p.name)}
+                      onPress={() => {
+                        if (!namingTags.includes(p.name)) {
+                          setNamingTags((prev) => [...prev, p.name])
+                        }
+                      }}
                     >
                       <Text
                         style={[
                           styles.personChipText,
-                          namingText === p.name
+                          namingTags.includes(p.name)
                             ? { color: '#fff' }
                             : { color: colors.text },
                         ]}
@@ -588,7 +614,10 @@ export default function PeopleScreen() {
         visible={searchResults !== null}
         transparent
         animationType="slide"
-        onRequestClose={() => setSearchResults(null)}
+        onRequestClose={() => {
+          setSearchResults(null)
+          setSelectedFaces(new Set())
+        }}
       >
         <View style={styles.modalOverlay}>
           <View
@@ -601,42 +630,101 @@ export default function PeopleScreen() {
             </Text>
             {searchResults && searchResults.results.length > 0 ? (
               <>
+                <View style={styles.resultsToolbar}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setSelectedFaces(new Set(searchResults.results.map((r) => r.faceId)))
+                    }
+                  >
+                    <Text style={[styles.toolbarLink, { color: colors.primary }]}>
+                      Seleccionar todas
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setSelectedFaces(new Set())}
+                  >
+                    <Text style={[styles.toolbarLink, { color: colors.textTertiary }]}>
+                      Deseleccionar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <FlatList
                   data={searchResults.results}
                   keyExtractor={(item) => item.faceId}
                   numColumns={3}
                   contentContainerStyle={styles.resultsGrid}
-                  renderItem={({ item }) => (
-                    <View
-                      style={[
-                        styles.resultThumb,
-                        { backgroundColor: colors.skeleton },
-                      ]}
-                    >
-                      <NitroImage
-                        image={{ url: item.photoUri }}
-                        style={styles.resultThumb}
-                        resizeMode="cover"
-                        recyclingKey={item.faceId}
-                      />
-                    </View>
-                  )}
+                  renderItem={({ item }) => {
+                    const isSelected = selectedFaces.has(item.faceId)
+                    return (
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          setSelectedFaces((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(item.faceId)) next.delete(item.faceId)
+                            else next.add(item.faceId)
+                            return next
+                          })
+                        }}
+                        style={[
+                          styles.resultThumb,
+                          { backgroundColor: colors.skeleton },
+                        ]}
+                      >
+                        <NitroImage
+                          image={{ url: item.photoUri }}
+                          style={styles.resultThumb}
+                          resizeMode="cover"
+                          recyclingKey={item.faceId}
+                        />
+                        <View
+                          style={[
+                            styles.resultCheckOverlay,
+                            isSelected && { backgroundColor: colors.primary + '99' },
+                          ]}
+                        >
+                          {isSelected && (
+                            <Icon name="check" size={16} color="#fff" />
+                          )}
+                        </View>
+                        <View style={styles.resultDistance}>
+                          <Text style={styles.resultDistanceText}>
+                            {(1 - item.distance).toFixed(2)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )
+                  }}
                 />
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={[styles.modalBtn, { backgroundColor: colors.border }]}
-                    onPress={() => setSearchResults(null)}
+                    onPress={() => {
+                      setSearchResults(null)
+                      setSelectedFaces(new Set())
+                    }}
                   >
                     <Text style={[styles.modalBtnText, { color: colors.text }]}>
                       Cerrar
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                    style={[
+                      styles.modalBtn,
+                      {
+                        backgroundColor: selectedFaces.size > 0 ? colors.primary : colors.border,
+                      },
+                    ]}
                     onPress={() => handleConfirmMatches(searchResults.personName)}
+                    disabled={selectedFaces.size === 0}
                   >
-                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>
-                      Confirmar todas
+                    <Text
+                      style={[
+                        styles.modalBtnText,
+                        { color: selectedFaces.size > 0 ? '#fff' : colors.textTertiary },
+                      ]}
+                    >
+                      Confirmar {selectedFaces.size > 0 ? `(${selectedFaces.size})` : ''}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -749,12 +837,26 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   modalTitle: { fontSize: 17, fontWeight: '600', marginBottom: 16 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  tagChip: {
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  tagChipText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  namingInputRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  addTagBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalInput: {
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    marginBottom: 12,
   },
   existingPeopleRow: { marginBottom: 16 },
   existingPeopleLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
@@ -818,4 +920,32 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     margin: 3,
   },
+  resultsToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  toolbarLink: { fontSize: 13, fontWeight: '600' },
+  resultCheckOverlay: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  resultDistance: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  resultDistanceText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 })

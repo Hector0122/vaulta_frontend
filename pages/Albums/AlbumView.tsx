@@ -51,8 +51,9 @@ export default function AlbumView() {
   const [renameText, setRenameText] = useState(albumName)
 
   const colCount = 3
-  const gap = 2
-  const thumbSize = (width - gap * (colCount - 1)) / colCount
+  const gap = 4
+  const listPad = 4
+  const thumbSize = (width - listPad * 2 - gap * (colCount - 1)) / colCount
 
   const fetchPhotos = useCallback(
     async (from?: string | null, to?: string | null) => {
@@ -552,8 +553,8 @@ export default function AlbumView() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: 0 },
-  row: { flexDirection: 'row', marginBottom: 2 },
+  list: { paddingHorizontal: 4 },
+  row: { flexDirection: 'row', marginBottom: 4, gap: 4 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 16, marginTop: 16 },
   addBtn: {
