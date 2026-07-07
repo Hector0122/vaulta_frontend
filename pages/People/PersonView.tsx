@@ -32,6 +32,9 @@ export default function PersonView() {
   const [mergeTarget, setMergeTarget] = useState('')
   const [merging, setMerging] = useState(false)
 
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selecting, setSelecting] = useState(false)
+
   const colCount = 3
   const gap = 4
 
@@ -76,20 +79,72 @@ export default function PersonView() {
     }
   }, [mergeTarget, personName, navigation])
 
+  const clearSelection = useCallback(() => {
+    setSelected(new Set())
+    setSelecting(false)
+  }, [])
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      if (next.size === 0) setSelecting(false)
+      return next
+    })
+  }, [])
+
+  const handleBatchRemove = useCallback(async () => {
+    if (selected.size === 0) return
+    Alert.alert(
+      'Quitar de esta persona',
+      `¿Quitar ${selected.size} foto(s) de "${personName}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all(
+                Array.from(selected).map(id => removeFaceFromPhoto(id, personName))
+              )
+              setPhotos(prev => prev.filter(p => !selected.has(p.id)))
+              clearSelection()
+            } catch {
+              Alert.alert('Error', 'No se pudieron quitar las fotos')
+            }
+          },
+        },
+      ],
+    )
+  }, [selected, personName, clearSelection])
+
   useEffect(() => {
     navigation.setOptions({
       title: personName,
-      headerRight: () => (
-        <TouchableOpacity
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          onPress={() => setMergeModalVisible(true)}
-          style={{ marginRight: 4 }}
-        >
-          <Icon name="merge-type" size={22} color="#fff" />
-        </TouchableOpacity>
-      ),
+      headerRight: () =>
+        selecting ? (
+          <TouchableOpacity
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={clearSelection}
+            style={{ marginRight: 4 }}
+          >
+            <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>
+              Cancelar
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={() => setMergeModalVisible(true)}
+            style={{ marginRight: 4 }}
+          >
+            <Icon name="merge-type" size={22} color="#fff" />
+          </TouchableOpacity>
+        ),
     })
-  }, [navigation, personName])
+  }, [navigation, personName, selecting, clearSelection, colors])
 
   const handlePhotoPress = useCallback(
     (index: number) => {
@@ -99,29 +154,25 @@ export default function PersonView() {
     [photos, navigation],
   )
 
-  const handleRemoveFace = useCallback(
-    (photoId: string) => {
-      Alert.alert(
-        'Quitar de esta persona',
-        `¿Quitar esta foto de "${personName}"?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Quitar',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await removeFaceFromPhoto(photoId, personName)
-                setPhotos((prev) => prev.filter((p) => p.id !== photoId))
-              } catch {
-                Alert.alert('Error', 'No se pudo quitar la foto')
-              }
-            },
-          },
-        ],
-      )
+  const handlePhotoTap = useCallback(
+    (photoId: string, globalIndex: number) => {
+      if (selecting) {
+        toggleSelect(photoId)
+        return
+      }
+      handlePhotoPress(globalIndex)
     },
-    [personName],
+    [selecting, toggleSelect, handlePhotoPress],
+  )
+
+  const handlePhotoLongPress = useCallback(
+    (photoId: string) => {
+      if (!selecting) {
+        setSelecting(true)
+      }
+      toggleSelect(photoId)
+    },
+    [selecting, toggleSelect],
   )
 
   if (loading) {
@@ -145,12 +196,13 @@ export default function PersonView() {
           <View style={{ flexDirection: 'row' }}>
             {row.map((photo, itemIndex) => {
               const globalIndex = rowIndex * colCount + itemIndex
+              const isSelected = selected.has(photo.id)
               return (
                 <TouchableOpacity
                   key={photo.id}
                   activeOpacity={0.8}
-                  onPress={() => handlePhotoPress(globalIndex)}
-                  onLongPress={() => handleRemoveFace(photo.id)}
+                  onPress={() => handlePhotoTap(photo.id, globalIndex)}
+                  onLongPress={() => handlePhotoLongPress(photo.id)}
                   style={[
                     styles.thumb,
                     {
@@ -161,10 +213,24 @@ export default function PersonView() {
                 >
                   <NitroImage
                     image={{ url: photo.uri }}
-                    style={{ flex: 1, aspectRatio: 1 }}
+                    style={{
+                      flex: 1,
+                      aspectRatio: 1,
+                      opacity: isSelected ? 0.6 : 1,
+                    }}
                     resizeMode="cover"
                     recyclingKey={photo.id}
                   />
+                  {isSelected && (
+                    <View
+                      style={[
+                        styles.checkOverlay,
+                        { backgroundColor: colors.primary + 'cc' },
+                      ]}
+                    >
+                      <Icon name="check" size={22} color="#fff" />
+                    </View>
+                  )}
                   {photo.mimeType?.startsWith('video/') && (
                     <View style={styles.videoBadge}>
                       <Icon name="play-arrow" size={14} color="#fff" />
@@ -194,6 +260,44 @@ export default function PersonView() {
           />
         }
       />
+
+      {selecting && selected.size > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: 12,
+            paddingBottom: 24,
+            backgroundColor: colors.surface,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <TouchableOpacity onPress={clearSelection}>
+            <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '600' }}>
+              Cancelar
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleBatchRemove}
+            style={{
+              backgroundColor: colors.danger || '#e74c3c',
+              borderRadius: 8,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+              Quitar {selected.size}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Modal
         visible={mergeModalVisible}
@@ -270,6 +374,16 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 2,
   },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: 15, marginTop: 10 },

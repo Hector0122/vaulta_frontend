@@ -194,8 +194,9 @@ export default function AlbumView() {
         onPress: async () => {
           try {
             await removePhotosFromAlbum(albumId, Array.from(selected))
+            showToast({ message: `${selected.size} foto(s) quitadas del álbum`, type: 'success' })
+            setPhotos(prev => prev.filter(p => !selected.has(p.id)))
             clearSelection()
-            await fetchPhotos(dateFrom, dateTo)
           } catch {
             Alert.alert('Error', 'No se pudieron quitar las fotos')
           }

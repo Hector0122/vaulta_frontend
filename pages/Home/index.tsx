@@ -214,8 +214,8 @@ export function HomeScreen({ navigation }: Props) {
         style: 'destructive',
         onPress: async () => {
           await bulkDeletePhotos(Array.from(selectedIds))
+          setPhotos(prev => prev.filter(p => !selectedIds.includes(p.id)))
           clearSelection()
-          loadPhotos()
         },
       },
     ])
@@ -230,8 +230,8 @@ export function HomeScreen({ navigation }: Props) {
         onPress: async () => {
           try {
             await bulkSetPrivate(Array.from(selectedIds))
+            setPhotos(prev => prev.filter(p => !selectedIds.includes(p.id)))
             clearSelection()
-            loadPhotos()
           } catch {
             Alert.alert('Error', 'No se pudieron marcar como privadas')
           }
