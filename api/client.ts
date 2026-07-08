@@ -128,7 +128,10 @@ export async function authenticatedGet<T>(endpoint: string): Promise<T> {
   })
 }
 
-export async function authenticatedDelete<T = void>(endpoint: string, body?: any): Promise<T> {
+export async function authenticatedDelete<T = void>(
+  endpoint: string,
+  body?: any,
+): Promise<T> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/${endpoint}`, {
@@ -136,11 +139,16 @@ export async function authenticatedDelete<T = void>(endpoint: string, body?: any
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     })
-    return body ? handleJsonResponse<T>(res) : (handleResponse(res), undefined as T)
+    return body
+      ? handleJsonResponse<T>(res)
+      : (handleResponse(res), undefined as T)
   })
 }
 
-export async function authenticatedPost<T>(endpoint: string, body?: any): Promise<T> {
+export async function authenticatedPost<T>(
+  endpoint: string,
+  body?: any,
+): Promise<T> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/${endpoint}`, {
@@ -152,7 +160,10 @@ export async function authenticatedPost<T>(endpoint: string, body?: any): Promis
   })
 }
 
-export async function authenticatedPatch<T>(endpoint: string, body: any): Promise<T> {
+export async function authenticatedPatch<T>(
+  endpoint: string,
+  body: any,
+): Promise<T> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/${endpoint}`, {
@@ -179,7 +190,16 @@ export async function fetchPhotosPage(
   options: FetchPhotosOptions = {},
   signal?: AbortSignal,
 ) {
-  const { pageToken, maxKeys = 50, query, favoritesOnly, privateOnly, dateFrom, dateTo, person } = options
+  const {
+    pageToken,
+    maxKeys = 50,
+    query,
+    favoritesOnly,
+    privateOnly,
+    dateFrom,
+    dateTo,
+    person,
+  } = options
   return autoRetry(async () => {
     let url = `${BASE_URL}/photos?maxKeys=${maxKeys}`
     if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`
@@ -191,24 +211,52 @@ export async function fetchPhotosPage(
     if (person) url += `&person=${encodeURIComponent(person)}`
     const headers = await authHeaders()
     const res = await fetchWithTimeout(url, { headers, signal })
-    return handleJsonResponse<{ photos: { uri: string; fullUri: string; largeUri: string | null; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
+    return handleJsonResponse<{
+      photos: {
+        uri: string
+        fullUri: string
+        largeUri: string | null
+        date: string
+        id: string
+        favorite: boolean
+        tags: string[]
+        blurred: boolean
+        private: boolean
+        mimeType: string
+      }[]
+      nextToken: string | null
+    }>(res)
   })
 }
 
 export async function getPhotoUrl(photoId: string): Promise<string> {
   return autoRetry(async () => {
     const headers = await authHeaders()
-    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}`, { headers })
+    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}`, {
+      headers,
+    })
     const data = await handleJsonResponse<{ url: string }>(res)
     return data.url
   })
 }
 
-export async function getPhotoDetail(photoId: string): Promise<{ url: string; largeUri: string | null; albums: { id: string; name: string; vault: boolean }[] }> {
+export async function getPhotoDetail(
+  photoId: string,
+): Promise<{
+  url: string
+  largeUri: string | null
+  albums: { id: string; name: string; vault: boolean }[]
+}> {
   return autoRetry(async () => {
     const headers = await authHeaders()
-    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/detail`, { headers })
-    return handleJsonResponse<{ url: string; largeUri: string | null; albums: { id: string; name: string; vault: boolean }[] }>(res)
+    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/detail`, {
+      headers,
+    })
+    return handleJsonResponse<{
+      url: string
+      largeUri: string | null
+      albums: { id: string; name: string; vault: boolean }[]
+    }>(res)
   })
 }
 
@@ -216,14 +264,22 @@ export async function deletePhoto(photoId: string): Promise<void> {
   await authenticatedDelete(`photos/${photoId}`)
 }
 
-export async function bulkDeletePhotos(ids: string[]): Promise<{ deleted: number }> {
+export async function bulkDeletePhotos(
+  ids: string[],
+): Promise<{ deleted: number }> {
   return authenticatedDelete<{ deleted: number }>('photos/bulk', { ids })
 }
 
-export async function getShareLink(photoId: string, expiresIn: number = PRESIGN_EXPIRY): Promise<string> {
+export async function getShareLink(
+  photoId: string,
+  expiresIn: number = PRESIGN_EXPIRY,
+): Promise<string> {
   return autoRetry(async () => {
     const headers = await authHeaders()
-    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/share?expiresIn=${expiresIn}`, { headers })
+    const res = await fetchWithTimeout(
+      `${BASE_URL}/photos/${photoId}/share?expiresIn=${expiresIn}`,
+      { headers },
+    )
     const data = await handleJsonResponse<{ url: string }>(res)
     return data.url
   })
@@ -232,13 +288,19 @@ export async function getShareLink(photoId: string, expiresIn: number = PRESIGN_
 export async function toggleFavorite(photoId: string): Promise<boolean> {
   return autoRetry(async () => {
     const headers = await authHeaders()
-    const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/favorite`, { method: 'PATCH', headers })
+    const res = await fetchWithTimeout(
+      `${BASE_URL}/photos/${photoId}/favorite`,
+      { method: 'PATCH', headers },
+    )
     const data = await handleJsonResponse<{ favorite: boolean }>(res)
     return data.favorite
   })
 }
 
-export async function addTag(photoId: string, tag: string): Promise<{ tags: string[]; linkedPerson: string | null }> {
+export async function addTag(
+  photoId: string,
+  tag: string,
+): Promise<{ tags: string[]; linkedPerson: string | null }> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/tags`, {
@@ -246,20 +308,32 @@ export async function addTag(photoId: string, tag: string): Promise<{ tags: stri
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ tag }),
     })
-    const data = await handleJsonResponse<{ tags: string[]; linkedPerson: string | null }>(res)
+    const data = await handleJsonResponse<{
+      tags: string[]
+      linkedPerson: string | null
+    }>(res)
     return data
   })
 }
 
-export async function addPhotosToAlbum(albumId: string, photoIds: string[]): Promise<{ added: number; alreadyInAlbum: number }> {
+export async function addPhotosToAlbum(
+  albumId: string,
+  photoIds: string[],
+): Promise<{ added: number; alreadyInAlbum: number }> {
   return authenticatedPost(`albums/${albumId}/photos`, { photoIds })
 }
 
-export async function removePhotosFromAlbum(albumId: string, photoIds: string[]): Promise<{ removed: number }> {
+export async function removePhotosFromAlbum(
+  albumId: string,
+  photoIds: string[],
+): Promise<{ removed: number }> {
   return authenticatedDelete(`albums/${albumId}/photos`, { photoIds })
 }
 
-export async function updateAlbum(albumId: string, body: { name?: string; coverPhotoId?: string | null }): Promise<any> {
+export async function updateAlbum(
+  albumId: string,
+  body: { name?: string; coverPhotoId?: string | null },
+): Promise<any> {
   return authenticatedPatch(`albums/${albumId}`, body)
 }
 
@@ -267,11 +341,16 @@ export async function exportAllPhotos(): Promise<{ exportId: string }> {
   return authenticatedPost('photos/export', {})
 }
 
-export async function exportAlbum(albumId: string): Promise<{ exportId: string }> {
+export async function exportAlbum(
+  albumId: string,
+): Promise<{ exportId: string }> {
   return authenticatedPost(`albums/${albumId}/export`, {})
 }
 
-export async function exportByDate(dateFrom: string, dateTo: string): Promise<{ exportId: string }> {
+export async function exportByDate(
+  dateFrom: string,
+  dateTo: string,
+): Promise<{ exportId: string }> {
   return authenticatedPost('photos/export-by-date', { dateFrom, dateTo })
 }
 
@@ -283,11 +362,21 @@ export interface ExportProgress {
   label: string
 }
 
-export async function getExportStatus(exportId: string): Promise<ExportProgress> {
+export async function getExportStatus(
+  exportId: string,
+): Promise<ExportProgress> {
   return authenticatedGet(`exports/${exportId}`)
 }
 
-export async function getTrash(): Promise<{ id: string; uri: string; filename: string; deletedAt: string; size: number }[]> {
+export async function getTrash(): Promise<
+  {
+    id: string
+    uri: string
+    filename: string
+    deletedAt: string
+    size: number
+  }[]
+> {
   return authenticatedGet('photos/trash')
 }
 
@@ -303,26 +392,46 @@ export async function emptyTrash(): Promise<{ deleted: number }> {
   return authenticatedDelete<{ deleted: number }>('photos/trash', {})
 }
 
-export async function getPhotoAlbums(photoId: string): Promise<{ id: string; name: string; vault: boolean }[]> {
+export async function getPhotoAlbums(
+  photoId: string,
+): Promise<{ id: string; name: string; vault: boolean }[]> {
   return authenticatedGet(`photos/${photoId}/albums`)
 }
 
-export async function togglePrivate(photoId: string): Promise<{ private: boolean }> {
+export async function togglePrivate(
+  photoId: string,
+): Promise<{ private: boolean }> {
   return authenticatedPatch(`photos/${photoId}/private`, {})
 }
 
-export async function bulkSetPrivate(ids: string[]): Promise<{ marked: number; skipped: number }> {
+export async function bulkSetPrivate(
+  ids: string[],
+): Promise<{ marked: number; skipped: number }> {
   return authenticatedPatch('photos/bulk-private', { ids })
 }
 
 export async function fetchVault(): Promise<{
-  mainVault: { id: string; name: string; photos: { uri: string; id: string; createdAt: string; private: boolean }[]; _count: { photos: number } }
-  vaultAlbums: { id: string; name: string; _count: { photos: number }; createdAt: string; coverUri: string | null }[]
+  mainVault: {
+    id: string
+    name: string
+    photos: { uri: string; id: string; createdAt: string; private: boolean }[]
+    _count: { photos: number }
+  }
+  vaultAlbums: {
+    id: string
+    name: string
+    _count: { photos: number }
+    createdAt: string
+    coverUri: string | null
+  }[]
 }> {
   return authenticatedGet('albums/vault')
 }
 
-export async function createAlbum(name: string, vault?: boolean): Promise<{ id: string; name: string }> {
+export async function createAlbum(
+  name: string,
+  vault?: boolean,
+): Promise<{ id: string; name: string }> {
   return authenticatedPost('albums', { name, vault })
 }
 
@@ -330,7 +439,10 @@ export async function migrateVault(): Promise<{ moved: number }> {
   return authenticatedPost('photos/migrate-vault', {})
 }
 
-export async function removeTag(photoId: string, tag: string): Promise<string[]> {
+export async function removeTag(
+  photoId: string,
+  tag: string,
+): Promise<string[]> {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}/photos/${photoId}/tags`, {
@@ -347,7 +459,20 @@ export function fetchPhotosPageRaw(url: string) {
   return autoRetry(async () => {
     const headers = await authHeaders()
     const res = await fetchWithTimeout(`${BASE_URL}${url}`, { headers })
-    return handleJsonResponse<{ photos: { uri: string; fullUri: string; date: string; id: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean; mimeType: string }[]; nextToken: string | null }>(res)
+    return handleJsonResponse<{
+      photos: {
+        uri: string
+        fullUri: string
+        date: string
+        id: string
+        favorite: boolean
+        tags: string[]
+        blurred: boolean
+        private: boolean
+        mimeType: string
+      }[]
+      nextToken: string | null
+    }>(res)
   })
 }
 
@@ -374,7 +499,10 @@ export async function getUnconfirmedFaces(): Promise<UnconfirmedFace[]> {
   return authenticatedGet('faces/unconfirmed')
 }
 
-export async function updateFace(faceId: string, data: { personName?: string; confirmed?: boolean; ignored?: boolean }): Promise<any> {
+export async function updateFace(
+  faceId: string,
+  data: { personName?: string; confirmed?: boolean; ignored?: boolean },
+): Promise<any> {
   return authenticatedPatch(`faces/${faceId}`, data)
 }
 
@@ -382,43 +510,78 @@ export async function deleteFace(faceId: string): Promise<void> {
   await authenticatedDelete(`faces/${faceId}`)
 }
 
-export async function removeFaceFromPhoto(photoId: string, personName: string): Promise<{ deleted: number }> {
-  return authenticatedDelete(`faces/by-photo/${photoId}?person=${encodeURIComponent(personName)}`)
+export async function removeFaceFromPhoto(
+  photoId: string,
+  personName: string,
+): Promise<{ deleted: number }> {
+  return authenticatedDelete(
+    `faces/by-photo/${photoId}?person=${encodeURIComponent(personName)}`,
+  )
 }
 
-export async function detectFaces(photoId: string): Promise<{ facesFound: number }> {
+export async function detectFaces(
+  photoId: string,
+): Promise<{ facesFound: number }> {
   return authenticatedPost(`faces/detect/${photoId}`, {})
 }
 
-export async function detectBatchFaces(photoIds: string[]): Promise<{ processed: number; facesFound: number; failed: number }> {
+export async function detectBatchFaces(
+  photoIds: string[],
+): Promise<{ processed: number; facesFound: number; failed: number }> {
   return authenticatedPost('faces/detect-batch', { photoIds })
 }
 
-export async function detectAllFaces(): Promise<{ jobId: string; total: number; status: string }> {
-  return authenticatedPost('faces/detect-all', {})
+export async function detectAllFaces(
+  limit?: number,
+): Promise<{ jobId: string; total: number; status: string }> {
+  const params = limit ? `?limit=${limit}` : ''
+  return authenticatedPost(`faces/detect-all${params}`, {})
 }
 
-export async function getFaceDetectStatus(): Promise<{ total: number; pending: number; detected: number }> {
+export async function getFaceDetectStatus(): Promise<{
+  total: number
+  pending: number
+  detected: number
+}> {
   return authenticatedGet('faces/detect-status')
 }
 
-export async function getFaceDetectProgress(jobId: string): Promise<{ status: string; total: number; processed: number; facesFound: number; failed: number }> {
+export async function getFaceDetectProgress(
+  jobId: string,
+): Promise<{
+  status: string
+  total: number
+  processed: number
+  facesFound: number
+  failed: number
+}> {
   return authenticatedGet(`faces/detect-progress/${jobId}`)
 }
 
-export async function stopFaceDetectAll(jobId: string): Promise<{ stopped: boolean }> {
+export async function stopFaceDetectAll(
+  jobId: string,
+): Promise<{ stopped: boolean }> {
   return authenticatedPost('faces/detect-stop', { jobId })
 }
 
-export async function confirmAllForPerson(personName: string): Promise<{ confirmed: number }> {
+export async function confirmAllForPerson(
+  personName: string,
+): Promise<{ confirmed: number }> {
   return authenticatedPost('faces/confirm-all', { personName })
 }
 
-export async function mergePeople(fromPerson: string, toPerson: string): Promise<{ merged: number }> {
+export async function mergePeople(
+  fromPerson: string,
+  toPerson: string,
+): Promise<{ merged: number }> {
   return authenticatedPost('faces/merge', { fromPerson, toPerson })
 }
 
-export async function getFaceStats(): Promise<{ totalFaces: number; peopleCount: number; byPerson: { name: string; faceCount: number; photoCount: number }[] }> {
+export async function getFaceStats(): Promise<{
+  totalFaces: number
+  peopleCount: number
+  byPerson: { name: string; faceCount: number; photoCount: number }[]
+}> {
   return authenticatedGet('faces/stats')
 }
 
@@ -426,6 +589,12 @@ export async function getThisDayByPerson(person: string) {
   return authenticatedGet(`faces/this-day?person=${encodeURIComponent(person)}`)
 }
 
-export async function findMoreFaces(person: string): Promise<{ faceId: string; photoId: string; photoUri: string; distance: number }[]> {
-  return authenticatedGet(`faces/find-more?person=${encodeURIComponent(person)}`)
+export async function findMoreFaces(
+  person: string,
+): Promise<
+  { faceId: string; photoId: string; photoUri: string; distance: number }[]
+> {
+  return authenticatedGet(
+    `faces/find-more?person=${encodeURIComponent(person)}`,
+  )
 }

@@ -199,11 +199,19 @@ export default function PeopleScreen() {
     }
   }, [])
 
-  const handleStartScan = useCallback(async () => {
+  const [startingScan, setStartingScan] = useState(false)
+
+  const handleStartScan = useCallback(async (limit: number) => {
+    if (startingScan) return
+    setStartingScan(true)
     try {
-      const result = await detectAllFaces()
+      const result = await detectAllFaces(limit)
       if (result.status === 'nothing_to_scan') {
         Alert.alert('Listo', 'No hay fotos pendientes de escanear')
+        return
+      }
+      if (result.status === 'already_running') {
+        Alert.alert('Escaneo en curso', 'Ya hay un escaneo activo. Esperá a que termine.')
         return
       }
       setScanJob({ jobId: result.jobId, total: result.total })
@@ -211,8 +219,10 @@ export default function PeopleScreen() {
       setIsScanning(true)
     } catch {
       Alert.alert('Error', 'No se pudo iniciar el escaneo')
+    } finally {
+      setStartingScan(false)
     }
-  }, [])
+  }, [startingScan])
 
   const handleStopScan = useCallback(async () => {
     if (!scanJob) return
@@ -274,16 +284,49 @@ export default function PeopleScreen() {
         ListHeaderComponent={
           <>
             {scanStatus && scanStatus.pending > 0 && !isScanning && (
-              <TouchableOpacity
-                style={[styles.scanBtn, { backgroundColor: colors.primary }]}
-                onPress={handleStartScan}
-              >
-                <Icon name="face" size={18} color="#fff" />
-                <Text style={styles.scanBtnText}>
-                  Escanear biblioteca ({scanStatus.pending.toLocaleString()}{' '}
-                  pendientes)
-                </Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[styles.scanBtn, { backgroundColor: colors.primary }]}
+                  onPress={() =>
+                    handleStartScan(Math.min(scanStatus.pending, 15))
+                  }
+                >
+                  <Icon name="face" size={18} color="#fff" />
+                  <Text style={styles.scanBtnText}>
+                    Escanear {Math.min(scanStatus.pending, 15).toLocaleString()}{' '}
+                    fotos
+                  </Text>
+                </TouchableOpacity>
+                {scanStatus.pending > 15 && (
+                  <TouchableOpacity
+                    style={[
+                      styles.scanBtn,
+                      {
+                        backgroundColor: colors.primary,
+                        marginTop: 8,
+                        opacity: 0.85,
+                      },
+                    ]}
+                    onPress={() =>
+                      handleStartScan(Math.min(scanStatus.pending, 50))
+                    }
+                  >
+                    <Icon name="face" size={18} color="#fff" />
+                    <Text style={styles.scanBtnText}>
+                      Escanear {Math.min(scanStatus.pending, 50).toLocaleString()} fotos
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {scanStatus.pending > 50 && (
+                  <Text
+                    style={[styles.scanHint, { color: colors.textSecondary }]}
+                  >
+                    Hay {scanStatus.pending.toLocaleString()} fotos sin
+                    escanear. Para escanear más de 50, usá el script local en tu
+                    computadora.
+                  </Text>
+                )}
+              </>
             )}
             {isScanning && scanProgress && (
               <View
@@ -1081,6 +1124,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   scanBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  scanHint: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
   progressCard: {
     borderRadius: 12,
     borderWidth: 1,
