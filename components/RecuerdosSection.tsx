@@ -28,7 +28,7 @@ type Props = {
   onPressRecuerdo: (r: Recuerdo) => void
 }
 
-function RecuerdoCard({
+const RecuerdoCard = React.memo(function RecuerdoCard({
   r,
   colors,
   onPress,
@@ -38,12 +38,13 @@ function RecuerdoCard({
   onPress: (r: Recuerdo) => void
 }) {
   const [error, setError] = useState(false)
+  const handlePress = useCallback(() => onPress(r), [onPress, r])
 
   return (
     <TouchableOpacity
       key={`${r.year}-${r.id}`}
       style={[styles.card, { backgroundColor: colors.cardBg }]}
-      onPress={() => onPress(r)}
+      onPress={handlePress}
       activeOpacity={0.85}
     >
       <View style={styles.thumbWrap}>
@@ -86,14 +87,16 @@ function RecuerdoCard({
       </Text>
     </TouchableOpacity>
   )
-}
+})
 
-export default function RecuerdosSection({
+export default React.memo(function RecuerdosSection({
   recuerdos,
   colors,
   onPressRecuerdo,
 }: Props) {
-  if (recuerdos.length === 0) return null
+  if (recuerdos.length === 0) {
+    return <View style={styles.placeholder} />
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceAlt }]}>
@@ -115,10 +118,11 @@ export default function RecuerdosSection({
       </ScrollView>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 12, paddingLeft: 12 },
+  placeholder: { height: 190 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

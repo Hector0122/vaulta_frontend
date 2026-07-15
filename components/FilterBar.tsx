@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native'
+import { View, Text, TouchableOpacity, TextInput } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import type { ThemeColors } from '../theme'
@@ -16,10 +16,9 @@ type Props = {
   onToggleFavorites: () => void
   onGoToProfile: () => void
   onGoToPeople: () => void
-  onYearPreset: (from: string, to: string) => void
 }
 
-export default function FilterBar({
+export default React.memo(function FilterBar({
   colors,
   rangeStart,
   rangeEnd,
@@ -31,7 +30,6 @@ export default function FilterBar({
   onToggleFavorites,
   onGoToProfile,
   onGoToPeople,
-  onYearPreset,
 }: Props) {
   return (
     <View
@@ -121,56 +119,9 @@ export default function FilterBar({
           <Icon name="person" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
-      <YearPresets
-        colors={colors}
-        rangeStart={rangeStart}
-        onSelectPreset={onYearPreset}
-      />
     </View>
   )
-}
-
-type YearPresetsProps = {
-  colors: ThemeColors
-  rangeStart: string | null
-  onSelectPreset: (from: string, to: string) => void
-}
-
-function YearPresets({ colors, rangeStart, onSelectPreset }: YearPresetsProps) {
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 8 }, (_, i) => currentYear - i)
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.presetsRow,
-        { borderTopColor: colors.borderLight },
-      ]}
-    >
-      {!rangeStart && (
-        <>
-          <TouchableOpacity
-            style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-            onPress={() => onSelectPreset(`${currentYear}-01-01`, `${currentYear}-12-31`)}
-          >
-            <Text style={[styles.presetText, { color: colors.textSecondary }]}>Este año</Text>
-          </TouchableOpacity>
-          {years.map(y => (
-            <TouchableOpacity
-              key={y}
-              style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-              onPress={() => onSelectPreset(`${y}-01-01`, `${y}-12-31`)}
-            >
-              <Text style={[styles.presetText, { color: colors.textSecondary }]}>{y}</Text>
-            </TouchableOpacity>
-          ))}
-        </>
-      )}
-    </ScrollView>
-  )
-}
+})
 
 const styles = StyleSheet.create({
   container: {
@@ -210,18 +161,4 @@ const styles = StyleSheet.create({
   rangeFieldText: { fontSize: 13, flex: 1 },
   filterIcon: { marginHorizontal: 4 },
   profileIcon: { marginLeft: 4 },
-  presetsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-    borderTopWidth: 1,
-  },
-  presetChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  presetText: { fontSize: 12 },
 })

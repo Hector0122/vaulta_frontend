@@ -23,6 +23,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import RNFS from 'react-native-fs'
 import Share from 'react-native-share'
+import { CameraRoll } from '@react-native-camera-roll/camera-roll'
 import { useAuth } from '../../context/AuthContext'
 import ZoomableImage from '../../components/ZoomableImage'
 import VideoPlayer from '../../components/VideoPlayer'
@@ -169,15 +170,16 @@ const PhotoPage = React.memo(function PhotoPage({
   const handleDownload = async () => {
     const uri = fullUri || item.uri
     const isVideo = item.mimeType?.startsWith('video/')
-    const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG'
+    const ext = isVideo ? 'mp4' : 'jpg'
     try {
-      const dest = `${RNFS.DocumentDirectoryPath}/download_${Date.now()}.${ext}`
+      const dest = `${RNFS.CachesDirectoryPath}/download_${Date.now()}.${ext}`
       const token = await getToken()
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined
       await RNFS.downloadFile({ fromUrl: uri, toFile: dest, headers }).promise
-      if (Platform.OS === 'android') await RNFS.scanFile(dest)
+      const fileUri = Platform.OS === 'android' ? `file://${dest}` : dest
+      await CameraRoll.saveAsset(fileUri, { type: isVideo ? 'video' : 'photo' })
       success()
-      Alert.alert('Descargado', `Archivo guardado en ${dest}`)
+      Alert.alert('Descargado', 'Foto guardada en la galería')
     } catch {
       Alert.alert('Error', 'No se pudo descargar el archivo')
     }
@@ -376,31 +378,32 @@ const PhotoPage = React.memo(function PhotoPage({
           )}
         </View>
       )}
-      {tags.length > 0 && (
-        <View style={pageStyles.tagRow}>
-          {tags.map(t => (
-            <TouchableOpacity
-              key={t}
-              style={pageStyles.tagChip}
-              onPress={() => handleRemoveTag(t)}
-            >
-              <Text style={pageStyles.tagText}>{t} ✕</Text>
-            </TouchableOpacity>
-          ))}
+      <View style={pageStyles.bottomBar}>
+        {tags.length > 0 && (
+          <View style={pageStyles.tagRow}>
+            {tags.map(t => (
+              <TouchableOpacity
+                key={t}
+                style={pageStyles.tagChip}
+                onPress={() => handleRemoveTag(t)}
+              >
+                <Text style={pageStyles.tagText}>{t} ✕</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        <View style={pageStyles.tagInputRow}>
+          <TextInput
+            style={pageStyles.tagInput}
+            placeholder="Añadir etiqueta..."
+            placeholderTextColor="#999"
+            value={tagInput}
+            onChangeText={setTagInput}
+            onSubmitEditing={handleAddTag}
+            returnKeyType="done"
+          />
         </View>
-      )}
-      <View style={pageStyles.tagInputRow}>
-        <TextInput
-          style={pageStyles.tagInput}
-          placeholder="Añadir etiqueta..."
-          placeholderTextColor="#999"
-          value={tagInput}
-          onChangeText={setTagInput}
-          onSubmitEditing={handleAddTag}
-          returnKeyType="done"
-        />
-      </View>
-      <View style={pageStyles.actions}>
+        <View style={pageStyles.actions}>
         <TouchableOpacity style={pageStyles.button} onPress={handleDownload}>
           <Icon name="download" size={22} color="#fff" />
           <Text style={pageStyles.label}>Descargar</Text>
@@ -470,6 +473,7 @@ const PhotoPage = React.memo(function PhotoPage({
           <Icon name="delete" size={22} color="#fff" />
           <Text style={pageStyles.label}>Eliminar</Text>
         </TouchableOpacity>
+        </View>
       </View>
 
       {showAlbumPicker && (
@@ -519,6 +523,12 @@ const pageStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   loader: { flex: 1 },
   image: { flex: 1 },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
   tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

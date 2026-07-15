@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'
+import React, { useRef, useCallback, useState, useEffect } from 'react'
 import { Animated, StyleSheet, useWindowDimensions } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -16,6 +16,20 @@ export default function ZoomableImage({ uri }: Props) {
   const baseScale = useRef(1)
   const baseTranslateX = useRef(0)
   const baseTranslateY = useRef(0)
+
+  const [isZoomed, setIsZoomed] = useState(false)
+
+  useEffect(() => {
+    let lastZoomed = false
+    const id = scale.addListener(({ value }) => {
+      const zoomed = value > 1.05
+      if (zoomed !== lastZoomed) {
+        lastZoomed = zoomed
+        setIsZoomed(zoomed)
+      }
+    })
+    return () => scale.removeListener(id)
+  }, [scale])
 
   const clamp = useCallback(
     (value: number, min: number, max: number) => {
@@ -88,6 +102,7 @@ export default function ZoomableImage({ uri }: Props) {
     })
 
   const pan = Gesture.Pan()
+    .enabled(isZoomed)
     .minPointers(1)
     .onStart(() => {
       baseTranslateX.current = (translateX as any).__getValue()

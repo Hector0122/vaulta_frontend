@@ -9,8 +9,6 @@ type PhotoGridItemPhoto = {
   mimeType?: string
 }
 
-type BadgeMap = Record<string, boolean | undefined>
-
 type Props = {
   photo: PhotoGridItemPhoto
   selected: boolean
@@ -20,17 +18,12 @@ type Props = {
   isPrivate: boolean
   selecting: boolean
   colors: ThemeColors
-  uriToFav: BadgeMap
-  uriToOffline: BadgeMap
-  uriToBlurred: BadgeMap
-  uriToPrivate: BadgeMap
-  selectedUris: string[]
   toggleSelection: (uri: string) => void
   handlePressImage: (data: { uri: string }) => void
   handleLongPressImage: (data: { uri: string }) => void
 }
 
-export function PhotoGridItem({
+export const PhotoGridItem = React.memo(function PhotoGridItem({
   photo,
   selected,
   isFav,
@@ -120,7 +113,7 @@ export function PhotoGridItem({
       </TouchableOpacity>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   gridItem: { padding: 3, flex: 1 },
