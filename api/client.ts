@@ -428,6 +428,21 @@ export async function fetchVault(): Promise<{
   return authenticatedGet('albums/vault')
 }
 
+export async function fetchVaultAlbums(): Promise<
+  { id: string; name: string; _count: { photos: number }; vault: true }[]
+> {
+  const data = await authenticatedGet<{
+    vaultAlbums: {
+      id: string
+      name: string
+      _count: { photos: number }
+      createdAt: string
+      coverUri: string | null
+    }[]
+  }>('albums/vault')
+  return data.vaultAlbums.map(a => ({ ...a, vault: true as const }))
+}
+
 export async function createAlbum(
   name: string,
   vault?: boolean,
@@ -597,4 +612,8 @@ export async function findMoreFaces(
   return authenticatedGet(
     `faces/find-more?person=${encodeURIComponent(person)}`,
   )
+}
+
+export async function cleanupPrivateFaces(): Promise<{ deleted: number }> {
+  return authenticatedPost('faces/cleanup-private', {})
 }

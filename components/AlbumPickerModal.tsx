@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import type { ThemeColors } from '../theme'
 
-type Album = { id: string; name: string; _count: { photos: number } }
+type Album = { id: string; name: string; _count: { photos: number }; vault?: boolean }
 
 type Props = {
   visible: boolean
@@ -50,7 +50,11 @@ export default function AlbumPickerModal({
                   ]}
                   onPress={() => onSelectAlbum(a)}
                 >
-                  <Icon name="photo-album" size={22} color={colors.primary} />
+                  <Icon
+                    name={a.vault ? 'lock' : 'photo-album'}
+                    size={22}
+                    color={a.vault ? '#ffa726' : colors.primary}
+                  />
                   <Text style={[styles.rowName, { color: colors.text }]}>
                     {a.name}
                   </Text>

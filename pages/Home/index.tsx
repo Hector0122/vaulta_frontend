@@ -27,6 +27,7 @@ import {
   bulkDeletePhotos,
   bulkSetPrivate,
   getToken,
+  fetchVaultAlbums,
 } from '../../api/client'
 import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
@@ -519,14 +520,24 @@ export function HomeScreen({ navigation }: Props) {
   const handleOpenAlbumPicker = useCallback(async () => {
     try {
       const data = await authenticatedGet<
-        { id: string; name: string; _count: { photos: number } }[]
+        { id: string; name: string; _count: { photos: number }; vault?: boolean }[]
       >('albums')
-      setAlbums(data)
+      const hasPrivate = selectedUris.some(uri => uriMaps.priv[uri])
+      if (hasPrivate) {
+        try {
+          const vaultData = await fetchVaultAlbums()
+          setAlbums([...data, ...vaultData])
+        } catch {
+          setAlbums(data)
+        }
+      } else {
+        setAlbums(data)
+      }
       setShowAlbumPicker(true)
     } catch {
       Alert.alert('Error', 'No se pudieron cargar los álbumes')
     }
-  }, [])
+  }, [selectedUris, uriMaps.priv])
 
   const handlePressRecuerdo = useCallback(
     (r: { uri: string; fullUri: string; largeUri?: string | null; id: string; mimeType?: string }) => {

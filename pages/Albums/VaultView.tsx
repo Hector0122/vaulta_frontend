@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  useWindowDimensions,
   Alert,
   RefreshControl,
   Modal,
@@ -53,7 +52,6 @@ type MainVault = {
 export default function VaultView() {
   const navigation = useNavigation<StackNavProp>()
   const { colors } = useTheme()
-  const { width } = useWindowDimensions()
   const [step, setStep] = useState<'pin' | 'set-pin' | 'gallery'>('pin')
   const [galleryView, setGalleryView] = useState<'albums' | 'all'>('albums')
   const [pin, setPin] = useState('')
@@ -72,8 +70,7 @@ export default function VaultView() {
   const { showToast } = useToast()
 
   const colCount = 3
-  const gap = 2
-  const thumbSize = (width - gap * (colCount - 1)) / colCount
+  const gap = 4
 
   useEffect(() => {
     ;(async () => {
@@ -208,7 +205,7 @@ export default function VaultView() {
   const renderItem = useCallback(
     ({ item: row }: { item: VaultPhoto[] }) => (
       <View style={styles.row}>
-        {row.map(photo => {
+        {row.map((photo, itemIndex) => {
           const isSelected = selected.has(photo.id)
           return (
             <TouchableOpacity
@@ -227,37 +224,37 @@ export default function VaultView() {
                 setSelecting(true)
                 toggleSelect(photo.id)
               }}
+              style={{
+                flex: 1,
+                marginBottom: gap,
+                marginRight: itemIndex !== row.length - 1 ? gap : 0,
+                overflow: 'hidden',
+              }}
             >
-              <View>
-                <NitroImage
-                  image={{ url: photo.uri }}
-                  style={{
-                    width: thumbSize,
-                    height: thumbSize,
-                    opacity: isSelected ? 0.6 : 1,
-                  }}
-                  resizeMode="cover"
-                />
-                <View style={styles.vaultBadge}>
-                  <Icon name="visibility-off" size={14} color="#ffa726" />
-                </View>
-                {isSelected && (
-                  <View
-                    style={[
-                      styles.checkOverlay,
-                      { backgroundColor: colors.primary + 'cc' },
-                    ]}
-                  >
-                    <Icon name="check" size={22} color="#fff" />
-                  </View>
-                )}
+              <NitroImage
+                image={{ url: photo.uri }}
+                style={{ flex: 1, aspectRatio: 1, opacity: isSelected ? 0.6 : 1 }}
+                resizeMode="cover"
+              />
+              <View style={styles.vaultBadge}>
+                <Icon name="visibility-off" size={14} color="#ffa726" />
               </View>
+              {isSelected && (
+                <View
+                  style={[
+                    styles.checkOverlay,
+                    { backgroundColor: colors.primary + 'cc' },
+                  ]}
+                >
+                  <Icon name="check" size={22} color="#fff" />
+                </View>
+              )}
             </TouchableOpacity>
           )
         })}
       </View>
     ),
-    [selected, selecting, photos, navigation, colors, thumbSize, toggleSelect],
+    [selected, selecting, photos, navigation, colors, gap, toggleSelect],
   )
 
   const renderVaultAlbumItem = useCallback(

@@ -41,6 +41,7 @@ import {
   authenticatedGet,
   getPhotoAlbums,
   getToken,
+  fetchVaultAlbums,
 } from '../../api/client'
 import { BASE_URL } from '../../api/server'
 import { impactLight, success, warning } from '../../utils/haptics'
@@ -346,9 +347,18 @@ const PhotoPage = React.memo(function PhotoPage({
   const handleOpenAlbumPicker = async () => {
     try {
       const data = await authenticatedGet<
-        { id: string; name: string; _count: { photos: number } }[]
+        { id: string; name: string; _count: { photos: number }; vault?: boolean }[]
       >('albums')
-      setAlbums(data)
+      if (isPrivate) {
+        try {
+          const vaultData = await fetchVaultAlbums()
+          setAlbums([...data, ...vaultData])
+        } catch {
+          setAlbums(data)
+        }
+      } else {
+        setAlbums(data)
+      }
       setShowAlbumPicker(true)
     } catch {
       Alert.alert('Error', 'No se pudieron cargar los álbumes')

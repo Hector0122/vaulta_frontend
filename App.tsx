@@ -36,6 +36,7 @@ import { NetworkProvider } from './context/NetworkContext';
 import { updateWidgetWithRecentPhotos, pruneWidgetPhotos } from './api/widget';
 import { registerFcmToken } from './api/notifications';
 import { runAutoSync } from './api/autoSync';
+import { cleanupPrivateFaces } from './api/client';
 import type { TabParamList, StackParamList } from './types/navigation';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -131,6 +132,7 @@ function AppNavigator() {
     if (user && !biometricNeeded) {
       registerFcmToken()
       pruneWidgetPhotos()
+      cleanupPrivateFaces().catch(() => {})
       updateWidgetWithRecentPhotos()
     }
   }, [user, biometricNeeded])
