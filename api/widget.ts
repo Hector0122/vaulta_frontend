@@ -16,9 +16,32 @@ export async function updateWidgetWithRecentPhotos(): Promise<void> {
   }
 }
 
-export async function addPhotoToWidget(photoId: string, photoUrl: string): Promise<void> {
+export function pruneWidgetPhotos(): void {
   if (!WIDGET_ENABLED) return
-  WidgetModule.addWidgetPhoto(photoId, photoUrl)
+  try {
+    WidgetModule.pruneWidgetPhotos()
+  } catch {}
+}
+
+export async function addPhotoToWidget(
+  photoId: string,
+  photoUrl: string,
+  fullUrl?: string,
+): Promise<void> {
+  if (!WIDGET_ENABLED) return
+  WidgetModule.addWidgetPhoto(photoId, fullUrl || photoUrl)
+}
+
+export async function addPhotosToWidget(
+  photos: { id: string; uri: string; fullUri?: string }[],
+): Promise<number> {
+  if (!WIDGET_ENABLED) return 0
+  const existing = await getWidgetPhotoIds()
+  const toAdd = photos.filter(p => !existing.includes(p.id))
+  for (const p of toAdd) {
+    WidgetModule.addWidgetPhoto(p.id, p.fullUri || p.uri)
+  }
+  return toAdd.length
 }
 
 export async function removePhotoFromWidget(photoId: string): Promise<void> {

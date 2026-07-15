@@ -26,13 +26,16 @@ import {
   addPhotosToAlbum,
   bulkDeletePhotos,
   bulkSetPrivate,
+  getToken,
 } from '../../api/client'
 import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
 import { getCachedIds } from '../../api/offline'
-import { updateWidgetWithRecentPhotos } from '../../api/widget'
+import { updateWidgetWithRecentPhotos, addPhotosToWidget } from '../../api/widget'
 import { useAuth } from '../../context/AuthContext'
-import { impactLight, warning } from '../../utils/haptics'
+import { impactLight, success, warning } from '../../utils/haptics'
+import { requestSaveToGalleryPermission, promptOpenSettings } from '../../utils/permissions'
+import { isPresignedUrl } from '../../utils/urls'
 import { useTheme } from '../../theme'
 import { SkeletonPhotoGrid } from '../../components/Skeleton'
 import FilterBar from '../../components/FilterBar'
@@ -248,20 +251,34 @@ export function HomeScreen({ navigation }: Props) {
   }, [selectedIds, clearSelection])
 
   const handleBatchDownload = useCallback(async () => {
+    const granted = await requestSaveToGalleryPermission()
+    if (!granted) {
+      promptOpenSettings()
+      return
+    }
+    const token = await getToken()
     const timestamp = Date.now()
     const results = await Promise.allSettled(
       selectedUris.map(async (uri, i) => {
         const full = uriMaps.fullUri[uri] || uri
         const dest = `${RNFS.CachesDirectoryPath}/download_${timestamp}_${i}.jpg`
-        await RNFS.downloadFile({ fromUrl: full, toFile: dest }).promise
+        const needAuth = !isPresignedUrl(full)
+        const headers = needAuth && token ? { Authorization: `Bearer ${token}` } : undefined
+        const result = await RNFS.downloadFile({ fromUrl: full, toFile: dest, headers }).promise
+        if (result.statusCode !== 200) throw new Error(`HTTP ${result.statusCode}`)
+        const info = await RNFS.stat(dest)
+        if (info.size === 0) throw new Error('Archivo vacío')
         const fileUri = Platform.OS === 'android' ? `file://${dest}` : dest
         await CameraRoll.saveAsset(fileUri, { type: 'photo' })
       }),
     )
     const ok = results.filter(r => r.status === 'fulfilled').length
+    const fail = results.length - ok
     Alert.alert(
       'Descargadas',
-      `${ok} de ${selectedIds.length} foto(s) guardada(s) en la galería`,
+      fail > 0
+        ? `${ok} de ${selectedIds.length} foto(s) guardada(s). ${fail} fallaron.`
+        : `${ok} de ${selectedIds.length} foto(s) guardada(s) en la galería`,
     )
     clearSelection()
   }, [selectedUris, uriMaps.fullUri, selectedIds, clearSelection])
@@ -273,6 +290,23 @@ export function HomeScreen({ navigation }: Props) {
     } catch {}
     clearSelection()
   }, [selectedUris, uriMaps.fullUri, clearSelection])
+
+  const handleBatchAddToWidget = useCallback(async () => {
+    const widgetPhotos = selectedUris
+      .map(uri => {
+        const id = uriMaps.id[uri]
+        return id ? { id, uri, fullUri: uriMaps.fullUri[uri] } : null
+      })
+      .filter((p): p is { id: string; uri: string; fullUri: string } => p !== null)
+    const added = await addPhotosToWidget(widgetPhotos)
+    if (added > 0) {
+      success()
+      Alert.alert('Widget', `${added} foto(s) agregada(s) al widget`)
+    } else {
+      Alert.alert('Widget', 'Las fotos ya estaban en el widget')
+    }
+    clearSelection()
+  }, [selectedUris, uriMaps.id, clearSelection])
 
   const loadPhotos = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -765,6 +799,7 @@ export function HomeScreen({ navigation }: Props) {
         onDownload={handleBatchDownload}
         onShare={handleBatchShare}
         onAddToAlbum={handleOpenAlbumPicker}
+        onAddToWidget={handleBatchAddToWidget}
         onMakePrivate={handleBatchMakePrivate}
         onDelete={handleBatchDelete}
       />

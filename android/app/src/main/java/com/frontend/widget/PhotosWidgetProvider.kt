@@ -104,7 +104,8 @@ class PhotosWidgetProvider : AppWidgetProvider() {
 
             // Show current photo
             val prefs = getPrefs(context)
-            val paths = getPhotoPaths(prefs)
+            val allPaths = getPhotoPaths(prefs)
+            val paths = allPaths.filter { File(it).exists() }
             val count = paths.size
             val index = prefs.getInt(KEY_INDEX, 0)
 
@@ -136,7 +137,8 @@ class PhotosWidgetProvider : AppWidgetProvider() {
 
         private fun advancePhoto(context: Context) {
             val prefs = getPrefs(context)
-            val paths = getPhotoPaths(prefs)
+            val allPaths = getPhotoPaths(prefs)
+            val paths = allPaths.filter { File(it).exists() }
             if (paths.isEmpty()) return
 
             val currentIndex = prefs.getInt(KEY_INDEX, 0)

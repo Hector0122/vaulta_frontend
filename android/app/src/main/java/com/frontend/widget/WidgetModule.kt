@@ -25,16 +25,7 @@ class WidgetModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun updateWidget(photoCount: Int, thumbPaths: ReadableArray) {
-        val context: Context = reactApplicationContext
-        val prefs = PhotosWidgetProvider.getPrefs(context)
-        prefs.edit()
-            .putInt("widget_photo_count", photoCount)
-            .putInt("widget_photo_index", 0)
-            .apply()
-
-        if (photoCount == 0) {
-            PhotosWidgetProvider.updateWidgetNow(context)
-        }
+        // No-op: widget count is derived from actual downloaded files
     }
 
     @ReactMethod
@@ -46,27 +37,71 @@ class WidgetModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun pruneWidgetPhotos() {
+        val context: Context = reactApplicationContext
+        val prefs = PhotosWidgetProvider.getPrefs(context)
+
+        val idsJson = prefs.getString("widget_photo_ids", "[]") ?: "[]"
+        val pathsJson = prefs.getString("widget_photo_paths", "[]") ?: "[]"
+        val ids = try { JSONArray(idsJson) } catch (_: Exception) { JSONArray() }
+        val paths = try { JSONArray(pathsJson) } catch (_: Exception) { JSONArray() }
+
+        val cleanIds = JSONArray()
+        val cleanPaths = JSONArray()
+
+        for (i in 0 until ids.length()) {
+            val id = ids.getString(i)
+            val path = if (i < paths.length()) paths.getString(i) else ""
+            val file = File(path)
+            if (path.isNotEmpty() && file.exists()) {
+                val bmp = BitmapFactory.decodeFile(path)
+                if (bmp != null) {
+                    cleanIds.put(id)
+                    cleanPaths.put(path)
+                    bmp.recycle()
+                } else {
+                    file.delete()
+                }
+            }
+        }
+
+        val oldCount = ids.length()
+        val newCount = cleanIds.length()
+
+        prefs.edit()
+            .putString("widget_photo_ids", cleanIds.toString())
+            .putString("widget_photo_paths", cleanPaths.toString())
+            .apply()
+
+        if (oldCount != newCount) {
+            android.util.Log.d("WidgetModule", "Pruned widget: $oldCount -> $newCount photos")
+            PhotosWidgetProvider.updateWidgetNow(context)
+        }
+    }
+
+    @ReactMethod
     fun addWidgetPhoto(photoId: String, photoUrl: String) {
         val context: Context = reactApplicationContext
         val prefs = PhotosWidgetProvider.getPrefs(context)
 
-        // Check duplicate
+        // Check duplicate in existing IDs
         val existingIds = prefs.getString("widget_photo_ids", "[]") ?: "[]"
         val ids = try { JSONArray(existingIds) } catch (_: Exception) { JSONArray() }
         for (i in 0 until ids.length()) {
             if (ids.getString(i) == photoId) return
         }
 
-        // Save ID immediately, download will add the path
-        ids.put(photoId)
-        prefs.edit()
-            .putString("widget_photo_ids", ids.toString())
-            .putInt("widget_photo_count", ids.length())
-            .apply()
-
-        // Save pending URL
+        // Check duplicate in pending queue
         val pendingJson = prefs.getString("widget_pending_urls", "[]") ?: "[]"
         val pending = try { JSONArray(pendingJson) } catch (_: Exception) { JSONArray() }
+        for (i in 0 until pending.length()) {
+            try {
+                val entry = pending.getJSONArray(i)
+                if (entry.getString(0) == photoId) return
+            } catch (_: Exception) {}
+        }
+
+        // Save to pending queue only (ID will be committed after successful download)
         pending.put(JSONArray().apply {
             put(photoId)
             put(photoUrl)
@@ -101,7 +136,6 @@ class WidgetModule(reactContext: ReactApplicationContext) :
         prefs.edit()
             .putString("widget_photo_ids", newIds.toString())
             .putString("widget_photo_paths", newPaths.toString())
-            .putInt("widget_photo_count", newIds.length())
             .apply()
         PhotosWidgetProvider.updateWidgetNow(context)
     }
@@ -123,8 +157,8 @@ class WidgetModule(reactContext: ReactApplicationContext) :
                 val dir = File(context.cacheDir, "widget_photos")
                 if (!dir.exists()) dir.mkdirs()
 
-                val newIds = JSONArray()
-                val newPaths = JSONArray()
+                val successfulIds = JSONArray()
+                val successfulPaths = JSONArray()
 
                 for (i in 0 until pending.length()) {
                     try {
@@ -148,26 +182,33 @@ class WidgetModule(reactContext: ReactApplicationContext) :
                             // Verify it's a valid image
                             val bmp = BitmapFactory.decodeFile(dest.absolutePath)
                             if (bmp != null) {
-                                newIds.put(pid)
-                                newPaths.put(dest.absolutePath)
+                                successfulIds.put(pid)
+                                successfulPaths.put(dest.absolutePath)
                                 bmp.recycle()
                             } else {
                                 dest.delete()
                             }
                         }
                         conn.disconnect()
-                    } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    android.util.Log.e("WidgetModule", "Download failed for pending photo: ${e.message}")
+                }
                 }
 
-                if (newIds.length() > 0) {
+                // Only commit IDs and paths for successfully downloaded photos
+                if (successfulIds.length() > 0) {
+                    val existingIds = prefs.getString("widget_photo_ids", "[]") ?: "[]"
+                    val ids = try { JSONArray(existingIds) } catch (_: Exception) { JSONArray() }
                     val existingPaths = prefs.getString("widget_photo_paths", "[]") ?: "[]"
                     val paths = try { JSONArray(existingPaths) } catch (_: Exception) { JSONArray() }
 
-                    for (i in 0 until newIds.length()) {
-                        paths.put(newPaths.getString(i))
+                    for (i in 0 until successfulIds.length()) {
+                        ids.put(successfulIds.getString(i))
+                        paths.put(successfulPaths.getString(i))
                     }
 
                     prefs.edit()
+                        .putString("widget_photo_ids", ids.toString())
                         .putString("widget_photo_paths", paths.toString())
                         .putString("widget_pending_urls", "[]")
                         .apply()

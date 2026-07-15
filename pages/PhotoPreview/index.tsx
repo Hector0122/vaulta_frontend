@@ -26,6 +26,8 @@ import Share from 'react-native-share'
 import { CameraRoll } from '@react-native-camera-roll/camera-roll'
 import { useAuth } from '../../context/AuthContext'
 import ZoomableImage from '../../components/ZoomableImage'
+import { requestSaveToGalleryPermission, promptOpenSettings } from '../../utils/permissions'
+import { isPresignedUrl } from '../../utils/urls'
 import VideoPlayer from '../../components/VideoPlayer'
 import {
   getPhotoUrl,
@@ -168,20 +170,41 @@ const PhotoPage = React.memo(function PhotoPage({
   }
 
   const handleDownload = async () => {
+    const granted = await requestSaveToGalleryPermission()
+    if (!granted) {
+      promptOpenSettings()
+      return
+    }
     const uri = fullUri || item.uri
     const isVideo = item.mimeType?.startsWith('video/')
     const ext = isVideo ? 'mp4' : 'jpg'
+    const dest = `${RNFS.CachesDirectoryPath}/download_${Date.now()}.${ext}`
+    const needAuth = !isPresignedUrl(uri)
     try {
-      const dest = `${RNFS.CachesDirectoryPath}/download_${Date.now()}.${ext}`
-      const token = await getToken()
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
-      await RNFS.downloadFile({ fromUrl: uri, toFile: dest, headers }).promise
+      const headers: Record<string, string> | undefined = needAuth
+        ? { Authorization: `Bearer ${await getToken() || ''}` }
+        : undefined
+      const result = await RNFS.downloadFile({ fromUrl: uri, toFile: dest, headers }).promise
+      if (result.statusCode !== 200) {
+        Alert.alert('Error', `La descarga falló (HTTP ${result.statusCode})`)
+        return
+      }
+      const info = await RNFS.stat(dest)
+      if (info.size === 0) {
+        Alert.alert('Error', 'El archivo descargado está vacío')
+        return
+      }
+    } catch (e: any) {
+      Alert.alert('Error', `No se pudo descargar: ${e?.message || 'error desconocido'}`)
+      return
+    }
+    try {
       const fileUri = Platform.OS === 'android' ? `file://${dest}` : dest
       await CameraRoll.saveAsset(fileUri, { type: isVideo ? 'video' : 'photo' })
       success()
       Alert.alert('Descargado', 'Foto guardada en la galería')
-    } catch {
-      Alert.alert('Error', 'No se pudo descargar el archivo')
+    } catch (e: any) {
+      Alert.alert('Error', `No se pudo guardar en la galería: ${e?.message || 'error desconocido'}`)
     }
   }
 
@@ -189,10 +212,12 @@ const PhotoPage = React.memo(function PhotoPage({
     const uri = fullUri || item.uri
     const isVideo = item.mimeType?.startsWith('video/')
     const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG'
+    const needAuth = !isPresignedUrl(uri)
     try {
       const localPath = `${RNFS.CachesDirectoryPath}/share_${Date.now()}.${ext}`
-      const token = await getToken()
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+      const headers: Record<string, string> | undefined = needAuth
+        ? { Authorization: `Bearer ${await getToken() || ''}` }
+        : undefined
       await RNFS.downloadFile({ fromUrl: uri, toFile: localPath, headers })
         .promise
       await Share.open({
@@ -261,7 +286,7 @@ const PhotoPage = React.memo(function PhotoPage({
         setInWidget(false)
         warning()
       } else {
-        await addPhotoToWidget(item.id, item.uri)
+        await addPhotoToWidget(item.id, item.uri, fullUri || undefined)
         setInWidget(true)
         success()
       }

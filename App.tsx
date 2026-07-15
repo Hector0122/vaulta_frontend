@@ -33,7 +33,7 @@ import ConnectionBanner from './components/ConnectionBanner';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import { NetworkProvider } from './context/NetworkContext';
-import { updateWidgetWithRecentPhotos } from './api/widget';
+import { updateWidgetWithRecentPhotos, pruneWidgetPhotos } from './api/widget';
 import { registerFcmToken } from './api/notifications';
 import { runAutoSync } from './api/autoSync';
 import type { TabParamList, StackParamList } from './types/navigation';
@@ -130,6 +130,7 @@ function AppNavigator() {
   useEffect(() => {
     if (user && !biometricNeeded) {
       registerFcmToken()
+      pruneWidgetPhotos()
       updateWidgetWithRecentPhotos()
     }
   }, [user, biometricNeeded])
