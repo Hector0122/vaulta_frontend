@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import type { FlashListRef } from '@shopify/flash-list'
+import Icon from 'react-native-vector-icons/MaterialIcons'
 
 import '../../utils/calendarLocales'
 import { StackNavigationProp } from '@react-navigation/stack'
@@ -50,6 +51,7 @@ import {
 import SelectionBar from '../../components/SelectionBar'
 import FABMenu from '../../components/FABMenu'
 import AlbumPickerModal from '../../components/AlbumPickerModal'
+import SelectDateRangeModal from '../../components/SelectDateRangeModal'
 import type { Photo, ListItem } from './utils'
 import { flattenWithHeaders, dateRange } from './utils'
 import { PhotoGridItem } from './PhotoGridItem'
@@ -76,7 +78,7 @@ export function HomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedUris, setSelectedUris] = useState<string[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [nextToken, setNextToken] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -87,6 +89,11 @@ export function HomeScreen({ navigation }: Props) {
   const [privateOnly, _setPrivateOnly] = useState(false)
   const [offlineIds, setOfflineIds] = useState<string[]>([])
   const [showAlbumPicker, setShowAlbumPicker] = useState(false)
+  const [showSelectRangeModal, setShowSelectRangeModal] = useState(false)
+  const [rangeSelectLoading, setRangeSelectLoading] = useState(false)
+  const [extraSelectedPhotos, setExtraSelectedPhotos] = useState<
+    Record<string, Photo>
+  >({})
   const [albums, setAlbums] = useState<
     { id: string; name: string; _count: { photos: number } }[]
   >([])
@@ -146,36 +153,43 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [])
 
-  const selecting = selectedUris.length > 0
+  const selecting = selectedIds.size > 0
 
-  const uriMaps = useMemo(() => {
-    const id: Record<string, string> = {}
-    const fav: Record<string, boolean> = {}
-    const blurred: Record<string, boolean> = {}
-    const priv: Record<string, boolean> = {}
-    const offline: Record<string, boolean> = {}
-    const fullUri: Record<string, string> = {}
-    for (const p of photos) {
-      id[p.uri] = p.id
-      fav[p.uri] = p.favorite
-      blurred[p.uri] = p.blurred
-      priv[p.uri] = p.private
-      offline[p.uri] = offlineIds.includes(p.id)
-      fullUri[p.uri] = p.fullUri || p.uri
-    }
-    return { id, fav, blurred, priv, offline, fullUri }
-  }, [photos, offlineIds])
+  const offlineSet = useMemo(() => new Set(offlineIds), [offlineIds])
 
-  const selectedIds = useMemo(
-    () => selectedUris.map(uri => uriMaps.id[uri]).filter(Boolean),
-    [selectedUris, uriMaps.id],
+  const photoById = useMemo(() => {
+    const m: Record<string, Photo> = { ...extraSelectedPhotos }
+    for (const p of photos) m[p.id] = p
+    return m
+  }, [photos, extraSelectedPhotos])
+
+  const selectedPhotos = useMemo(
+    () => Array.from(selectedIds).map(id => photoById[id]).filter(Boolean),
+    [selectedIds, photoById],
   )
 
-  const clearSelection = useCallback(() => setSelectedUris([]), [])
-  const toggleSelection = useCallback((uri: string) => {
-    setSelectedUris(prev =>
-      prev.includes(uri) ? prev.filter(u => u !== uri) : [...prev, uri],
-    )
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+    setExtraSelectedPhotos({})
+  }, [])
+
+  const toggleDaySelection = useCallback((ids: string[]) => {
+    if (ids.length === 0) return
+    setSelectedIds(prev => {
+      const allSelected = ids.every(id => prev.has(id))
+      const next = new Set(prev)
+      if (allSelected) ids.forEach(id => next.delete(id))
+      else ids.forEach(id => next.add(id))
+      return next
+    })
+  }, [])
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }, [])
 
   const previewPhotos = useMemo(
@@ -192,11 +206,11 @@ export function HomeScreen({ navigation }: Props) {
   )
 
   const handlePressImage = useCallback(
-    (data: { uri: string }) => {
+    (data: { uri: string; id: string }) => {
       if (selecting) {
-        toggleSelection(data.uri)
+        toggleSelection(data.id)
       } else {
-        const idx = previewPhotos.findIndex(p => p.uri === data.uri)
+        const idx = previewPhotos.findIndex(p => p.id === data.id)
         navigation.navigate('PhotoPreview', {
           photos: previewPhotos,
           initialIndex: Math.max(idx, 0),
@@ -207,10 +221,10 @@ export function HomeScreen({ navigation }: Props) {
   )
 
   const handleLongPressImage = useCallback(
-    (data: { uri: string }) => {
+    (data: { uri: string; id: string }) => {
       if (!selecting) {
         impactLight()
-        setSelectedUris([data.uri])
+        setSelectedIds(new Set([data.id]))
       }
     },
     [selecting],
@@ -218,14 +232,14 @@ export function HomeScreen({ navigation }: Props) {
 
   const handleBatchDelete = useCallback(() => {
     warning()
-    Alert.alert(`Eliminar ${selectedIds.length} foto(s)`, '¿Estás seguro?', [
+    Alert.alert(`Eliminar ${selectedIds.size} foto(s)`, '¿Estás seguro?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
           await bulkDeletePhotos(Array.from(selectedIds))
-          setPhotos(prev => prev.filter(p => !selectedIds.includes(p.id)))
+          setPhotos(prev => prev.filter(p => !selectedIds.has(p.id)))
           clearSelection()
         },
       },
@@ -234,14 +248,14 @@ export function HomeScreen({ navigation }: Props) {
 
   const handleBatchMakePrivate = useCallback(() => {
     warning()
-    Alert.alert(`Marcar ${selectedIds.length} foto(s) como privada(s)`, 'Las fotos se moverán a la Caja Fuerte', [
+    Alert.alert(`Marcar ${selectedIds.size} foto(s) como privada(s)`, 'Las fotos se moverán a la Caja Fuerte', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Privada',
         onPress: async () => {
           try {
             await bulkSetPrivate(Array.from(selectedIds))
-            setPhotos(prev => prev.filter(p => !selectedIds.includes(p.id)))
+            setPhotos(prev => prev.filter(p => !selectedIds.has(p.id)))
             clearSelection()
           } catch {
             Alert.alert('Error', 'No se pudieron marcar como privadas')
@@ -260,8 +274,8 @@ export function HomeScreen({ navigation }: Props) {
     const token = await getToken()
     const timestamp = Date.now()
     const results = await Promise.allSettled(
-      selectedUris.map(async (uri, i) => {
-        const full = uriMaps.fullUri[uri] || uri
+      selectedPhotos.map(async (photo, i) => {
+        const full = photo.fullUri || photo.uri
         const dest = `${RNFS.CachesDirectoryPath}/download_${timestamp}_${i}.jpg`
         const needAuth = !isPresignedUrl(full)
         const headers = needAuth && token ? { Authorization: `Bearer ${token}` } : undefined
@@ -278,27 +292,26 @@ export function HomeScreen({ navigation }: Props) {
     Alert.alert(
       'Descargadas',
       fail > 0
-        ? `${ok} de ${selectedIds.length} foto(s) guardada(s). ${fail} fallaron.`
-        : `${ok} de ${selectedIds.length} foto(s) guardada(s) en la galería`,
+        ? `${ok} de ${selectedIds.size} foto(s) guardada(s). ${fail} fallaron.`
+        : `${ok} de ${selectedIds.size} foto(s) guardada(s) en la galería`,
     )
     clearSelection()
-  }, [selectedUris, uriMaps.fullUri, selectedIds, clearSelection])
+  }, [selectedPhotos, selectedIds, clearSelection])
 
   const handleBatchShare = useCallback(async () => {
     try {
-      const fullUrls = selectedUris.map(uri => uriMaps.fullUri[uri] || uri)
+      const fullUrls = selectedPhotos.map(p => p.fullUri || p.uri)
       await Share.open({ urls: fullUrls, type: 'image/jpeg' })
     } catch {}
     clearSelection()
-  }, [selectedUris, uriMaps.fullUri, clearSelection])
+  }, [selectedPhotos, clearSelection])
 
   const handleBatchAddToWidget = useCallback(async () => {
-    const widgetPhotos = selectedUris
-      .map(uri => {
-        const id = uriMaps.id[uri]
-        return id ? { id, uri, fullUri: uriMaps.fullUri[uri] } : null
-      })
-      .filter((p): p is { id: string; uri: string; fullUri: string } => p !== null)
+    const widgetPhotos = selectedPhotos.map(p => ({
+      id: p.id,
+      uri: p.uri,
+      fullUri: p.fullUri || p.uri,
+    }))
     const added = await addPhotosToWidget(widgetPhotos)
     if (added > 0) {
       success()
@@ -307,7 +320,7 @@ export function HomeScreen({ navigation }: Props) {
       Alert.alert('Widget', 'Las fotos ya estaban en el widget')
     }
     clearSelection()
-  }, [selectedUris, uriMaps.id, clearSelection])
+  }, [selectedPhotos, clearSelection])
 
   const loadPhotos = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -382,6 +395,54 @@ export function HomeScreen({ navigation }: Props) {
     } catch {}
     setLoadingMore(false)
   }, [loadingMore, hasMore, nextToken])
+
+  const handleOpenSelectRange = useCallback(() => setShowSelectRangeModal(true), [])
+  const handleCloseSelectRange = useCallback(() => setShowSelectRangeModal(false), [])
+
+  const handleConfirmSelectRange = useCallback(
+    async (start: string, end: string) => {
+      setRangeSelectLoading(true)
+      try {
+        const dr = dateRange(start, end)
+        const collected: Photo[] = []
+        let pageToken: string | undefined
+        let guard = 0
+        do {
+          const data = await fetchPhotosPage({
+            maxKeys: 200,
+            dateFrom: dr.dateFrom,
+            dateTo: dr.dateTo,
+            pageToken,
+          })
+          collected.push(...data.photos)
+          pageToken = data.nextToken ?? undefined
+          guard += 1
+        } while (pageToken && guard < 25)
+
+        setExtraSelectedPhotos(prev => {
+          const next = { ...prev }
+          collected.forEach(p => { next[p.id] = p })
+          return next
+        })
+        setSelectedIds(prev => {
+          const next = new Set(prev)
+          collected.forEach(p => next.add(p.id))
+          return next
+        })
+        setShowSelectRangeModal(false)
+        if (collected.length === 0) {
+          Alert.alert('Sin fotos', 'No hay fotos en ese rango de fechas')
+        } else {
+          success()
+        }
+      } catch {
+        Alert.alert('Error', 'No se pudieron cargar las fotos de ese rango')
+      } finally {
+        setRangeSelectLoading(false)
+      }
+    },
+    [],
+  )
 
   const fetchRecuerdos = useCallback(async () => {
     try {
@@ -497,7 +558,7 @@ export function HomeScreen({ navigation }: Props) {
   const handleSelectAlbum = useCallback(
     async (album: { id: string }) => {
       try {
-        const res = await addPhotosToAlbum(album.id, selectedIds)
+        const res = await addPhotosToAlbum(album.id, Array.from(selectedIds))
         setShowAlbumPicker(false)
         clearSelection()
         if (res.alreadyInAlbum > 0 && res.added === 0) {
@@ -522,7 +583,7 @@ export function HomeScreen({ navigation }: Props) {
       const data = await authenticatedGet<
         { id: string; name: string; _count: { photos: number }; vault?: boolean }[]
       >('albums')
-      const hasPrivate = selectedUris.some(uri => uriMaps.priv[uri])
+      const hasPrivate = selectedPhotos.some(p => p.private)
       if (hasPrivate) {
         try {
           const vaultData = await fetchVaultAlbums()
@@ -537,7 +598,7 @@ export function HomeScreen({ navigation }: Props) {
     } catch {
       Alert.alert('Error', 'No se pudieron cargar los álbumes')
     }
-  }, [selectedUris, uriMaps.priv])
+  }, [selectedPhotos])
 
   const handlePressRecuerdo = useCallback(
     (r: { uri: string; fullUri: string; largeUri?: string | null; id: string; mimeType?: string }) => {
@@ -566,8 +627,8 @@ export function HomeScreen({ navigation }: Props) {
   )
 
   const handleToggleAll = useCallback(() => {
-    setSelectedUris(prev =>
-      prev.length === photos.length ? [] : photos.map(p => p.uri),
+    setSelectedIds(prev =>
+      prev.size === photos.length ? new Set() : new Set(photos.map(p => p.id)),
     )
   }, [photos])
 
@@ -587,11 +648,11 @@ export function HomeScreen({ navigation }: Props) {
               </Text>
             </TouchableOpacity>
             <Text style={[styles.selectionCount, { color: colors.text }]}>
-              {selectedUris.length} seleccionada(s)
+              {selectedIds.size} seleccionada(s)
             </Text>
             <TouchableOpacity onPress={handleToggleAll}>
               <Text style={[styles.selectionAction, { color: colors.primary }]}>
-                {selectedUris.length === photos.length ? 'Ninguna' : 'Todo'}
+                {selectedIds.size === photos.length ? 'Ninguna' : 'Todo'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -608,6 +669,7 @@ export function HomeScreen({ navigation }: Props) {
           onToggleFavorites={toggleFilter}
           onGoToProfile={handleGoToProfile}
           onGoToPeople={handleGoToPeople}
+          onOpenSelectRange={handleOpenSelectRange}
         />
       </>
     ),
@@ -620,12 +682,13 @@ export function HomeScreen({ navigation }: Props) {
       handleOpenDatePicker,
       handleGoToProfile,
       handleGoToPeople,
+      handleOpenSelectRange,
       handleToggleAll,
       photos.length,
       rangeEnd,
       rangeStart,
       searchQuery,
-      selectedUris.length,
+      selectedIds,
       selecting,
       toggleFilter,
     ],
@@ -683,8 +746,20 @@ export function HomeScreen({ navigation }: Props) {
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => {
       if (item.type === 'header') {
+        const daySelected =
+          item.photoIds.length > 0 &&
+          item.photoIds.every(id => selectedIds.has(id))
         return (
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => toggleDaySelection(item.photoIds)}
+            onLongPress={() => {
+              if (!selecting) {
+                impactLight()
+                setSelectedIds(new Set(item.photoIds))
+              }
+            }}
+          >
             <Text style={[styles.dateLabel, { color: colors.text }]}>
               {new Date(item.date).toLocaleDateString('es-ES', {
                 day: 'numeric',
@@ -692,17 +767,21 @@ export function HomeScreen({ navigation }: Props) {
                 year: 'numeric',
               })}
             </Text>
-          </View>
+            <Icon
+              name={daySelected ? 'check-circle' : 'radio-button-unchecked'}
+              size={18}
+              color={daySelected ? colors.primary : colors.textTertiary}
+            />
+          </TouchableOpacity>
         )
       }
       if (item.type === 'photo') {
         const photo = item.photo
-        const uri = photo.uri
-        const selected = selectedUris.includes(uri)
-        const isFav = !selected && uriMaps.fav[uri]
-        const isOffline = !selected && !isFav && uriMaps.offline[uri]
-        const isBlurry = !selected && uriMaps.blurred[uri]
-        const isPrivate = !selected && uriMaps.priv[uri]
+        const selected = selectedIds.has(photo.id)
+        const isFav = !selected && photo.favorite
+        const isOffline = !selected && !isFav && offlineSet.has(photo.id)
+        const isBlurry = !selected && photo.blurred
+        const isPrivate = !selected && photo.private
         return (
           <PhotoGridItem
             photo={photo}
@@ -721,14 +800,23 @@ export function HomeScreen({ navigation }: Props) {
       }
       return null
     },
-    [colors, selectedUris, uriMaps, selecting, toggleSelection, handlePressImage, handleLongPressImage],
+    [
+      colors,
+      selectedIds,
+      offlineSet,
+      selecting,
+      toggleSelection,
+      toggleDaySelection,
+      handlePressImage,
+      handleLongPressImage,
+    ],
   )
 
   const keyExtractor = useCallback((item: ListItem) => item.key, [])
 
   const extraData = useMemo(
-    () => [selectedUris, uriMaps.fav, uriMaps.blurred, uriMaps.offline, uriMaps.priv, selecting, colors],
-    [selectedUris, uriMaps, selecting, colors],
+    () => [selectedIds, offlineSet, selecting, colors],
+    [selectedIds, offlineSet, selecting, colors],
   )
 
   if (loading) {
@@ -804,7 +892,7 @@ export function HomeScreen({ navigation }: Props) {
         />
       )}
       <SelectionBar
-        selectedCount={selectedIds.length}
+        selectedCount={selectedIds.size}
         isDark={isDark}
         colors={colors}
         onDownload={handleBatchDownload}
@@ -862,6 +950,13 @@ export function HomeScreen({ navigation }: Props) {
         onClose={() => setShowAlbumPicker(false)}
         onSelectAlbum={handleSelectAlbum}
       />
+      <SelectDateRangeModal
+        visible={showSelectRangeModal}
+        colors={colors}
+        loading={rangeSelectLoading}
+        onClose={handleCloseSelectRange}
+        onConfirm={handleConfirmSelectRange}
+      />
     </View>
   )
 }
@@ -869,7 +964,13 @@ export function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1 },
-  sectionHeader: { paddingHorizontal: 8, paddingVertical: 6 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
   dateLabel: { fontSize: 18, fontWeight: 'bold' },
   selectionHeader: {
     flexDirection: 'row',

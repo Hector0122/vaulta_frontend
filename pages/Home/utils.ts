@@ -12,7 +12,7 @@ export type Photo = {
 }
 
 export type ListItem =
-  | { type: 'header'; date: string; key: string }
+  | { type: 'header'; date: string; key: string; photoIds: string[] }
   | { type: 'photo'; photo: Photo; key: string }
 
 export function flattenWithHeaders(photos: Photo[]): ListItem[] {
@@ -25,8 +25,14 @@ export function flattenWithHeaders(photos: Photo[]): ListItem[] {
 
   const items: ListItem[] = []
   sortedDates.forEach(date => {
-    items.push({ type: 'header', date, key: `header-${date}` })
-    groups[date].forEach(photo => {
+    const dayPhotos = groups[date]
+    items.push({
+      type: 'header',
+      date,
+      key: `header-${date}`,
+      photoIds: dayPhotos.map(p => p.id),
+    })
+    dayPhotos.forEach(photo => {
       items.push({ type: 'photo', photo, key: photo.id })
     })
   })

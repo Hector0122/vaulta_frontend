@@ -109,8 +109,6 @@ class PhotosWidgetProvider : AppWidgetProvider() {
             val count = paths.size
             val index = prefs.getInt(KEY_INDEX, 0)
 
-            views.setTextViewText(R.id.widget_count, "$count fotos")
-
             if (count > 0) {
                 val path = paths[index % count]
                 try {

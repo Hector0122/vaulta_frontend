@@ -16,6 +16,7 @@ type Props = {
   onToggleFavorites: () => void
   onGoToProfile: () => void
   onGoToPeople: () => void
+  onOpenSelectRange: () => void
 }
 
 export default React.memo(function FilterBar({
@@ -30,6 +31,7 @@ export default React.memo(function FilterBar({
   onToggleFavorites,
   onGoToProfile,
   onGoToPeople,
+  onOpenSelectRange,
 }: Props) {
   return (
     <View
@@ -101,6 +103,12 @@ export default React.memo(function FilterBar({
               <Icon name="close" size={16} color={colors.danger} />
             </TouchableOpacity>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onOpenSelectRange}
+          style={styles.filterIcon}
+        >
+          <Icon name="playlist-add-check" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onToggleFavorites}

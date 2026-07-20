@@ -6,6 +6,7 @@ import type { ThemeColors } from '../../theme'
 
 type PhotoGridItemPhoto = {
   uri: string
+  id: string
   mimeType?: string
 }
 
@@ -18,9 +19,9 @@ type Props = {
   isPrivate: boolean
   selecting: boolean
   colors: ThemeColors
-  toggleSelection: (uri: string) => void
-  handlePressImage: (data: { uri: string }) => void
-  handleLongPressImage: (data: { uri: string }) => void
+  toggleSelection: (id: string) => void
+  handlePressImage: (data: { uri: string; id: string }) => void
+  handleLongPressImage: (data: { uri: string; id: string }) => void
 }
 
 export const PhotoGridItem = React.memo(function PhotoGridItem({
@@ -36,20 +37,20 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
   handlePressImage,
   handleLongPressImage,
 }: Props) {
-  const uri = photo.uri
+  const { uri, id } = photo
   return (
     <View style={styles.gridItem}>
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => {
           if (selecting) {
-            toggleSelection(uri)
+            toggleSelection(id)
           } else {
-            handlePressImage({ uri })
+            handlePressImage({ uri, id })
           }
         }}
         onLongPress={() => {
-          if (!selecting) handleLongPressImage({ uri })
+          if (!selecting) handleLongPressImage({ uri, id })
         }}
       >
         <View
