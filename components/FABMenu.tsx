@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { TouchableOpacity, Animated, Pressable, StyleSheet } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
 
 type Props = {
@@ -101,7 +101,7 @@ export default function FABMenu({
         ]}
       >
         <TouchableOpacity style={styles.miniInner} onPress={onOpenGallery}>
-          <Icon name="photo-library" size={22} color={colors.text} />
+          <Icon name="image-multiple-outline" size={22} color={colors.text} />
         </TouchableOpacity>
       </Animated.View>
       <Animated.View
@@ -129,7 +129,7 @@ export default function FABMenu({
         ]}
       >
         <TouchableOpacity style={styles.miniInner} onPress={onOpenCamera}>
-          <Icon name="camera-alt" size={22} color={colors.text} />
+          <Icon name="camera" size={22} color={colors.text} />
         </TouchableOpacity>
       </Animated.View>
       <Animated.View
@@ -157,14 +157,14 @@ export default function FABMenu({
         ]}
       >
         <TouchableOpacity style={styles.miniInner} onPress={onOpenVideo}>
-          <Icon name="videocam" size={22} color={colors.text} />
+          <Icon name="video-outline" size={22} color={colors.text} />
         </TouchableOpacity>
       </Animated.View>
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={onToggle}
       >
-        <Icon name={visible ? 'close' : 'add-a-photo'} size={28} color="#fff" />
+        <Icon name={visible ? 'close' : 'camera-plus-outline'} size={28} color="#fff" />
       </TouchableOpacity>
     </>
   )

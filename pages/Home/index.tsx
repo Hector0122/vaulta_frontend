@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import type { FlashListRef } from '@shopify/flash-list'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
 import '../../utils/calendarLocales'
 import { StackNavigationProp } from '@react-navigation/stack'
@@ -768,7 +768,7 @@ export function HomeScreen({ navigation }: Props) {
               })}
             </Text>
             <Icon
-              name={daySelected ? 'check-circle' : 'radio-button-unchecked'}
+              name={daySelected ? 'check-circle' : 'radiobox-blank'}
               size={18}
               color={daySelected ? colors.primary : colors.textTertiary}
             />

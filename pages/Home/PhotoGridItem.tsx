@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, TouchableOpacity, StyleSheet } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../../theme'
 
 type PhotoGridItemPhoto = {
@@ -65,7 +65,7 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
           {photo.mimeType?.startsWith('video/') && (
             <View style={styles.videoOverlay}>
               <Icon
-                name="play-circle-filled"
+                name="play-circle"
                 size={48}
                 color="rgba(255,255,255,0.7)"
               />
@@ -78,13 +78,13 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
           )}
           {isPrivate && (
             <View style={styles.privateBadge}>
-              <Icon name="visibility-off" size={16} color="#ffa726" />
+              <Icon name="eye-off-outline" size={16} color="#ffa726" />
             </View>
           )}
           {isOffline && (
             <View style={styles.offlineBadge}>
               <Icon
-                name="cloud-queue"
+                name="cloud-outline"
                 size={16}
                 color={colors.offline}
               />
@@ -93,7 +93,7 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
           {isFav && (
             <View style={styles.favBadge}>
               <Icon
-                name="favorite"
+                name="heart"
                 size={18}
                 color={colors.favorite}
               />

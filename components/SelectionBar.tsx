@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { StyleSheet } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
 
 type Props = {
@@ -36,19 +36,19 @@ export default function SelectionBar({
         <Text style={styles.label}>Descargar</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onShare}>
-        <Icon name="share" size={24} color="#fff" />
+        <Icon name="share-variant" size={24} color="#fff" />
         <Text style={styles.label}>Compartir</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onAddToAlbum}>
-        <Icon name="photo-album" size={24} color="#4fc3f7" />
+        <Icon name="image-multiple-outline" size={24} color="#4fc3f7" />
         <Text style={styles.label}>Álbum</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onAddToWidget}>
-        <Icon name="smartphone" size={24} color="#2BD4CE" />
+        <Icon name="cellphone" size={24} color="#2BD4CE" />
         <Text style={[styles.label, { color: '#2BD4CE' }]}>Widget</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onMakePrivate}>
-        <Icon name="visibility-off" size={24} color="#ffa726" />
+        <Icon name="eye-off-outline" size={24} color="#ffa726" />
         <Text style={[styles.label, { color: '#ffa726' }]}>Privada</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onDelete}>

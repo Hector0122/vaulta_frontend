@@ -14,7 +14,7 @@ import {
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import { fetchVault, removePhotosFromAlbum, createAlbum } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
@@ -237,7 +237,7 @@ export default function VaultView() {
                 resizeMode="cover"
               />
               <View style={styles.vaultBadge}>
-                <Icon name="visibility-off" size={14} color="#ffa726" />
+                <Icon name="eye-off-outline" size={14} color="#ffa726" />
               </View>
               {isSelected && (
                 <View
@@ -274,7 +274,7 @@ export default function VaultView() {
             <Image source={{ uri: item.coverUri }} style={styles.albumCoverThumb} />
           ) : (
             <View style={[styles.albumCoverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
-              <Icon name="photo-album" size={22} color={colors.primary} />
+              <Icon name="image-multiple-outline" size={22} color={colors.primary} />
             </View>
           )}
           <View style={styles.albumCardText}>
@@ -314,7 +314,7 @@ export default function VaultView() {
           { backgroundColor: colors.background },
         ]}
       >
-        <Icon name="lock" size={48} color={colors.primary} />
+        <Icon name="lock-outline" size={48} color={colors.primary} />
         <Text style={[styles.pinTitle, { color: colors.text }]}>
           {step === 'set-pin'
             ? 'Crear PIN de la Caja Fuerte'
@@ -417,7 +417,7 @@ export default function VaultView() {
                 onPress={() => setGalleryView('all')}
                 activeOpacity={0.7}
               >
-                <Icon name="visibility-off" size={22} color="#ffa726" />
+                <Icon name="eye-off-outline" size={22} color="#ffa726" />
                 <Text style={[styles.allPrivatesText, { color: colors.text }]}>
                   Todas las privadas
                 </Text>
@@ -435,7 +435,7 @@ export default function VaultView() {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Icon name="lock" size={48} color={colors.textTertiary} />
+              <Icon name="lock-outline" size={48} color={colors.textTertiary} />
               <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
                 {mainVault?._count.photos ? 'Crea un álbum para organizar tus fotos privadas' : 'La caja fuerte está vacía'}
               </Text>
@@ -449,7 +449,7 @@ export default function VaultView() {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowCreate(true)}
         >
-          <Icon name="add" size={28} color="#fff" />
+          <Icon name="plus" size={28} color="#fff" />
         </TouchableOpacity>
 
         <Modal visible={showCreate} transparent animationType="fade">
@@ -504,7 +504,7 @@ export default function VaultView() {
         ]}
       >
         <TouchableOpacity onPress={() => { setGalleryView('albums'); clearSelection() }}>
-          <Icon name="arrow-back" size={22} color={colors.textSecondary} />
+          <Icon name="arrow-left" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
         <Text style={[styles.topCount, { color: colors.textSecondary }]}>
           {mainVault?._count.photos ?? 0} foto(s)
@@ -527,7 +527,7 @@ export default function VaultView() {
           </Text>
           <View style={styles.actionActions}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleRemove}>
-              <Icon name="remove-circle-outline" size={18} color="#fff" />
+              <Icon name="minus-circle-outline" size={18} color="#fff" />
               <Text style={styles.actionBtnLabel}>Quitar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={clearSelection}>
@@ -539,7 +539,7 @@ export default function VaultView() {
 
       {photos.length === 0 ? (
         <View style={styles.emptyState}>
-          <Icon name="lock" size={64} color={colors.textTertiary} />
+          <Icon name="lock-outline" size={64} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             La caja fuerte está vacía
           </Text>

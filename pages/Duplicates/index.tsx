@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
 import { useTheme } from '../../theme'

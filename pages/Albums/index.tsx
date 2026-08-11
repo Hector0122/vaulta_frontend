@@ -12,7 +12,7 @@ import {
   RefreshControl,
 } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import { SkeletonAlbumList } from '../../components/Skeleton'
 import {
@@ -121,7 +121,7 @@ export default function AlbumsScreen() {
                   { backgroundColor: colors.primary + '20' },
                 ]}
               >
-                <Icon name="photo-album" size={24} color={colors.primary} />
+                <Icon name="image-multiple-outline" size={24} color={colors.primary} />
               </View>
             )}
             <View style={styles.cardText}>
@@ -171,7 +171,7 @@ export default function AlbumsScreen() {
         onPress={() => navigation.navigate('VaultView')}
         activeOpacity={0.7}
       >
-        <Icon name="lock" size={22} color="#ffa726" />
+        <Icon name="lock-outline" size={22} color="#ffa726" />
         <Text style={[styles.vaultText, { color: colors.text }]}>
           Caja Fuerte
         </Text>
@@ -187,7 +187,7 @@ export default function AlbumsScreen() {
         onPress={() => navigation.navigate('People')}
         activeOpacity={0.7}
       >
-        <Icon name="face" size={22} color={colors.primary} />
+        <Icon name="face-recognition" size={22} color={colors.primary} />
         <Text style={[styles.vaultText, { color: colors.text }]}>
           Personas
         </Text>
@@ -229,7 +229,7 @@ export default function AlbumsScreen() {
 
       {albums.length === 0 ? (
         <View style={styles.centered}>
-          <Icon name="photo-album" size={56} color={colors.textTertiary} />
+          <Icon name="image-multiple-outline" size={56} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             No hay álbumes aún
           </Text>
@@ -265,7 +265,7 @@ export default function AlbumsScreen() {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowCreate(true)}
         >
-          <Icon name="add" size={28} color="#fff" />
+          <Icon name="plus" size={28} color="#fff" />
         </TouchableOpacity>
       )}
     </View>

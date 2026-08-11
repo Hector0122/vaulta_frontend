@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, TextInput } from 'react-native'
 import { StyleSheet } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
 
 type Props = {
@@ -53,7 +53,7 @@ export default React.memo(function FilterBar({
           },
         ]}
       >
-        <Icon name="search" size={18} color={colors.primary} />
+        <Icon name="magnify" size={18} color={colors.primary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
           placeholder="Buscar por nombre o etiqueta..."
@@ -115,16 +115,16 @@ export default React.memo(function FilterBar({
           style={styles.filterIcon}
         >
           <Icon
-            name={favoritesOnly ? 'favorite' : 'favorite-border'}
+            name={favoritesOnly ? 'heart' : 'heart-outline'}
             size={22}
             color={colors.favorite}
           />
         </TouchableOpacity>
         <TouchableOpacity onPress={onGoToPeople} style={styles.filterIcon}>
-          <Icon name="face" size={22} color={colors.textSecondary} />
+          <Icon name="face-recognition" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onGoToProfile} style={styles.profileIcon}>
-          <Icon name="person" size={22} color={colors.textSecondary} />
+          <Icon name="account-outline" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
     </View>

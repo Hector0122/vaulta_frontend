@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../../theme'
 
 type Props = {
@@ -24,7 +24,7 @@ export function HomeEmptyState({
     return (
       <View style={styles.stateContainer}>
         <Icon
-          name="error-outline"
+          name="alert-circle-outline"
           size={56}
           color={colors.textTertiary}
         />
@@ -46,7 +46,7 @@ export function HomeEmptyState({
       style={styles.centerContainer}
     >
       <Icon
-        name="photo-library"
+        name="image-multiple-outline"
         size={72}
         color={colors.textTertiary}
       />

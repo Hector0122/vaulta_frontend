@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../theme'
 import VaultaLogo from '../../components/VaultaLogo'
@@ -156,7 +156,7 @@ export default function LoginScreen() {
             onPress={() => setShowPassword(v => !v)}
           >
             <Icon
-              name={showPassword ? 'visibility-off' : 'visibility'}
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
               size={22}
               color={colors.textTertiary}
             />

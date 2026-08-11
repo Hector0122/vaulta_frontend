@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import { authenticatedGet, mergePeople, removeFaceFromPhoto } from '../../api/client'
 import type { StackNavProp } from '../../types/navigation'
@@ -140,7 +140,7 @@ export default function PersonView() {
             onPress={() => setMergeModalVisible(true)}
             style={{ marginRight: 4 }}
           >
-            <Icon name="merge-type" size={22} color="#fff" />
+            <Icon name="call-merge" size={22} color="#fff" />
           </TouchableOpacity>
         ),
     })
@@ -233,7 +233,7 @@ export default function PersonView() {
                   )}
                   {photo.mimeType?.startsWith('video/') && (
                     <View style={styles.videoBadge}>
-                      <Icon name="play-arrow" size={14} color="#fff" />
+                      <Icon name="play" size={14} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -243,7 +243,7 @@ export default function PersonView() {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Icon name="face" size={48} color={colors.textTertiary} />
+            <Icon name="face-recognition" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No hay fotos de {personName}
             </Text>

@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import {
   getTrash,
@@ -53,7 +53,7 @@ function TrashItemCard({
             },
           ]}
         >
-          <Icon name="broken-image" size={24} color={colors.textTertiary} />
+          <Icon name="image-broken-variant" size={24} color={colors.textTertiary} />
         </View>
       ) : (
         <Image

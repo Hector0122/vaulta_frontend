@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native'
 import Video from 'react-native-video'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
 type Props = {
   uri: string
@@ -42,7 +42,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Icon name="error-outline" size={48} color="#fff" />
+        <Icon name="alert-circle-outline" size={48} color="#fff" />
         <Text style={styles.errorText}>Error al cargar el video</Text>
         <TouchableOpacity
           style={styles.retryBtn}
@@ -110,7 +110,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
       {ready && !error && !mounted && (
         <View style={styles.playOverlay} pointerEvents="none">
           <Icon
-            name="play-circle-filled"
+            name="play-circle"
             size={64}
             color="rgba(255,255,255,0.8)"
           />
@@ -119,7 +119,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
       {mounted && showControl && !loading && !error && (
         <View style={styles.playOverlay} pointerEvents="none">
           <Icon
-            name={paused ? 'play-circle-filled' : 'pause-circle-filled'}
+            name={paused ? 'play-circle' : 'pause-circle'}
             size={64}
             color="rgba(255,255,255,0.8)"
           />

@@ -7,7 +7,7 @@ import {
   Animated,
   Alert,
 } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../theme'
 import { useNetwork } from '../context/NetworkContext'
 import { useToast } from '../context/ToastContext'
@@ -168,7 +168,7 @@ export default function UploadQueueBanner() {
     >
       <View style={styles.content}>
         <Icon
-          name={processing ? 'cloud-upload' : 'cloud-queue'}
+          name={processing ? 'cloud-upload-outline' : 'cloud-outline'}
           size={18}
           color="#fff"
         />
@@ -182,7 +182,7 @@ export default function UploadQueueBanner() {
       {failedCount > 0 && !processing && (
         <>
           <TouchableOpacity style={styles.retryBtn} onPress={handleShowErrors}>
-            <Icon name="info-outline" size={18} color="#fff" />
+            <Icon name="information-outline" size={18} color="#fff" />
             <Text style={styles.retryText}>Ver errores</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.retryBtn} onPress={handleRetryFailed}>
@@ -200,7 +200,7 @@ export default function UploadQueueBanner() {
 
       {!processing && pending > 0 && isConnected && (
         <TouchableOpacity style={styles.retryBtn} onPress={handleProcess}>
-          <Icon name="cloud-upload" size={18} color="#fff" />
+          <Icon name="cloud-upload-outline" size={18} color="#fff" />
           <Text style={styles.retryText}>Subir ahora</Text>
         </TouchableOpacity>
       )}

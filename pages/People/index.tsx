@@ -15,7 +15,7 @@ import {
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import {
   addTag,
@@ -291,7 +291,7 @@ export default function PeopleScreen() {
                     handleStartScan(Math.min(scanStatus.pending, 15))
                   }
                 >
-                  <Icon name="face" size={18} color="#fff" />
+                  <Icon name="face-recognition" size={18} color="#fff" />
                   <Text style={styles.scanBtnText}>
                     Escanear {Math.min(scanStatus.pending, 15).toLocaleString()}{' '}
                     fotos
@@ -311,7 +311,7 @@ export default function PeopleScreen() {
                       handleStartScan(Math.min(scanStatus.pending, 50))
                     }
                   >
-                    <Icon name="face" size={18} color="#fff" />
+                    <Icon name="face-recognition" size={18} color="#fff" />
                     <Text style={styles.scanBtnText}>
                       Escanear {Math.min(scanStatus.pending, 50).toLocaleString()} fotos
                     </Text>
@@ -433,7 +433,7 @@ export default function PeopleScreen() {
                             />
                           ) : (
                             <Icon
-                              name="face"
+                              name="face-recognition"
                               size={32}
                               color={colors.textTertiary}
                             />
@@ -499,7 +499,7 @@ export default function PeopleScreen() {
                               }
                             >
                               <Icon
-                                name="edit"
+                                name="pencil-outline"
                                 size={14}
                                 color={colors.textSecondary}
                               />
@@ -545,7 +545,7 @@ export default function PeopleScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Icon name="face" size={56} color={colors.textTertiary} />
+            <Icon name="face-recognition" size={56} color={colors.textTertiary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No hay personas detectadas aún
             </Text>
@@ -571,7 +571,7 @@ export default function PeopleScreen() {
                   recyclingKey={item.name}
                 />
               ) : (
-                <Icon name="face" size={28} color={colors.primary} />
+                <Icon name="face-recognition" size={28} color={colors.primary} />
               )}
             </View>
             <View style={styles.cardInfo}>
@@ -594,7 +594,7 @@ export default function PeopleScreen() {
               {searching === item.name ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Icon name="search" size={18} color={colors.primary} />
+                <Icon name="magnify" size={18} color={colors.primary} />
               )}
             </TouchableOpacity>
           </TouchableOpacity>
@@ -677,7 +677,7 @@ export default function PeopleScreen() {
                   }
                 }}
               >
-                <Icon name="add" size={20} color="#fff" />
+                <Icon name="plus" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -957,7 +957,7 @@ export default function PeopleScreen() {
               </>
             ) : (
               <View style={styles.empty}>
-                <Icon name="search-off" size={48} color={colors.textTertiary} />
+                <Icon name="magnify-close" size={48} color={colors.textTertiary} />
                 <Text
                   style={[styles.emptyText, { color: colors.textSecondary }]}
                 >

@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import LazyCalendar from '../../components/LazyCalendar'
 import { useTheme } from '../../theme'
 import {
@@ -88,7 +88,7 @@ export default function AlbumView() {
         onPress={() => setShowRename(true)}
         style={styles.headerRightBtn}
       >
-        <Icon name="edit" size={22} color={colors.primary} />
+        <Icon name="pencil-outline" size={22} color={colors.primary} />
       </TouchableOpacity>
     ),
     [colors],
@@ -275,7 +275,7 @@ export default function AlbumView() {
             style={styles.topBtn}
             onPress={() => setShowDateFilter(true)}
           >
-            <Icon name="date-range" size={18} color={colors.primary} />
+            <Icon name="calendar-range" size={18} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.topBtn, { backgroundColor: colors.primary }]}
@@ -288,7 +288,7 @@ export default function AlbumView() {
               }
             }}
           >
-            <Icon name="file-download" size={16} color="#fff" />
+            <Icon name="file-download-outline" size={16} color="#fff" />
             <Text style={styles.topBtnText}>Exportar</Text>
           </TouchableOpacity>
         </View>
@@ -324,11 +324,11 @@ export default function AlbumView() {
           </Text>
           <View style={styles.actionActions}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleSetCover}>
-              <Icon name="photo" size={18} color="#fff" />
+              <Icon name="image-outline" size={18} color="#fff" />
               <Text style={styles.actionBtnLabel}>Portada</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={handleRemove}>
-              <Icon name="remove-circle-outline" size={18} color="#fff" />
+              <Icon name="minus-circle-outline" size={18} color="#fff" />
               <Text style={styles.actionBtnLabel}>Quitar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={clearSelection}>
@@ -340,7 +340,7 @@ export default function AlbumView() {
 
       {photos.length === 0 && !selecting ? (
         <View style={styles.emptyState}>
-          <Icon name="photo-library" size={64} color={colors.textTertiary} />
+          <Icon name="image-multiple-outline" size={64} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             {filterActive
               ? 'Sin resultados para este filtro'

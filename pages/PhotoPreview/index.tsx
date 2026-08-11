@@ -20,7 +20,7 @@ import {
   useNavigation,
   StackActions,
 } from '@react-navigation/native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import RNFS from 'react-native-fs'
 import Share from 'react-native-share'
 import { CameraRoll } from '@react-native-camera-roll/camera-roll'
@@ -444,14 +444,14 @@ const PhotoPage = React.memo(function PhotoPage({
           <Text style={pageStyles.label}>Descargar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={pageStyles.button} onPress={handleShare}>
-          <Icon name="share" size={22} color="#fff" />
+          <Icon name="share-variant" size={22} color="#fff" />
           <Text style={pageStyles.label}>Compartir</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={pageStyles.button}
           onPress={handleOpenAlbumPicker}
         >
-          <Icon name="photo-album" size={22} color="#4fc3f7" />
+          <Icon name="image-multiple-outline" size={22} color="#4fc3f7" />
           <Text style={pageStyles.label}>Álbum</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -459,7 +459,7 @@ const PhotoPage = React.memo(function PhotoPage({
           onPress={handleOfflineToggle}
         >
           <Icon
-            name={offlineCached ? 'cloud-download' : 'cloud-off'}
+            name={offlineCached ? 'cloud-download-outline' : 'cloud-off-outline'}
             size={22}
             color="#4fc3f7"
           />
@@ -472,7 +472,7 @@ const PhotoPage = React.memo(function PhotoPage({
           onPress={handleToggleWidget}
         >
           <Icon
-            name={inWidget ? 'smartphone' : 'smartphone'}
+            name={inWidget ? 'cellphone' : 'cellphone'}
             size={22}
             color={inWidget ? '#2BD4CE' : '#fff'}
           />
@@ -482,7 +482,7 @@ const PhotoPage = React.memo(function PhotoPage({
         </TouchableOpacity>
         <TouchableOpacity style={pageStyles.button} onPress={handleToggleFav}>
           <Icon
-            name={isFav ? 'favorite' : 'favorite-border'}
+            name={isFav ? 'heart' : 'heart-outline'}
             size={22}
             color="#ff4081"
           />
@@ -493,7 +493,7 @@ const PhotoPage = React.memo(function PhotoPage({
           onPress={handleTogglePrivate}
         >
           <Icon
-            name={isPrivate ? 'visibility-off' : 'visibility'}
+            name={isPrivate ? 'eye-off-outline' : 'eye-outline'}
             size={22}
             color={isPrivate ? '#ffa726' : '#fff'}
           />
@@ -536,7 +536,7 @@ const PhotoPage = React.memo(function PhotoPage({
                     style={[pageStyles.albumRow, pageStyles.albumRowBorder]}
                     onPress={() => handleAddToAlbum(a.id)}
                   >
-                    <Icon name="photo-album" size={22} color="#4fc3f7" />
+                    <Icon name="image-multiple-outline" size={22} color="#4fc3f7" />
                     <Text style={pageStyles.albumRowName}>{a.name}</Text>
                     <Text style={pageStyles.albumRowCount}>
                       {a._count.photos} fotos

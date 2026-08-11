@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import RNFS from 'react-native-fs'
 import { useToast } from '../../context/ToastContext'
@@ -272,7 +272,7 @@ export default function UploadScreen() {
                           ]}
                           onPress={pickImages}
                         >
-                          <Icon name="add" size={28} color={colors.primary} />
+                          <Icon name="plus" size={28} color={colors.primary} />
                         </TouchableOpacity>
                       )
                     }
@@ -308,7 +308,7 @@ export default function UploadScreen() {
         )
       ) : (
         <View style={styles.emptyState}>
-          <Icon name="cloud-upload" size={72} color={colors.textTertiary} />
+          <Icon name="cloud-upload-outline" size={72} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             Selecciona una o varias fotos
           </Text>
@@ -318,7 +318,7 @@ export default function UploadScreen() {
       <View style={[styles.bottomBar, { backgroundColor: colors.surface }]}>
         {uploading ? (
           <View style={styles.uploadingInfo}>
-            <Icon name="cloud-upload" size={22} color={colors.primary} />
+            <Icon name="cloud-upload-outline" size={22} color={colors.primary} />
             <Text style={[styles.uploadCount, { color: colors.textSecondary }]}>
               Subiendo {images.length} foto(s)…
             </Text>
@@ -332,7 +332,7 @@ export default function UploadScreen() {
               style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
               onPress={uploadBatch}
             >
-              <Icon name="cloud-upload" size={22} color="#fff" />
+              <Icon name="cloud-upload-outline" size={22} color="#fff" />
               <Text style={styles.uploadBtnText}>
                 {isConnected ? 'Subir todo' : 'Subir después (sin WiFi)'}
               </Text>
@@ -347,7 +347,7 @@ export default function UploadScreen() {
                   { backgroundColor: colors.surfaceAlt },
                 ]}
               >
-                <Icon name="photo-library" size={28} color={colors.primary} />
+                <Icon name="image-multiple-outline" size={28} color={colors.primary} />
               </View>
               <Text
                 style={[styles.pickerLabel, { color: colors.textSecondary }]}
@@ -362,7 +362,7 @@ export default function UploadScreen() {
                   { backgroundColor: colors.surfaceAlt },
                 ]}
               >
-                <Icon name="camera-alt" size={28} color={colors.primary} />
+                <Icon name="camera" size={28} color={colors.primary} />
               </View>
               <Text
                 style={[styles.pickerLabel, { color: colors.textSecondary }]}
@@ -377,7 +377,7 @@ export default function UploadScreen() {
                   { backgroundColor: colors.surfaceAlt },
                 ]}
               >
-                <Icon name="videocam" size={28} color={colors.primary} />
+                <Icon name="video-outline" size={28} color={colors.primary} />
               </View>
               <Text
                 style={[styles.pickerLabel, { color: colors.textSecondary }]}

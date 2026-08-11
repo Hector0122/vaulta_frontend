@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
 
@@ -19,8 +19,8 @@ type Props = {
 
 const icons: Record<ToastType, string> = {
   success: 'check-circle',
-  error: 'error',
-  info: 'info',
+  error: 'alert-circle',
+  info: 'information',
 }
 
 export default function Toast({

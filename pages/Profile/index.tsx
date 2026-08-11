@@ -11,7 +11,7 @@ import {
   Modal,
   Switch,
 } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { useAuth } from '../../context/AuthContext'
@@ -241,8 +241,8 @@ export default function ProfileScreen() {
     system: 'Sistema',
   }
   const modeIcons: Record<string, string> = {
-    light: 'light-mode',
-    dark: 'dark-mode',
+    light: 'white-balance-sunny',
+    dark: 'weather-night',
     system: 'brightness-auto',
   }
 
@@ -255,7 +255,7 @@ export default function ProfileScreen() {
         {stats && (
           <View style={[styles.statsCard, { backgroundColor: colors.cardBg }]}>
             <View style={styles.statItem}>
-              <Icon name="photo-library" size={24} color={colors.primary} />
+              <Icon name="image-multiple-outline" size={24} color={colors.primary} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.photoCount}
               </Text>
@@ -270,7 +270,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="photo-album" size={24} color={colors.primary} />
+              <Icon name="image-multiple-outline" size={24} color={colors.primary} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.albumCount}
               </Text>
@@ -285,7 +285,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="favorite" size={24} color={colors.favorite} />
+              <Icon name="heart" size={24} color={colors.favorite} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.favoriteCount}
               </Text>
@@ -300,7 +300,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="storage" size={24} color={colors.primary} />
+              <Icon name="database" size={24} color={colors.primary} />
               <Text
                 style={[
                   styles.statNumber,
@@ -319,7 +319,7 @@ export default function ProfileScreen() {
         {stats && (stats.faceCount > 0 || stats.peopleCount > 0) && (
           <View style={[styles.statsCard, { backgroundColor: colors.cardBg, marginTop: 8 }]}>
             <View style={styles.statItem}>
-              <Icon name="face" size={24} color={colors.accent} />
+              <Icon name="face-recognition" size={24} color={colors.accent} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.faceCount}
               </Text>
@@ -334,7 +334,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="people" size={24} color={colors.accent} />
+              <Icon name="account-multiple" size={24} color={colors.accent} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.peopleCount}
               </Text>
@@ -470,7 +470,7 @@ export default function ProfileScreen() {
               }
             }}
           >
-            <Icon name="file-download" size={18} color="#fff" />
+            <Icon name="file-download-outline" size={18} color="#fff" />
             <Text style={styles.actionBtnText}>Exportar todo</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -484,7 +484,7 @@ export default function ProfileScreen() {
             ]}
             onPress={() => setShowDatePicker(true)}
           >
-            <Icon name="date-range" size={18} color={colors.text} />
+            <Icon name="calendar-range" size={18} color={colors.text} />
             <Text style={[styles.actionBtnText, { color: colors.text }]}>
               Por fecha
             </Text>

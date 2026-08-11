@@ -9,7 +9,7 @@ import {
   BottomTabNavigationOptions,
 } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
@@ -47,8 +47,8 @@ function tabBarIcon(
   routeName: keyof TabParamList,
 ) {
   let iconName = '';
-  if (routeName === 'Timeline') iconName = 'home';
-  if (routeName === 'Albums') iconName = 'photo-album';
+  if (routeName === 'Timeline') iconName = 'home-variant';
+  if (routeName === 'Albums') iconName = 'image-multiple-outline';
   return <Icon name={iconName} size={size} color={color} />;
 }
 

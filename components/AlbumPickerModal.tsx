@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native'
 import { StyleSheet } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
 
 type Album = { id: string; name: string; _count: { photos: number }; vault?: boolean }
@@ -51,7 +51,7 @@ export default function AlbumPickerModal({
                   onPress={() => onSelectAlbum(a)}
                 >
                   <Icon
-                    name={a.vault ? 'lock' : 'photo-album'}
+                    name={a.vault ? 'lock-outline' : 'image-multiple-outline'}
                     size={22}
                     color={a.vault ? '#ffa726' : colors.primary}
                   />
