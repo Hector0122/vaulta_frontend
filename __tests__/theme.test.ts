@@ -1,4 +1,5 @@
 import { useTheme } from '../theme';
+import { createAppTheme, brands } from '../tokens';
 
 jest.mock('../context/ThemeContext', () => ({
   useThemeMode: jest.fn(),
@@ -6,13 +7,15 @@ jest.mock('../context/ThemeContext', () => ({
 
 import { useThemeMode } from '../context/ThemeContext';
 
+const { light: expectedLight, dark: expectedDark } = createAppTheme(brands.vaulta);
+
 describe('useTheme', () => {
   it('should return light colors when isDark is false', () => {
     (useThemeMode as jest.Mock).mockReturnValue({ isDark: false });
     const { colors, isDark } = useTheme();
     expect(isDark).toBe(false);
-    expect(colors.background).toBe('#fff');
-    expect(colors.text).toBe('#222');
+    expect(colors.background).toBe(expectedLight.background);
+    expect(colors.text).toBe(expectedLight.text);
     expect(colors.primary).toBe('#2BD4CE');
   });
 
@@ -20,8 +23,8 @@ describe('useTheme', () => {
     (useThemeMode as jest.Mock).mockReturnValue({ isDark: true });
     const { colors, isDark } = useTheme();
     expect(isDark).toBe(true);
-    expect(colors.background).toBe('#121212');
-    expect(colors.text).toBe('#e0e0e0');
+    expect(colors.background).toBe(expectedDark.background);
+    expect(colors.text).toBe(expectedDark.text);
     expect(colors.primary).toBe('#2BD4CE');
   });
 });

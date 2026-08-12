@@ -1,5 +1,5 @@
 /**
- * @hector/brand-kit — tokens compartidos entre todas las apps de producto
+ * @hector/arcd_kit — tokens compartidos entre todas las apps de producto
  * (Varo, VaultGaming, Vaulta, Vellum, Veya, Velody).
  *
  * Filosofía: lo que se comparte es la ESTRUCTURA (grises, spacing, radios,
