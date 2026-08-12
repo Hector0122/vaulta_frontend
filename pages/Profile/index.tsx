@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../theme'
+import { fontFamily } from '../../tokens'
 import { useThemeMode } from '../../context/ThemeContext'
 import '../../utils/calendarLocales'
 import LazyCalendar from '../../components/LazyCalendar'
@@ -848,7 +849,7 @@ const styles = StyleSheet.create({
   },
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, height: 40 },
-  statNumber: { fontSize: 22, fontWeight: '700', marginTop: 4 },
+  statNumber: { fontFamily: fontFamily.mono, fontSize: 22, marginTop: 4 },
   statLabel: { fontSize: 12, marginTop: 2 },
   analysisRow: { flexDirection: 'row', marginTop: 8 },
   actionBtn: {
