@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as Keychain from 'react-native-keychain'
 import { BASE_URL } from './server'
 import { fetchWithTimeout } from './fetchWithTimeout'
 
@@ -6,6 +7,15 @@ const PRESIGN_EXPIRY = 604800
 
 const TOKEN_KEY = '@vaulta_token'
 const REFRESH_TOKEN_KEY = '@vaulta_refresh_token'
+// Servicio de Keychain propio para el JWT de sesión — distinto del
+// 'vaulta-login' que AuthContext usa para las credenciales de login
+// biométrico, que son un secreto distinto (email+password, no el JWT).
+const KEYCHAIN_SERVICE = 'vaulta.auth'
+
+// Limpieza de la migración AsyncStorage → Keychain: borra los tokens en
+// texto plano que versiones anteriores dejaron en disco. Idempotente.
+AsyncStorage.removeItem(TOKEN_KEY).catch(() => {})
+AsyncStorage.removeItem(REFRESH_TOKEN_KEY).catch(() => {})
 
 let _onUnauthorized: (() => void) | null = null
 let _tokenCache: string | null | undefined
@@ -19,44 +29,64 @@ export function clearOnUnauthorized() {
   _onUnauthorized = null
 }
 
+interface StoredTokens {
+  token: string | null
+  refreshToken: string | null
+}
+
+async function readStoredTokens(): Promise<StoredTokens> {
+  try {
+    const creds = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
+    if (!creds) return { token: null, refreshToken: null }
+    return JSON.parse(creds.password)
+  } catch {
+    return { token: null, refreshToken: null }
+  }
+}
+
+async function writeStoredTokens(tokens: StoredTokens): Promise<void> {
+  await Keychain.setGenericPassword('auth', JSON.stringify(tokens), {
+    service: KEYCHAIN_SERVICE,
+    accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  })
+}
+
 export async function getToken(): Promise<string | null> {
   if (_tokenCache !== undefined) return _tokenCache
-  try {
-    _tokenCache = await AsyncStorage.getItem(TOKEN_KEY)
-    return _tokenCache
-  } catch {
-    return null
-  }
+  const { token } = await readStoredTokens()
+  _tokenCache = token
+  return _tokenCache
 }
 
 export async function setToken(token: string): Promise<void> {
   _tokenCache = token
-  await AsyncStorage.setItem(TOKEN_KEY, token)
+  const current = await readStoredTokens()
+  await writeStoredTokens({ ...current, token })
 }
 
 export async function clearToken(): Promise<void> {
   _tokenCache = null
-  await AsyncStorage.removeItem(TOKEN_KEY)
+  const current = await readStoredTokens()
+  await writeStoredTokens({ ...current, token: null })
 }
 
 async function getRefreshToken(): Promise<string | null> {
   if (_refreshTokenCache !== undefined) return _refreshTokenCache
-  try {
-    _refreshTokenCache = await AsyncStorage.getItem(REFRESH_TOKEN_KEY)
-    return _refreshTokenCache
-  } catch {
-    return null
-  }
+  const { refreshToken } = await readStoredTokens()
+  _refreshTokenCache = refreshToken
+  return _refreshTokenCache
 }
 
 export async function setRefreshToken(token: string): Promise<void> {
   _refreshTokenCache = token
-  await AsyncStorage.setItem(REFRESH_TOKEN_KEY, token)
+  const current = await readStoredTokens()
+  await writeStoredTokens({ ...current, refreshToken: token })
 }
 
 export async function clearRefreshToken(): Promise<void> {
   _refreshTokenCache = null
-  await AsyncStorage.removeItem(REFRESH_TOKEN_KEY)
+  const current = await readStoredTokens()
+  await writeStoredTokens({ ...current, refreshToken: null })
 }
 
 let _refreshing: Promise<boolean> | null = null
