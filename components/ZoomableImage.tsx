@@ -1,7 +1,15 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react'
-import { Animated, StyleSheet, useWindowDimensions } from 'react-native'
+import React, { useState } from 'react'
+import { StyleSheet, useWindowDimensions } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated'
+import { motion } from '../tokens'
 
 type Props = {
   uri: string
@@ -9,78 +17,61 @@ type Props = {
 
 export default function ZoomableImage({ uri }: Props) {
   const { width, height } = useWindowDimensions()
-  const scale = useRef(new Animated.Value(1)).current
-  const translateX = useRef(new Animated.Value(0)).current
-  const translateY = useRef(new Animated.Value(0)).current
+  const scale = useSharedValue(1)
+  const translateX = useSharedValue(0)
+  const translateY = useSharedValue(0)
 
-  const baseScale = useRef(1)
-  const baseTranslateX = useRef(0)
-  const baseTranslateY = useRef(0)
+  const baseScale = useSharedValue(1)
+  const baseTranslateX = useSharedValue(0)
+  const baseTranslateY = useSharedValue(0)
 
   const [isZoomed, setIsZoomed] = useState(false)
 
-  useEffect(() => {
-    let lastZoomed = false
-    const id = scale.addListener(({ value }) => {
-      const zoomed = value > 1.05
-      if (zoomed !== lastZoomed) {
-        lastZoomed = zoomed
-        setIsZoomed(zoomed)
+  // Reemplaza al viejo `scale.addListener` de Animated (no existe en
+  // shared values) — corre en el hilo de UI y sincroniza `isZoomed` (JS) para
+  // habilitar/deshabilitar el pan.
+  useAnimatedReaction(
+    () => scale.value > 1.05,
+    (zoomed, prevZoomed) => {
+      if (zoomed !== prevZoomed) {
+        runOnJS(setIsZoomed)(zoomed)
       }
-    })
-    return () => scale.removeListener(id)
-  }, [scale])
-
-  const clamp = useCallback(
-    (value: number, min: number, max: number) => {
-      return Math.min(Math.max(value, min), max)
     },
-    [],
   )
 
-  const getBounds = useCallback(
-    (s: number) => {
-      const scaledWidth = width * s
-      const scaledHeight = height * s
-      const maxX = Math.max(0, (scaledWidth - width) / 2)
-      const maxY = Math.max(0, (scaledHeight - height) / 2)
-      return { maxX, maxY }
-    },
-    [width, height],
-  )
+  const clamp = (value: number, min: number, max: number) => {
+    'worklet'
+    return Math.min(Math.max(value, min), max)
+  }
 
-  const resetZoom = useCallback(() => {
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 8,
-    }).start()
-    Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-      friction: 8,
-    }).start()
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      friction: 8,
-    }).start()
-    baseScale.current = 1
-    baseTranslateX.current = 0
-    baseTranslateY.current = 0
-  }, [scale, translateX, translateY])
+  const getBounds = (s: number) => {
+    'worklet'
+    const scaledWidth = width * s
+    const scaledHeight = height * s
+    const maxX = Math.max(0, (scaledWidth - width) / 2)
+    const maxY = Math.max(0, (scaledHeight - height) / 2)
+    return { maxX, maxY }
+  }
+
+  const resetZoom = () => {
+    'worklet'
+    scale.value = withSpring(1, motion.spring.gentle)
+    translateX.value = withSpring(0, motion.spring.gentle)
+    translateY.value = withSpring(0, motion.spring.gentle)
+    baseScale.value = 1
+    baseTranslateX.value = 0
+    baseTranslateY.value = 0
+  }
 
   const pinch = Gesture.Pinch()
     .onStart(() => {
-      baseScale.current = (scale as any).__getValue()
+      baseScale.value = scale.value
     })
     .onUpdate(e => {
-      const newScale = Math.max(1, Math.min(baseScale.current * e.scale, 5))
-      ;(scale as any).setValue(newScale)
+      scale.value = Math.max(1, Math.min(baseScale.value * e.scale, 5))
     })
     .onEnd(() => {
-      const current = (scale as any).__getValue()
-      if (current < 1) {
+      if (scale.value < 1) {
         resetZoom()
       }
     })
@@ -88,16 +79,11 @@ export default function ZoomableImage({ uri }: Props) {
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onStart(() => {
-      const current = (scale as any).__getValue()
-      if (current > 1.05) {
+      if (scale.value > 1.05) {
         resetZoom()
       } else {
-        Animated.spring(scale, {
-          toValue: 2.5,
-          useNativeDriver: true,
-          friction: 8,
-        }).start()
-        baseScale.current = 2.5
+        scale.value = withSpring(2.5, motion.spring.gentle)
+        baseScale.value = 2.5
       }
     })
 
@@ -105,63 +91,42 @@ export default function ZoomableImage({ uri }: Props) {
     .enabled(isZoomed)
     .minPointers(1)
     .onStart(() => {
-      baseTranslateX.current = (translateX as any).__getValue()
-      baseTranslateY.current = (translateY as any).__getValue()
+      baseTranslateX.value = translateX.value
+      baseTranslateY.value = translateY.value
     })
     .onUpdate(e => {
-      const currentScale = (scale as any).__getValue()
-      if (currentScale <= 1.05) return
-
-      const { maxX, maxY } = getBounds(currentScale)
-      const newX = clamp(
-        baseTranslateX.current + e.translationX,
-        -maxX,
-        maxX,
-      )
-      const newY = clamp(
-        baseTranslateY.current + e.translationY,
-        -maxY,
-        maxY,
-      )
-      ;(translateX as any).setValue(newX)
-      ;(translateY as any).setValue(newY)
+      if (scale.value <= 1.05) return
+      const { maxX, maxY } = getBounds(scale.value)
+      translateX.value = clamp(baseTranslateX.value + e.translationX, -maxX, maxX)
+      translateY.value = clamp(baseTranslateY.value + e.translationY, -maxY, maxY)
     })
     .onEnd(() => {
-      const currentScale = (scale as any).__getValue()
-      if (currentScale <= 1.05) {
+      if (scale.value <= 1.05) {
         resetZoom()
         return
       }
-      const { maxX, maxY } = getBounds(currentScale)
-      const currentX = (translateX as any).__getValue()
-      const currentY = (translateY as any).__getValue()
-
-      if (Math.abs(currentX) > maxX) {
-        Animated.spring(translateX, {
-          toValue: clamp(currentX, -maxX, maxX),
-          useNativeDriver: true,
-          friction: 8,
-        }).start()
+      const { maxX, maxY } = getBounds(scale.value)
+      if (Math.abs(translateX.value) > maxX) {
+        translateX.value = withSpring(clamp(translateX.value, -maxX, maxX), motion.spring.gentle)
       }
-      if (Math.abs(currentY) > maxY) {
-        Animated.spring(translateY, {
-          toValue: clamp(currentY, -maxY, maxY),
-          useNativeDriver: true,
-          friction: 8,
-        }).start()
+      if (Math.abs(translateY.value) > maxY) {
+        translateY.value = withSpring(clamp(translateY.value, -maxY, maxY), motion.spring.gentle)
       }
     })
 
   const composed = Gesture.Simultaneous(pinch, pan, doubleTap)
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }))
+
   return (
     <GestureDetector gesture={composed}>
-      <Animated.View
-        style={[
-          styles.container,
-          { transform: [{ translateX }, { translateY }, { scale }] },
-        ]}
-      >
+      <Animated.View style={[styles.container, animatedStyle]}>
         <NitroImage
           image={{ url: uri }}
           style={{ width, height }}

@@ -11,15 +11,24 @@ import {
   useWindowDimensions,
   ScrollView,
   FlatList,
-  Animated,
 } from 'react-native'
-import { PanGestureHandler, State as GestureState } from 'react-native-gesture-handler'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+  withTiming,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated'
 import {
   RouteProp,
   useRoute,
   useNavigation,
   StackActions,
 } from '@react-navigation/native'
+import { motion, radius, iconSize } from '../../tokens'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import RNFS from 'react-native-fs'
 import Share from 'react-native-share'
@@ -440,18 +449,18 @@ const PhotoPage = React.memo(function PhotoPage({
         </View>
         <View style={pageStyles.actions}>
         <TouchableOpacity style={pageStyles.button} onPress={handleDownload}>
-          <Icon name="download" size={22} color="#fff" />
+          <Icon name="download" size={iconSize.md} color="#fff" />
           <Text style={pageStyles.label}>Descargar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={pageStyles.button} onPress={handleShare}>
-          <Icon name="share-variant" size={22} color="#fff" />
+          <Icon name="share-variant" size={iconSize.md} color="#fff" />
           <Text style={pageStyles.label}>Compartir</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={pageStyles.button}
           onPress={handleOpenAlbumPicker}
         >
-          <Icon name="image-multiple-outline" size={22} color="#4fc3f7" />
+          <Icon name="image-multiple-outline" size={iconSize.md} color="#4fc3f7" />
           <Text style={pageStyles.label}>Álbum</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -460,7 +469,7 @@ const PhotoPage = React.memo(function PhotoPage({
         >
           <Icon
             name={offlineCached ? 'cloud-download-outline' : 'cloud-off-outline'}
-            size={22}
+            size={iconSize.md}
             color="#4fc3f7"
           />
           <Text style={pageStyles.label}>
@@ -473,7 +482,7 @@ const PhotoPage = React.memo(function PhotoPage({
         >
           <Icon
             name={inWidget ? 'cellphone' : 'cellphone'}
-            size={22}
+            size={iconSize.md}
             color={inWidget ? '#2BD4CE' : '#fff'}
           />
           <Text style={pageStyles.label}>
@@ -483,7 +492,7 @@ const PhotoPage = React.memo(function PhotoPage({
         <TouchableOpacity style={pageStyles.button} onPress={handleToggleFav}>
           <Icon
             name={isFav ? 'heart' : 'heart-outline'}
-            size={22}
+            size={iconSize.md}
             color="#ff4081"
           />
           <Text style={pageStyles.label}>Favorito</Text>
@@ -494,7 +503,7 @@ const PhotoPage = React.memo(function PhotoPage({
         >
           <Icon
             name={isPrivate ? 'eye-off-outline' : 'eye-outline'}
-            size={22}
+            size={iconSize.md}
             color={isPrivate ? '#ffa726' : '#fff'}
           />
           <Text style={pageStyles.label}>
@@ -505,7 +514,7 @@ const PhotoPage = React.memo(function PhotoPage({
           style={[pageStyles.button, pageStyles.deleteButton]}
           onPress={handleDelete}
         >
-          <Icon name="delete" size={22} color="#fff" />
+          <Icon name="delete" size={iconSize.md} color="#fff" />
           <Text style={pageStyles.label}>Eliminar</Text>
         </TouchableOpacity>
         </View>
@@ -519,7 +528,7 @@ const PhotoPage = React.memo(function PhotoPage({
             <View style={pageStyles.modalHeader}>
               <Text style={pageStyles.modalTitle}>Añadir a álbum</Text>
               <TouchableOpacity onPress={() => setShowAlbumPicker(false)}>
-                <Icon name="close" size={24} color="#fff" />
+                <Icon name="close" size={iconSize.md} color="#fff" />
               </TouchableOpacity>
             </View>
             {albums.length === 0 ? (
@@ -536,7 +545,7 @@ const PhotoPage = React.memo(function PhotoPage({
                     style={[pageStyles.albumRow, pageStyles.albumRowBorder]}
                     onPress={() => handleAddToAlbum(a.id)}
                   >
-                    <Icon name="image-multiple-outline" size={22} color="#4fc3f7" />
+                    <Icon name="image-multiple-outline" size={iconSize.md} color="#4fc3f7" />
                     <Text style={pageStyles.albumRowName}>{a.name}</Text>
                     <Text style={pageStyles.albumRowCount}>
                       {a._count.photos} fotos
@@ -573,7 +582,7 @@ const pageStyles = StyleSheet.create({
   },
   tagChip: {
     backgroundColor: '#333',
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginRight: 6,
@@ -590,7 +599,7 @@ const pageStyles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#444',
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: 14,
@@ -661,41 +670,31 @@ export default function PhotoPreview() {
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0)
   const scrollRef = useRef<FlatList<PhotoItem>>(null)
 
-  const dismissTranslateY = useRef(new Animated.Value(0)).current
-  const dismissOpacity = dismissTranslateY.interpolate({
-    inputRange: [0, 100, 600],
-    outputRange: [1, 0.95, 0],
-    extrapolate: 'clamp',
-  })
+  const dismissTranslateY = useSharedValue(0)
+  const dismissAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: dismissTranslateY.value }],
+    opacity: interpolate(dismissTranslateY.value, [0, 100, 600], [1, 0.95, 0], Extrapolation.CLAMP),
+  }))
 
-  const onDismissGesture = Animated.event(
-    [{ nativeEvent: { translationY: dismissTranslateY } }],
-    { useNativeDriver: true },
-  )
+  const dismiss = useCallback(() => {
+    navigation.dispatch(StackActions.pop(1))
+  }, [navigation])
 
-  const handleDismissStateChange = useCallback(
-    (event: any) => {
-      const state = event.nativeEvent.state as number
-      const ty = event.nativeEvent.translationY as number
-      const vy = event.nativeEvent.velocityY as number
-      if (state === GestureState.END || state === GestureState.CANCELLED || state === GestureState.FAILED) {
-        if (ty > 100 || vy > 500) {
-          Animated.timing(dismissTranslateY, {
-            toValue: 700,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => navigation.dispatch(StackActions.pop(1)))
-        } else {
-          Animated.spring(dismissTranslateY, {
-            toValue: 0,
-            friction: 6,
-            useNativeDriver: true,
-          }).start()
-        }
+  const dismissPan = Gesture.Pan()
+    .activeOffsetY([-20, 20])
+    .failOffsetX([-20, 20])
+    .onUpdate(e => {
+      dismissTranslateY.value = e.translationY
+    })
+    .onEnd(e => {
+      if (e.translationY > 100 || e.velocityY > 500) {
+        dismissTranslateY.value = withTiming(700, { duration: 200 }, finished => {
+          if (finished) runOnJS(dismiss)()
+        })
+      } else {
+        dismissTranslateY.value = withSpring(0, motion.spring.gentle)
       }
-    },
-    [dismissTranslateY, navigation],
-  )
+    })
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: any[] }) => {
       const first = viewableItems[0]
@@ -737,19 +736,9 @@ export default function PhotoPreview() {
   }, [])
 
   return (
-    <PanGestureHandler
-      onGestureEvent={onDismissGesture}
-      onHandlerStateChange={handleDismissStateChange}
-      activeOffsetY={[-20, 20]}
-      failOffsetX={[-20, 20]}
-    >
+    <GestureDetector gesture={dismissPan}>
       <Animated.View
-        style={{
-          flex: 1,
-          backgroundColor: '#000',
-          transform: [{ translateY: dismissTranslateY }],
-          opacity: dismissOpacity,
-        }}
+        style={[{ flex: 1, backgroundColor: '#000' }, dismissAnimatedStyle]}
       >
         <FlatList
           ref={scrollRef}
@@ -781,6 +770,6 @@ export default function PhotoPreview() {
           )}
         />
       </Animated.View>
-    </PanGestureHandler>
+    </GestureDetector>
   )
 }

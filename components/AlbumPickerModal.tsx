@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
+import { iconSize } from '../tokens'
 
 type Album = { id: string; name: string; _count: { photos: number }; vault?: boolean }
 
@@ -30,7 +31,7 @@ export default function AlbumPickerModal({
               Añadir a álbum
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Icon name="close" size={24} color={colors.text} />
+              <Icon name="close" size={iconSize.md} color={colors.text} />
             </TouchableOpacity>
           </View>
           {albums.length === 0 ? (
@@ -52,7 +53,7 @@ export default function AlbumPickerModal({
                 >
                   <Icon
                     name={a.vault ? 'lock-outline' : 'image-multiple-outline'}
-                    size={22}
+                    size={iconSize.md}
                     color={a.vault ? '#ffa726' : colors.primary}
                   />
                   <Text style={[styles.rowName, { color: colors.text }]}>

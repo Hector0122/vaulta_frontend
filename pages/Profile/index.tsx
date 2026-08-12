@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../theme'
-import { fontFamily } from '../../tokens'
+import { fontFamily, radius, iconSize } from '../../tokens'
 import { useThemeMode } from '../../context/ThemeContext'
 import '../../utils/calendarLocales'
 import LazyCalendar from '../../components/LazyCalendar'
@@ -256,7 +256,7 @@ export default function ProfileScreen() {
         {stats && (
           <View style={[styles.statsCard, { backgroundColor: colors.cardBg }]}>
             <View style={styles.statItem}>
-              <Icon name="image-multiple-outline" size={24} color={colors.primary} />
+              <Icon name="image-multiple-outline" size={iconSize.md} color={colors.primary} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.photoCount}
               </Text>
@@ -271,7 +271,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="image-multiple-outline" size={24} color={colors.primary} />
+              <Icon name="image-multiple-outline" size={iconSize.md} color={colors.primary} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.albumCount}
               </Text>
@@ -286,7 +286,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="heart" size={24} color={colors.favorite} />
+              <Icon name="heart" size={iconSize.md} color={colors.favorite} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.favoriteCount}
               </Text>
@@ -301,7 +301,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="database" size={24} color={colors.primary} />
+              <Icon name="database" size={iconSize.md} color={colors.primary} />
               <Text
                 style={[
                   styles.statNumber,
@@ -320,7 +320,7 @@ export default function ProfileScreen() {
         {stats && (stats.faceCount > 0 || stats.peopleCount > 0) && (
           <View style={[styles.statsCard, { backgroundColor: colors.cardBg, marginTop: 8 }]}>
             <View style={styles.statItem}>
-              <Icon name="face-recognition" size={24} color={colors.accent} />
+              <Icon name="face-recognition" size={iconSize.md} color={colors.accent} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.faceCount}
               </Text>
@@ -335,7 +335,7 @@ export default function ProfileScreen() {
               ]}
             />
             <View style={styles.statItem}>
-              <Icon name="account-multiple" size={24} color={colors.accent} />
+              <Icon name="account-multiple" size={iconSize.md} color={colors.accent} />
               <Text style={[styles.statNumber, { color: colors.text }]}>
                 {stats.peopleCount}
               </Text>
@@ -357,7 +357,7 @@ export default function ProfileScreen() {
             ]}
             onPress={() => navigation.navigate('Duplicates')}
           >
-            <Icon name="content-copy" size={18} color={colors.text} />
+            <Icon name="content-copy" size={iconSize.sm} color={colors.text} />
             <Text style={[styles.actionBtnText, { color: colors.text }]}>
               Duplicados
             </Text>
@@ -398,7 +398,7 @@ export default function ProfileScreen() {
                 style={[styles.actionBtn, styles.cancelBtn, styles.flex1]}
                 onPress={handleCancelSync}
               >
-                <Icon name="close" size={18} color="#fff" />
+                <Icon name="close" size={iconSize.sm} color="#fff" />
                 <Text style={styles.actionBtnText}>Cancelar</Text>
               </TouchableOpacity>
             ) : (
@@ -411,7 +411,7 @@ export default function ProfileScreen() {
                   ]}
                   onPress={handleSyncNow}
                 >
-                  <Icon name="sync" size={18} color="#fff" />
+                  <Icon name="sync" size={iconSize.sm} color="#fff" />
                   <Text style={styles.actionBtnText}>Sync ahora</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -426,7 +426,7 @@ export default function ProfileScreen() {
                   ]}
                   onPress={handleFullResync}
                 >
-                  <Icon name="refresh" size={18} color={colors.primary} />
+                  <Icon name="refresh" size={iconSize.sm} color={colors.primary} />
                   <Text
                     style={[styles.actionBtnText, { color: colors.primary }]}
                   >
@@ -450,7 +450,7 @@ export default function ProfileScreen() {
             ]}
             onPress={() => navigation.navigate('Trash')}
           >
-            <Icon name="delete-sweep" size={18} color={colors.text} />
+            <Icon name="delete-sweep" size={iconSize.sm} color={colors.text} />
             <Text style={[styles.actionBtnText, { color: colors.text }]}>
               Papelera
             </Text>
@@ -471,7 +471,7 @@ export default function ProfileScreen() {
               }
             }}
           >
-            <Icon name="file-download-outline" size={18} color="#fff" />
+            <Icon name="file-download-outline" size={iconSize.sm} color="#fff" />
             <Text style={styles.actionBtnText}>Exportar todo</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -485,7 +485,7 @@ export default function ProfileScreen() {
             ]}
             onPress={() => setShowDatePicker(true)}
           >
-            <Icon name="calendar-range" size={18} color={colors.text} />
+            <Icon name="calendar-range" size={iconSize.sm} color={colors.text} />
             <Text style={[styles.actionBtnText, { color: colors.text }]}>
               Por fecha
             </Text>
@@ -514,7 +514,7 @@ export default function ProfileScreen() {
                     setSelectingEnd(false)
                   }}
                 >
-                  <Icon name="close" size={24} color={colors.text} />
+                  <Icon name="close" size={iconSize.md} color={colors.text} />
                 </TouchableOpacity>
               </View>
               {dateFrom && (
@@ -750,7 +750,7 @@ export default function ProfileScreen() {
           onPress={() => setThemeMode(nextMode)}
         >
           <View style={styles.themeRowLeft}>
-            <Icon name={modeIcons[themeMode]} size={22} color={colors.text} />
+            <Icon name={modeIcons[themeMode]} size={iconSize.md} color={colors.text} />
             <Text style={[styles.themeLabel, { color: colors.text }]}>
               Tema
             </Text>
@@ -759,7 +759,7 @@ export default function ProfileScreen() {
             <Text style={[styles.themeValue, { color: colors.textSecondary }]}>
               {modeLabels[themeMode]}
             </Text>
-            <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+            <Icon name="chevron-right" size={iconSize.md} color={colors.textTertiary} />
           </View>
         </TouchableOpacity>
 
@@ -778,7 +778,7 @@ export default function ProfileScreen() {
             }}
           >
             <View style={styles.themeRowLeft}>
-              <Icon name="fingerprint" size={22} color={colors.text} />
+              <Icon name="fingerprint" size={iconSize.md} color={colors.text} />
               <Text style={[styles.themeLabel, { color: colors.text }]}>
                 Inicio con {biometricLabel}
               </Text>
@@ -791,7 +791,7 @@ export default function ProfileScreen() {
               </Text>
               <Icon
                 name="chevron-right"
-                size={22}
+                size={iconSize.md}
                 color={colors.textTertiary}
               />
             </View>
@@ -814,14 +814,14 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
   },
   divider: { height: 1, marginVertical: 16 },
   button: {
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 24,
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
   themeValue: { fontSize: 14 },
   statsCard: {
     flexDirection: 'row',
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 16,
     marginBottom: 8,
     alignItems: 'center',
@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     gap: 6,
   },
   actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
@@ -889,7 +889,7 @@ const styles = StyleSheet.create({
   modalBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },

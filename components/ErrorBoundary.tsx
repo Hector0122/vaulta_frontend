@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
+import { radius, iconSize } from '../tokens'
 
 type Props = { children: ReactNode }
 type State = { hasError: boolean; error: Error | null }
@@ -24,7 +25,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
-          <Icon name="alert-circle-outline" size={64} color="#ef4444" />
+          <Icon name="alert-circle-outline" size={iconSize.xl} color="#ef4444" />
           <Text style={styles.title}>Algo salió mal</Text>
           <Text style={styles.subtitle}>
             Ocurrió un error inesperado. Puedes intentar de nuevo.
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4F46E5',
     paddingHorizontal: 32,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.sm,
   },
   buttonText: {
     color: '#fff',

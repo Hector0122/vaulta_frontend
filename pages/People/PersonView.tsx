@@ -16,6 +16,7 @@ import { useNavigation, useRoute } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
 import { authenticatedGet, mergePeople, removeFaceFromPhoto } from '../../api/client'
+import { radius, iconSize } from '../../tokens'
 import type { StackNavProp } from '../../types/navigation'
 
 type Photo = { id: string; uri: string; date: string; mimeType: string }
@@ -140,7 +141,7 @@ export default function PersonView() {
             onPress={() => setMergeModalVisible(true)}
             style={{ marginRight: 4 }}
           >
-            <Icon name="call-merge" size={22} color="#fff" />
+            <Icon name="call-merge" size={iconSize.md} color="#fff" />
           </TouchableOpacity>
         ),
     })
@@ -228,12 +229,12 @@ export default function PersonView() {
                         { backgroundColor: colors.primary + 'cc' },
                       ]}
                     >
-                      <Icon name="check" size={22} color="#fff" />
+                      <Icon name="check" size={iconSize.md} color="#fff" />
                     </View>
                   )}
                   {photo.mimeType?.startsWith('video/') && (
                     <View style={styles.videoBadge}>
-                      <Icon name="play" size={14} color="#fff" />
+                      <Icon name="play" size={iconSize.sm} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -243,7 +244,7 @@ export default function PersonView() {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Icon name="face-recognition" size={48} color={colors.textTertiary} />
+            <Icon name="face-recognition" size={iconSize.xl} color={colors.textTertiary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No hay fotos de {personName}
             </Text>
@@ -287,7 +288,7 @@ export default function PersonView() {
             onPress={handleBatchRemove}
             style={{
               backgroundColor: colors.danger || '#e74c3c',
-              borderRadius: 8,
+              borderRadius: radius.sm,
               paddingHorizontal: 16,
               paddingVertical: 8,
             }}
@@ -395,7 +396,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '80%',
-    borderRadius: 14,
+    borderRadius: radius.md,
     padding: 20,
     maxWidth: 340,
   },
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
   modalHint: { fontSize: 13, marginBottom: 16, lineHeight: 18 },
   modalInput: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   modalBtn: {
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },

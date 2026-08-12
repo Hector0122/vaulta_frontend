@@ -16,6 +16,7 @@ import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 import { fetchVault, removePhotosFromAlbum, createAlbum } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -237,7 +238,7 @@ export default function VaultView() {
                 resizeMode="cover"
               />
               <View style={styles.vaultBadge}>
-                <Icon name="eye-off-outline" size={14} color="#ffa726" />
+                <Icon name="eye-off-outline" size={iconSize.sm} color="#ffa726" />
               </View>
               {isSelected && (
                 <View
@@ -246,7 +247,7 @@ export default function VaultView() {
                     { backgroundColor: colors.primary + 'cc' },
                   ]}
                 >
-                  <Icon name="check" size={22} color="#fff" />
+                  <Icon name="check" size={iconSize.md} color="#fff" />
                 </View>
               )}
             </TouchableOpacity>
@@ -274,7 +275,7 @@ export default function VaultView() {
             <Image source={{ uri: item.coverUri }} style={styles.albumCoverThumb} />
           ) : (
             <View style={[styles.albumCoverPlaceholder, { backgroundColor: colors.primary + '20' }]}>
-              <Icon name="image-multiple-outline" size={22} color={colors.primary} />
+              <Icon name="image-multiple-outline" size={iconSize.md} color={colors.primary} />
             </View>
           )}
           <View style={styles.albumCardText}>
@@ -287,7 +288,7 @@ export default function VaultView() {
             </Text>
           </View>
         </View>
-        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+        <Icon name="chevron-right" size={iconSize.md} color={colors.textTertiary} />
       </TouchableOpacity>
     ),
     [colors, navigation],
@@ -314,7 +315,7 @@ export default function VaultView() {
           { backgroundColor: colors.background },
         ]}
       >
-        <Icon name="lock-outline" size={48} color={colors.primary} />
+        <Icon name="lock-outline" size={iconSize.xl} color={colors.primary} />
         <Text style={[styles.pinTitle, { color: colors.text }]}>
           {step === 'set-pin'
             ? 'Crear PIN de la Caja Fuerte'
@@ -354,7 +355,7 @@ export default function VaultView() {
               }
             }}
           >
-            <Icon name="fingerprint" size={36} color={colors.primary} />
+            <Icon name="fingerprint" size={iconSize.lg} color={colors.primary} />
           </TouchableOpacity>
         )}
         <View style={styles.pinPad}>
@@ -417,14 +418,14 @@ export default function VaultView() {
                 onPress={() => setGalleryView('all')}
                 activeOpacity={0.7}
               >
-                <Icon name="eye-off-outline" size={22} color="#ffa726" />
+                <Icon name="eye-off-outline" size={iconSize.md} color="#ffa726" />
                 <Text style={[styles.allPrivatesText, { color: colors.text }]}>
                   Todas las privadas
                 </Text>
                 <Text style={[styles.allPrivatesCount, { color: colors.textTertiary }]}>
                   {mainVault?._count.photos ?? 0} fotos
                 </Text>
-                <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+                <Icon name="chevron-right" size={iconSize.md} color={colors.textTertiary} />
               </TouchableOpacity>
               {vaultAlbums.length > 0 && (
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
@@ -435,7 +436,7 @@ export default function VaultView() {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Icon name="lock-outline" size={48} color={colors.textTertiary} />
+              <Icon name="lock-outline" size={iconSize.xl} color={colors.textTertiary} />
               <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
                 {mainVault?._count.photos ? 'Crea un álbum para organizar tus fotos privadas' : 'La caja fuerte está vacía'}
               </Text>
@@ -449,7 +450,7 @@ export default function VaultView() {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowCreate(true)}
         >
-          <Icon name="plus" size={28} color="#fff" />
+          <Icon name="plus" size={iconSize.lg} color="#fff" />
         </TouchableOpacity>
 
         <Modal visible={showCreate} transparent animationType="fade">
@@ -504,7 +505,7 @@ export default function VaultView() {
         ]}
       >
         <TouchableOpacity onPress={() => { setGalleryView('albums'); clearSelection() }}>
-          <Icon name="arrow-left" size={22} color={colors.textSecondary} />
+          <Icon name="arrow-left" size={iconSize.md} color={colors.textSecondary} />
         </TouchableOpacity>
         <Text style={[styles.topCount, { color: colors.textSecondary }]}>
           {mainVault?._count.photos ?? 0} foto(s)
@@ -527,11 +528,11 @@ export default function VaultView() {
           </Text>
           <View style={styles.actionActions}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleRemove}>
-              <Icon name="minus-circle-outline" size={18} color="#fff" />
+              <Icon name="minus-circle-outline" size={iconSize.sm} color="#fff" />
               <Text style={styles.actionBtnLabel}>Quitar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={clearSelection}>
-              <Icon name="close" size={18} color="#fff" />
+              <Icon name="close" size={iconSize.sm} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -539,7 +540,7 @@ export default function VaultView() {
 
       {photos.length === 0 ? (
         <View style={styles.emptyState}>
-          <Icon name="lock-outline" size={64} color={colors.textTertiary} />
+          <Icon name="lock-outline" size={iconSize.xl} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             La caja fuerte está vacía
           </Text>
@@ -641,14 +642,14 @@ const styles = StyleSheet.create({
   pinKey: {
     width: 72,
     height: 64,
-    borderRadius: 12,
+    borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pinKeyText: { fontSize: 24, fontWeight: '500' },
   pinConfirmBtn: {
     marginTop: 24,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 32,
     paddingVertical: 14,
   },
@@ -671,15 +672,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     marginBottom: 12,
   },
   albumCardContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  albumCoverThumb: { width: 44, height: 44, borderRadius: 8 },
+  albumCoverThumb: { width: 44, height: 44, borderRadius: radius.sm },
   albumCoverPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     borderWidth: 1,
     marginBottom: 16,
     gap: 10,
@@ -718,14 +719,14 @@ const styles = StyleSheet.create({
   },
   createCard: {
     width: '100%',
-    borderRadius: 16,
+    borderRadius: radius.md,
     padding: 24,
     elevation: 8,
   },
   modalTitle: { fontSize: 17, fontWeight: '600', marginBottom: 16 },
   createInput: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 12,
     fontSize: 16,
   },
@@ -733,7 +734,7 @@ const styles = StyleSheet.create({
   modalBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
   },
   modalBtnOutline: { borderWidth: 1 },

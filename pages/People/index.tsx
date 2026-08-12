@@ -17,6 +17,7 @@ import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 import {
   addTag,
   getPeople,
@@ -291,7 +292,7 @@ export default function PeopleScreen() {
                     handleStartScan(Math.min(scanStatus.pending, 15))
                   }
                 >
-                  <Icon name="face-recognition" size={18} color="#fff" />
+                  <Icon name="face-recognition" size={iconSize.sm} color="#fff" />
                   <Text style={styles.scanBtnText}>
                     Escanear {Math.min(scanStatus.pending, 15).toLocaleString()}{' '}
                     fotos
@@ -311,7 +312,7 @@ export default function PeopleScreen() {
                       handleStartScan(Math.min(scanStatus.pending, 50))
                     }
                   >
-                    <Icon name="face-recognition" size={18} color="#fff" />
+                    <Icon name="face-recognition" size={iconSize.sm} color="#fff" />
                     <Text style={styles.scanBtnText}>
                       Escanear {Math.min(scanStatus.pending, 50).toLocaleString()} fotos
                     </Text>
@@ -434,7 +435,7 @@ export default function PeopleScreen() {
                           ) : (
                             <Icon
                               name="face-recognition"
-                              size={32}
+                              size={iconSize.lg}
                               color={colors.textTertiary}
                             />
                           )}
@@ -500,7 +501,7 @@ export default function PeopleScreen() {
                             >
                               <Icon
                                 name="pencil-outline"
-                                size={14}
+                                size={iconSize.sm}
                                 color={colors.textSecondary}
                               />
                               <Text
@@ -525,7 +526,7 @@ export default function PeopleScreen() {
                           >
                             <Icon
                               name="close"
-                              size={14}
+                              size={iconSize.sm}
                               color={colors.textSecondary}
                             />
                           </TouchableOpacity>
@@ -545,7 +546,7 @@ export default function PeopleScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Icon name="face-recognition" size={56} color={colors.textTertiary} />
+            <Icon name="face-recognition" size={iconSize.xl} color={colors.textTertiary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No hay personas detectadas aún
             </Text>
@@ -571,7 +572,7 @@ export default function PeopleScreen() {
                   recyclingKey={item.name}
                 />
               ) : (
-                <Icon name="face-recognition" size={28} color={colors.primary} />
+                <Icon name="face-recognition" size={iconSize.lg} color={colors.primary} />
               )}
             </View>
             <View style={styles.cardInfo}>
@@ -594,7 +595,7 @@ export default function PeopleScreen() {
               {searching === item.name ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Icon name="magnify" size={18} color={colors.primary} />
+                <Icon name="magnify" size={iconSize.sm} color={colors.primary} />
               )}
             </TouchableOpacity>
           </TouchableOpacity>
@@ -677,7 +678,7 @@ export default function PeopleScreen() {
                   }
                 }}
               >
-                <Icon name="plus" size={20} color="#fff" />
+                <Icon name="plus" size={iconSize.md} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -892,7 +893,7 @@ export default function PeopleScreen() {
                                   ]}
                                 >
                                   {isSelected && (
-                                    <Icon name="check" size={16} color="#fff" />
+                                    <Icon name="check" size={iconSize.sm} color="#fff" />
                                   )}
                                 </View>
                                 <View style={styles.resultDistance}>
@@ -957,7 +958,7 @@ export default function PeopleScreen() {
               </>
             ) : (
               <View style={styles.empty}>
-                <Icon name="magnify-close" size={48} color={colors.textTertiary} />
+                <Icon name="magnify-close" size={iconSize.xl} color={colors.textTertiary} />
                 <Text
                   style={[styles.emptyText, { color: colors.textSecondary }]}
                 >
@@ -986,7 +987,7 @@ const styles = StyleSheet.create({
   unconfirmedRow: { paddingRight: 16 },
   unconfirmedCard: {
     width: 120,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
     alignItems: 'center',
     padding: 6,
@@ -995,7 +996,7 @@ const styles = StyleSheet.create({
   suggestionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingHorizontal: 10,
     paddingVertical: 5,
     maxWidth: 78,
@@ -1027,7 +1028,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     marginBottom: 12,
     ...Platform.select({
       ios: {
@@ -1066,14 +1067,14 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '80%',
-    borderRadius: 14,
+    borderRadius: radius.md,
     padding: 20,
     maxWidth: 340,
   },
   modalTitle: { fontSize: 17, fontWeight: '600', marginBottom: 16 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
   tagChip: {
-    borderRadius: 14,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
@@ -1082,13 +1083,13 @@ const styles = StyleSheet.create({
   addTagBtn: {
     width: 42,
     height: 42,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalInput: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     padding: 12,
     fontSize: 16,
   },
@@ -1096,7 +1097,7 @@ const styles = StyleSheet.create({
   existingPeopleLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
   chipScroll: { flexDirection: 'row' },
   personChip: {
-    borderRadius: 16,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: 7,
     marginRight: 8,
@@ -1109,7 +1110,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalBtn: {
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
@@ -1119,7 +1120,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     marginBottom: 16,
     gap: 8,
   },
@@ -1131,7 +1132,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   progressCard: {
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 14,
     marginBottom: 16,
@@ -1150,14 +1151,14 @@ const styles = StyleSheet.create({
   resultsCard: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 14,
+    borderRadius: radius.md,
     padding: 16,
     maxWidth: 400,
   },
   resultsGrid: { paddingBottom: 12 },
   resultThumb: {
     flex: 1,
-    borderRadius: 6,
+    borderRadius: radius.xs,
     overflow: 'hidden',
   },
   resultsToolbar: {

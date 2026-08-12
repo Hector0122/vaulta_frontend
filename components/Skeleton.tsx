@@ -1,13 +1,20 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect } from 'react'
 import {
   View,
-  Animated,
   StyleSheet,
   useWindowDimensions,
   type ViewStyle,
 } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated'
 import { useTheme } from '../theme'
 import type { ThemeColors } from '../theme'
+import { radius } from '../tokens'
 
 export function SkeletonBox({
   width,
@@ -21,26 +28,21 @@ export function SkeletonBox({
   borderRadius?: number
 }) {
   const { colors } = useTheme()
-  const opacity = useRef(new Animated.Value(0.3))
+  const opacity = useSharedValue(0.3)
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity.current, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity.current, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
+    // 800ms es deliberado, no de `motion.duration` — es un pulso ambiental
+    // continuo (loading placeholder), no una transición puntual.
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 800 }),
+        withTiming(0.3, { duration: 800 }),
+      ),
+      -1,
     )
-    anim.start()
-    return () => anim.stop()
-  }, [])
+  }, [opacity])
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }))
 
   return (
     <Animated.View
@@ -50,8 +52,8 @@ export function SkeletonBox({
           height,
           borderRadius,
           backgroundColor: colors.skeleton,
-          opacity: opacity.current,
         },
+        animatedStyle,
         style,
       ]}
     />
@@ -100,7 +102,7 @@ export function SkeletonAlbumList({
           key={i}
           style={[styles.albumRow, { backgroundColor: colors.cardBg }]}
         >
-          <SkeletonBox width={24} height={24} borderRadius={12} />
+          <SkeletonBox width={24} height={24} borderRadius={radius.md} />
           <View style={styles.albumRowRight}>
             <SkeletonBox width="60%" height={16} borderRadius={4} />
             <SkeletonBox
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     marginBottom: 12,
   },
   albumRowRight: { marginLeft: 12, flex: 1 },
