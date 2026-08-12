@@ -12,6 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation } from '@react-navigation/native'
 import { useTheme } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 import {
   authenticatedGet,
   deletePhoto,
@@ -139,7 +140,7 @@ export default function DuplicatesScreen() {
       return (
         <View style={[styles.group, { backgroundColor: colors.cardBg }]}>
           <View style={styles.groupHeader}>
-            <Icon name="content-copy" size={18} color={colors.textTertiary} />
+            <Icon name="content-copy" size={iconSize.sm} color={colors.textTertiary} />
             <Text style={[styles.groupCount, { color: colors.textSecondary }]}>
               {group.length} fotos similares
             </Text>
@@ -208,7 +209,7 @@ export default function DuplicatesScreen() {
   if (groups.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Icon name="check-circle" size={64} color={colors.success} />
+        <Icon name="check-circle" size={iconSize.xl} color={colors.success} />
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
           No hay fotos duplicadas
         </Text>
@@ -236,7 +237,7 @@ export default function DuplicatesScreen() {
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
-                <Icon name="delete" size={22} color="#fff" />
+                <Icon name="delete" size={iconSize.md} color="#fff" />
                 <Text style={styles.deleteText}>
                   Eliminar {selected.size} seleccionada(s)
                 </Text>
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, marginTop: 16 },
   list: { padding: 12, gap: 12, paddingBottom: 80 },
   group: {
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 12,
   },
   groupHeader: {
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
   thumbWrap: {
     width: 100,
     height: 100,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     overflow: 'hidden',
     borderColor: 'transparent',
     borderWidth: 2,

@@ -1,8 +1,17 @@
-import { useEffect, useRef } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
+import { useEffect } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  runOnJS,
+} from 'react-native-reanimated'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
+import { motion, radius, iconSize } from '../tokens'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -33,28 +42,32 @@ export default function Toast({
 }: Props) {
   const { colors } = useTheme()
   const { top: topInset } = useSafeAreaInsets()
-  const animValue = useRef(new Animated.Value(0)).current
+  const progress = useSharedValue(0)
 
   useEffect(() => {
     if (visible) {
-      animValue.setValue(0)
-      Animated.spring(animValue, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 10,
-      }).start()
+      progress.value = 0
+      progress.value = withSpring(1, motion.spring.gentle)
 
       const timer = setTimeout(() => {
-        Animated.timing(animValue, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => onDismiss())
+        progress.value = withTiming(0, { duration: motion.duration.fast }, (finished) => {
+          if (finished) runOnJS(onDismiss)()
+        })
       }, duration)
 
       return () => clearTimeout(timer)
     }
-  }, [visible, animValue, duration, onDismiss])
+  }, [visible, progress, duration, onDismiss])
+
+  const isTop = position === 'top' || position === 'top-right'
+  const isRight = position === 'top-right'
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(progress.value, [0, 1], isTop ? [-80, 0] : [80, 0]) },
+    ],
+    opacity: progress.value,
+  }))
 
   if (!visible) return null
 
@@ -64,16 +77,6 @@ export default function Toast({
       : type === 'error'
       ? colors.danger
       : colors.primary
-
-  const isTop = position === 'top' || position === 'top-right'
-  const isRight = position === 'top-right'
-
-  const translateY = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: isTop ? [-80, 0] : [80, 0],
-  })
-
-  const opacity = animValue
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -87,10 +90,11 @@ export default function Toast({
             : styles.bannerBottom,
           isTop && { top: topInset + 12 },
           isRight && { top: topInset + 12 },
-          { backgroundColor: bgColor, transform: [{ translateY }], opacity },
+          { backgroundColor: bgColor },
+          animatedStyle,
         ]}
       >
-        <Icon name={icons[type]} size={20} color="#fff" />
+        <Icon name={icons[type]} size={iconSize.md} color="#fff" />
         <Text style={styles.text}>{message}</Text>
       </Animated.View>
     </View>
@@ -105,7 +109,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 18,
-    borderRadius: 12,
+    borderRadius: radius.md,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

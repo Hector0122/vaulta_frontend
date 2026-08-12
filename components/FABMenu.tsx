@@ -1,7 +1,16 @@
-import React, { useEffect, useRef } from 'react'
-import { TouchableOpacity, Animated, Pressable, StyleSheet } from 'react-native'
+import React, { useEffect } from 'react'
+import { TouchableOpacity, Pressable, StyleSheet } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withDelay,
+  interpolate,
+} from 'react-native-reanimated'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
+import { motion, iconSize } from '../tokens'
 
 type Props = {
   visible: boolean
@@ -22,54 +31,43 @@ export default function FABMenu({
   onOpenVideo,
   onToggle,
 }: Props) {
-  const anim1 = useRef(new Animated.Value(0)).current
-  const anim2 = useRef(new Animated.Value(0)).current
-  const anim3 = useRef(new Animated.Value(0)).current
+  const anim1 = useSharedValue(0)
+  const anim2 = useSharedValue(0)
+  const anim3 = useSharedValue(0)
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.spring(anim1, {
-          toValue: 1,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-        Animated.spring(anim2, {
-          toValue: 1,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-          delay: 50,
-        }),
-        Animated.spring(anim3, {
-          toValue: 1,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-          delay: 100,
-        }),
-      ]).start()
+      anim1.value = withSpring(1, motion.spring.gentle)
+      anim2.value = withDelay(50, withSpring(1, motion.spring.gentle))
+      anim3.value = withDelay(100, withSpring(1, motion.spring.gentle))
     } else {
-      Animated.parallel([
-        Animated.timing(anim1, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim2, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim3, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-      ]).start()
+      anim1.value = withTiming(0, { duration: motion.duration.instant })
+      anim2.value = withTiming(0, { duration: motion.duration.instant })
+      anim3.value = withTiming(0, { duration: motion.duration.instant })
     }
   }, [visible, anim1, anim2, anim3])
+
+  const style1 = useAnimatedStyle(() => ({
+    opacity: anim1.value,
+    transform: [
+      { translateY: interpolate(anim1.value, [0, 1], [20, 0]) },
+      { scale: interpolate(anim1.value, [0, 1], [0.3, 1]) },
+    ],
+  }))
+  const style2 = useAnimatedStyle(() => ({
+    opacity: anim2.value,
+    transform: [
+      { translateY: interpolate(anim2.value, [0, 1], [20, 0]) },
+      { scale: interpolate(anim2.value, [0, 1], [0.3, 1]) },
+    ],
+  }))
+  const style3 = useAnimatedStyle(() => ({
+    opacity: anim3.value,
+    transform: [
+      { translateY: interpolate(anim3.value, [0, 1], [20, 0]) },
+      { scale: interpolate(anim3.value, [0, 1], [0.3, 1]) },
+    ],
+  }))
 
   return (
     <>
@@ -77,94 +75,31 @@ export default function FABMenu({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       )}
       <Animated.View
-        style={[
-          styles.mini,
-          styles.mini1,
-          {
-            backgroundColor: colors.surfaceAlt,
-            opacity: anim1,
-            transform: [
-              {
-                translateY: anim1.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-              {
-                scale: anim1.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 1],
-                }),
-              },
-            ],
-          },
-        ]}
+        style={[styles.mini, styles.mini1, { backgroundColor: colors.surfaceAlt }, style1]}
       >
         <TouchableOpacity style={styles.miniInner} onPress={onOpenGallery}>
-          <Icon name="image-multiple-outline" size={22} color={colors.text} />
+          <Icon name="image-multiple-outline" size={iconSize.md} color={colors.text} />
         </TouchableOpacity>
       </Animated.View>
       <Animated.View
-        style={[
-          styles.mini,
-          styles.mini2,
-          {
-            backgroundColor: colors.surfaceAlt,
-            opacity: anim2,
-            transform: [
-              {
-                translateY: anim2.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-              {
-                scale: anim2.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 1],
-                }),
-              },
-            ],
-          },
-        ]}
+        style={[styles.mini, styles.mini2, { backgroundColor: colors.surfaceAlt }, style2]}
       >
         <TouchableOpacity style={styles.miniInner} onPress={onOpenCamera}>
-          <Icon name="camera" size={22} color={colors.text} />
+          <Icon name="camera" size={iconSize.md} color={colors.text} />
         </TouchableOpacity>
       </Animated.View>
       <Animated.View
-        style={[
-          styles.mini,
-          styles.mini3,
-          {
-            backgroundColor: colors.surfaceAlt,
-            opacity: anim3,
-            transform: [
-              {
-                translateY: anim3.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-              {
-                scale: anim3.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 1],
-                }),
-              },
-            ],
-          },
-        ]}
+        style={[styles.mini, styles.mini3, { backgroundColor: colors.surfaceAlt }, style3]}
       >
         <TouchableOpacity style={styles.miniInner} onPress={onOpenVideo}>
-          <Icon name="video-outline" size={22} color={colors.text} />
+          <Icon name="video-outline" size={iconSize.md} color={colors.text} />
         </TouchableOpacity>
       </Animated.View>
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={onToggle}
       >
-        <Icon name={visible ? 'close' : 'camera-plus-outline'} size={28} color="#fff" />
+        <Icon name={visible ? 'close' : 'camera-plus-outline'} size={iconSize.lg} color="#fff" />
       </TouchableOpacity>
     </>
   )

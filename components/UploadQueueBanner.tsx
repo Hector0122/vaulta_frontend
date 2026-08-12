@@ -4,13 +4,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
   Alert,
 } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolate,
+} from 'react-native-reanimated'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../theme'
 import { useNetwork } from '../context/NetworkContext'
 import { useToast } from '../context/ToastContext'
+import { motion, radius, iconSize } from '../tokens'
 import {
   getPendingCount,
   processQueue,
@@ -26,7 +32,7 @@ export default function UploadQueueBanner() {
   const [pending, setPending] = useState(0)
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState({ completed: 0, total: 0 })
-  const animValue = useRef(new Animated.Value(0)).current
+  const animValue = useSharedValue(0)
   const wasOffline = useRef(false)
 
   const refresh = useCallback(() => {
@@ -94,12 +100,12 @@ export default function UploadQueueBanner() {
   }, [isConnected, handleProcess, pending, processing])
 
   useEffect(() => {
-    Animated.spring(animValue, {
-      toValue: pending > 0 || processing ? 1 : 0,
-      useNativeDriver: true,
-      friction: 10,
-    }).start()
+    animValue.value = withSpring(pending > 0 || processing ? 1 : 0, motion.spring.gentle)
   }, [pending, processing, animValue])
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(animValue.value, [0, 1], [80, 0]) }],
+  }))
 
   const handleRetryFailed = () => {
     const count = retryFailed()
@@ -149,27 +155,20 @@ export default function UploadQueueBanner() {
 
   if (pending === 0 && !processing) return null
 
-  const translateY = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [80, 0],
-  })
-
   const failedCount = getQueue().filter(i => i.status === 'failed').length
 
   return (
     <Animated.View
       style={[
         styles.banner,
-        {
-          backgroundColor: processing ? colors.primary : colors.offline,
-          transform: [{ translateY }],
-        },
+        { backgroundColor: processing ? colors.primary : colors.offline },
+        animatedStyle,
       ]}
     >
       <View style={styles.content}>
         <Icon
           name={processing ? 'cloud-upload-outline' : 'cloud-outline'}
-          size={18}
+          size={iconSize.sm}
           color="#fff"
         />
         <Text style={styles.text}>
@@ -182,11 +181,11 @@ export default function UploadQueueBanner() {
       {failedCount > 0 && !processing && (
         <>
           <TouchableOpacity style={styles.retryBtn} onPress={handleShowErrors}>
-            <Icon name="information-outline" size={18} color="#fff" />
+            <Icon name="information-outline" size={iconSize.sm} color="#fff" />
             <Text style={styles.retryText}>Ver errores</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.retryBtn} onPress={handleRetryFailed}>
-            <Icon name="refresh" size={18} color="#fff" />
+            <Icon name="refresh" size={iconSize.sm} color="#fff" />
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
         </>
@@ -194,13 +193,13 @@ export default function UploadQueueBanner() {
 
       {!processing && (
         <TouchableOpacity style={styles.retryBtn} onPress={handleClearQueue}>
-          <Icon name="close" size={18} color="#fff" />
+          <Icon name="close" size={iconSize.sm} color="#fff" />
         </TouchableOpacity>
       )}
 
       {!processing && pending > 0 && isConnected && (
         <TouchableOpacity style={styles.retryBtn} onPress={handleProcess}>
-          <Icon name="cloud-upload-outline" size={18} color="#fff" />
+          <Icon name="cloud-upload-outline" size={iconSize.sm} color="#fff" />
           <Text style={styles.retryText}>Subir ahora</Text>
         </TouchableOpacity>
       )}
@@ -239,7 +238,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 6,
+    borderRadius: radius.xs,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   retryText: {

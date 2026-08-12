@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import Video from 'react-native-video'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
+import { radius, iconSize } from '../tokens'
 
 type Props = {
   uri: string
@@ -42,7 +43,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Icon name="alert-circle-outline" size={48} color="#fff" />
+        <Icon name="alert-circle-outline" size={iconSize.xl} color="#fff" />
         <Text style={styles.errorText}>Error al cargar el video</Text>
         <TouchableOpacity
           style={styles.retryBtn}
@@ -111,7 +112,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
         <View style={styles.playOverlay} pointerEvents="none">
           <Icon
             name="play-circle"
-            size={64}
+            size={iconSize.xl}
             color="rgba(255,255,255,0.8)"
           />
         </View>
@@ -120,7 +121,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
         <View style={styles.playOverlay} pointerEvents="none">
           <Icon
             name={paused ? 'play-circle' : 'pause-circle'}
-            size={64}
+            size={iconSize.xl}
             color="rgba(255,255,255,0.8)"
           />
         </View>
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     backgroundColor: '#333',
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   retryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 })

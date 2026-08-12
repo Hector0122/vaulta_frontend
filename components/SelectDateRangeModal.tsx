@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, Modal, ActivityIndicator, StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import LazyCalendar from './LazyCalendar'
+import { radius, iconSize } from '../tokens'
 import type { ThemeColors } from '../theme'
 
 type Props = {
@@ -78,7 +79,7 @@ export default function SelectDateRangeModal({
               Seleccionar por fecha
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Icon name="close" size={24} color={colors.text} />
+              <Icon name="close" size={iconSize.md} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   },
   presetChip: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: radius.pill,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
   modalBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
   },
   modalBtnOutline: { borderWidth: 1 },

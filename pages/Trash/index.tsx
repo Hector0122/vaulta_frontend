@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 import {
   getTrash,
   restorePhoto,
@@ -53,7 +54,7 @@ function TrashItemCard({
             },
           ]}
         >
-          <Icon name="image-broken-variant" size={24} color={colors.textTertiary} />
+          <Icon name="image-broken-variant" size={iconSize.md} color={colors.textTertiary} />
         </View>
       ) : (
         <Image
@@ -78,13 +79,13 @@ function TrashItemCard({
           onPress={() => onRestore(item.id)}
           style={styles.actionBtn}
         >
-          <Icon name="restore" size={22} color={colors.primary} />
+          <Icon name="restore" size={iconSize.md} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onDelete(item.id)}
           style={styles.actionBtn}
         >
-          <Icon name="delete-forever" size={22} color={colors.danger} />
+          <Icon name="delete-forever" size={iconSize.md} color={colors.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -207,7 +208,7 @@ export default function TrashScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {items.length === 0 ? (
         <View style={styles.emptyState}>
-          <Icon name="delete-sweep" size={64} color={colors.textTertiary} />
+          <Icon name="delete-sweep" size={iconSize.xl} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             Papelera vacía
           </Text>
@@ -218,7 +219,7 @@ export default function TrashScreen() {
             style={styles.emptyAllBtn}
             onPress={handleEmptyTrash}
           >
-            <Icon name="delete-sweep" size={20} color="#fff" />
+            <Icon name="delete-sweep" size={iconSize.md} color="#fff" />
             <Text style={styles.emptyAllText}>Vaciar papelera</Text>
           </TouchableOpacity>
           <FlatList
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     gap: 6,
   },
   emptyAllText: { color: '#fff', fontSize: 15, fontWeight: '600' },
@@ -255,10 +256,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     marginBottom: 8,
   },
-  thumb: { width: 52, height: 52, borderRadius: 6 },
+  thumb: { width: 52, height: 52, borderRadius: radius.xs },
   info: { flex: 1, marginLeft: 10 },
   filename: { fontSize: 14, fontWeight: '500' },
   date: { fontSize: 12, marginTop: 2 },

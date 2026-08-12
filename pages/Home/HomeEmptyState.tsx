@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 
 type Props = {
   error: string | null
@@ -25,7 +26,7 @@ export function HomeEmptyState({
       <View style={styles.stateContainer}>
         <Icon
           name="alert-circle-outline"
-          size={56}
+          size={iconSize.xl}
           color={colors.textTertiary}
         />
         <Text style={[styles.stateText, { color: colors.textSecondary }]}>
@@ -47,7 +48,7 @@ export function HomeEmptyState({
     >
       <Icon
         name="image-multiple-outline"
-        size={72}
+        size={iconSize.xl}
         color={colors.textTertiary}
       />
       {rangeStart || favoritesOnly || searchQuery ? (
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   retryText: { color: '#fff', fontSize: 16 },
 })

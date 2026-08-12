@@ -21,6 +21,7 @@ import { getToken } from '../../api/client'
 import { BASE_URL } from '../../api/server'
 import { addToQueue } from '../../services/UploadQueue'
 import type { StackNavProp, UploadRouteProp } from '../../types/navigation'
+import { radius, iconSize } from '../../tokens'
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024
 
@@ -272,7 +273,7 @@ export default function UploadScreen() {
                           ]}
                           onPress={pickImages}
                         >
-                          <Icon name="plus" size={28} color={colors.primary} />
+                          <Icon name="plus" size={iconSize.lg} color={colors.primary} />
                         </TouchableOpacity>
                       )
                     }
@@ -295,7 +296,7 @@ export default function UploadScreen() {
                             style={styles.removeBtn}
                             onPress={() => removeImage(item.uri)}
                           >
-                            <Icon name="close" size={14} color="#fff" />
+                            <Icon name="close" size={iconSize.sm} color="#fff" />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -308,7 +309,7 @@ export default function UploadScreen() {
         )
       ) : (
         <View style={styles.emptyState}>
-          <Icon name="cloud-upload-outline" size={72} color={colors.textTertiary} />
+          <Icon name="cloud-upload-outline" size={iconSize.xl} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             Selecciona una o varias fotos
           </Text>
@@ -318,7 +319,7 @@ export default function UploadScreen() {
       <View style={[styles.bottomBar, { backgroundColor: colors.surface }]}>
         {uploading ? (
           <View style={styles.uploadingInfo}>
-            <Icon name="cloud-upload-outline" size={22} color={colors.primary} />
+            <Icon name="cloud-upload-outline" size={iconSize.md} color={colors.primary} />
             <Text style={[styles.uploadCount, { color: colors.textSecondary }]}>
               Subiendo {images.length} foto(s)…
             </Text>
@@ -332,7 +333,7 @@ export default function UploadScreen() {
               style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
               onPress={uploadBatch}
             >
-              <Icon name="cloud-upload-outline" size={22} color="#fff" />
+              <Icon name="cloud-upload-outline" size={iconSize.md} color="#fff" />
               <Text style={styles.uploadBtnText}>
                 {isConnected ? 'Subir todo' : 'Subir después (sin WiFi)'}
               </Text>
@@ -347,7 +348,7 @@ export default function UploadScreen() {
                   { backgroundColor: colors.surfaceAlt },
                 ]}
               >
-                <Icon name="image-multiple-outline" size={28} color={colors.primary} />
+                <Icon name="image-multiple-outline" size={iconSize.lg} color={colors.primary} />
               </View>
               <Text
                 style={[styles.pickerLabel, { color: colors.textSecondary }]}
@@ -362,7 +363,7 @@ export default function UploadScreen() {
                   { backgroundColor: colors.surfaceAlt },
                 ]}
               >
-                <Icon name="camera" size={28} color={colors.primary} />
+                <Icon name="camera" size={iconSize.lg} color={colors.primary} />
               </View>
               <Text
                 style={[styles.pickerLabel, { color: colors.textSecondary }]}
@@ -377,7 +378,7 @@ export default function UploadScreen() {
                   { backgroundColor: colors.surfaceAlt },
                 ]}
               >
-                <Icon name="video-outline" size={28} color={colors.primary} />
+                <Icon name="video-outline" size={iconSize.lg} color={colors.primary} />
               </View>
               <Text
                 style={[styles.pickerLabel, { color: colors.textSecondary }]}
@@ -406,11 +407,11 @@ const styles = StyleSheet.create({
   cameraPreview: {
     flex: 1,
     width: '100%',
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
   grid: {},
   gridRow: { flexDirection: 'row', marginBottom: 4 },
-  thumb: { width: '100%', height: '100%', borderRadius: 6 },
+  thumb: { width: '100%', height: '100%', borderRadius: radius.xs },
   removeBtn: {
     position: 'absolute',
     top: 2,
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addMore: {
-    borderRadius: 6,
+    borderRadius: radius.xs,
     borderWidth: 2,
     borderStyle: 'dashed',
     justifyContent: 'center',
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     gap: 8,
   },
   uploadBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },

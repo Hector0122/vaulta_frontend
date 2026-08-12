@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 import { SkeletonAlbumList } from '../../components/Skeleton'
 import {
   authenticatedGet,
@@ -121,7 +122,7 @@ export default function AlbumsScreen() {
                   { backgroundColor: colors.primary + '20' },
                 ]}
               >
-                <Icon name="image-multiple-outline" size={24} color={colors.primary} />
+                <Icon name="image-multiple-outline" size={iconSize.md} color={colors.primary} />
               </View>
             )}
             <View style={styles.cardText}>
@@ -143,7 +144,7 @@ export default function AlbumsScreen() {
             {deletingId === item.id ? (
               <ActivityIndicator size="small" color={colors.textTertiary} />
             ) : (
-              <Icon name="delete-outline" size={22} color={colors.textTertiary} />
+              <Icon name="delete-outline" size={iconSize.md} color={colors.textTertiary} />
             )}
           </TouchableOpacity>
         </TouchableOpacity>
@@ -171,11 +172,11 @@ export default function AlbumsScreen() {
         onPress={() => navigation.navigate('VaultView')}
         activeOpacity={0.7}
       >
-        <Icon name="lock-outline" size={22} color="#ffa726" />
+        <Icon name="lock-outline" size={iconSize.md} color="#ffa726" />
         <Text style={[styles.vaultText, { color: colors.text }]}>
           Caja Fuerte
         </Text>
-        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+        <Icon name="chevron-right" size={iconSize.md} color={colors.textTertiary} />
       </TouchableOpacity>
 
       {/* People entry */}
@@ -187,11 +188,11 @@ export default function AlbumsScreen() {
         onPress={() => navigation.navigate('People')}
         activeOpacity={0.7}
       >
-        <Icon name="face-recognition" size={22} color={colors.primary} />
+        <Icon name="face-recognition" size={iconSize.md} color={colors.primary} />
         <Text style={[styles.vaultText, { color: colors.text }]}>
           Personas
         </Text>
-        <Icon name="chevron-right" size={22} color={colors.textTertiary} />
+        <Icon name="chevron-right" size={iconSize.md} color={colors.textTertiary} />
       </TouchableOpacity>
 
       {showCreate && (
@@ -229,7 +230,7 @@ export default function AlbumsScreen() {
 
       {albums.length === 0 ? (
         <View style={styles.centered}>
-          <Icon name="image-multiple-outline" size={56} color={colors.textTertiary} />
+          <Icon name="image-multiple-outline" size={iconSize.xl} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             No hay álbumes aún
           </Text>
@@ -265,7 +266,7 @@ export default function AlbumsScreen() {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowCreate(true)}
         >
-          <Icon name="plus" size={28} color="#fff" />
+          <Icon name="plus" size={iconSize.lg} color="#fff" />
         </TouchableOpacity>
       )}
     </View>
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 4,
     padding: 16,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     borderWidth: 1,
     gap: 10,
   },
@@ -293,15 +294,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     marginBottom: 12,
   },
   cardContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  coverThumb: { width: 44, height: 44, borderRadius: 8 },
+  coverThumb: { width: 44, height: 44, borderRadius: radius.sm },
   coverPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -317,13 +318,13 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 12,
     fontSize: 16,
     marginRight: 8,
   },
   createBtn: {
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, marginTop: 12 },
   addBtn: {
     marginTop: 16,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },

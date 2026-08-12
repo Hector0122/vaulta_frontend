@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../theme'
 import VaultaLogo from '../../components/VaultaLogo'
+import { radius, iconSize } from '../../tokens'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -157,7 +158,7 @@ export default function LoginScreen() {
           >
             <Icon
               name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-              size={22}
+              size={iconSize.md}
               color={colors.textTertiary}
             />
           </TouchableOpacity>
@@ -197,7 +198,7 @@ export default function LoginScreen() {
                   )
               }}
             >
-              <Icon name="fingerprint" size={22} color={colors.primary} />
+              <Icon name="fingerprint" size={iconSize.md} color={colors.primary} />
               <Text
                 style={[styles.biometricBtnText, { color: colors.primary }]}
               >
@@ -237,13 +238,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 14,
     fontSize: 16,
     marginBottom: 16,
   },
   button: {
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     marginBottom: 16,
   },
   passwordInput: {
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 14,
     marginBottom: 4,
   },

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, TextInput } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
+import { radius, iconSize } from '../tokens'
 
 type Props = {
   colors: ThemeColors
@@ -53,7 +54,7 @@ export default React.memo(function FilterBar({
           },
         ]}
       >
-        <Icon name="magnify" size={18} color={colors.primary} />
+        <Icon name="magnify" size={iconSize.sm} color={colors.primary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
           placeholder="Buscar por nombre o etiqueta..."
@@ -68,7 +69,7 @@ export default React.memo(function FilterBar({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             onPress={() => onSearchChange('')}
           >
-            <Icon name="close" size={18} color={colors.textTertiary} />
+            <Icon name="close" size={iconSize.sm} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -80,7 +81,7 @@ export default React.memo(function FilterBar({
           ]}
           onPress={onOpenDatePicker}
         >
-          <Icon name="calendar-today" size={16} color={colors.textTertiary} />
+          <Icon name="calendar-today" size={iconSize.sm} color={colors.textTertiary} />
           <Text
             style={[
               styles.rangeFieldText,
@@ -100,7 +101,7 @@ export default React.memo(function FilterBar({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={onClearDateRange}
             >
-              <Icon name="close" size={16} color={colors.danger} />
+              <Icon name="close" size={iconSize.sm} color={colors.danger} />
             </TouchableOpacity>
           )}
         </TouchableOpacity>
@@ -108,7 +109,7 @@ export default React.memo(function FilterBar({
           onPress={onOpenSelectRange}
           style={styles.filterIcon}
         >
-          <Icon name="playlist-add-check" size={22} color={colors.textSecondary} />
+          <Icon name="playlist-add-check" size={iconSize.md} color={colors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onToggleFavorites}
@@ -116,15 +117,15 @@ export default React.memo(function FilterBar({
         >
           <Icon
             name={favoritesOnly ? 'heart' : 'heart-outline'}
-            size={22}
+            size={iconSize.md}
             color={colors.favorite}
           />
         </TouchableOpacity>
         <TouchableOpacity onPress={onGoToPeople} style={styles.filterIcon}>
-          <Icon name="face-recognition" size={22} color={colors.textSecondary} />
+          <Icon name="face-recognition" size={iconSize.md} color={colors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onGoToProfile} style={styles.profileIcon}>
-          <Icon name="account-outline" size={22} color={colors.textSecondary} />
+          <Icon name="account-outline" size={iconSize.md} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 8,
-    borderRadius: 10,
+    borderRadius: radius.sm,
   },
   searchInput: {
     flex: 1,
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },

@@ -16,6 +16,7 @@ import { useNavigation, useRoute } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import LazyCalendar from '../../components/LazyCalendar'
 import { useTheme } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 import {
   authenticatedGet,
   exportAlbum,
@@ -88,7 +89,7 @@ export default function AlbumView() {
         onPress={() => setShowRename(true)}
         style={styles.headerRightBtn}
       >
-        <Icon name="pencil-outline" size={22} color={colors.primary} />
+        <Icon name="pencil-outline" size={iconSize.md} color={colors.primary} />
       </TouchableOpacity>
     ),
     [colors],
@@ -173,7 +174,7 @@ export default function AlbumView() {
                     { backgroundColor: colors.primary + 'cc' },
                   ]}
                 >
-                  <Icon name="check" size={22} color="#fff" />
+                  <Icon name="check" size={iconSize.md} color="#fff" />
                 </View>
               )}
             </TouchableOpacity>
@@ -275,7 +276,7 @@ export default function AlbumView() {
             style={styles.topBtn}
             onPress={() => setShowDateFilter(true)}
           >
-            <Icon name="calendar-range" size={18} color={colors.primary} />
+            <Icon name="calendar-range" size={iconSize.sm} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.topBtn, { backgroundColor: colors.primary }]}
@@ -288,7 +289,7 @@ export default function AlbumView() {
               }
             }}
           >
-            <Icon name="file-download-outline" size={16} color="#fff" />
+            <Icon name="file-download-outline" size={iconSize.sm} color="#fff" />
             <Text style={styles.topBtnText}>Exportar</Text>
           </TouchableOpacity>
         </View>
@@ -302,7 +303,7 @@ export default function AlbumView() {
           ]}
           onPress={clearDateFilter}
         >
-          <Icon name="close" size={16} color={colors.primary} />
+          <Icon name="close" size={iconSize.sm} color={colors.primary} />
           <Text style={[styles.filterChipText, { color: colors.primary }]}>
             {dateFrom} – {dateTo}
           </Text>
@@ -324,15 +325,15 @@ export default function AlbumView() {
           </Text>
           <View style={styles.actionActions}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleSetCover}>
-              <Icon name="image-outline" size={18} color="#fff" />
+              <Icon name="image-outline" size={iconSize.sm} color="#fff" />
               <Text style={styles.actionBtnLabel}>Portada</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={handleRemove}>
-              <Icon name="minus-circle-outline" size={18} color="#fff" />
+              <Icon name="minus-circle-outline" size={iconSize.sm} color="#fff" />
               <Text style={styles.actionBtnLabel}>Quitar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={clearSelection}>
-              <Icon name="close" size={18} color="#fff" />
+              <Icon name="close" size={iconSize.sm} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -340,7 +341,7 @@ export default function AlbumView() {
 
       {photos.length === 0 && !selecting ? (
         <View style={styles.emptyState}>
-          <Icon name="image-multiple-outline" size={64} color={colors.textTertiary} />
+          <Icon name="image-multiple-outline" size={iconSize.xl} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             {filterActive
               ? 'Sin resultados para este filtro'
@@ -385,7 +386,7 @@ export default function AlbumView() {
                 Filtrar por fecha
               </Text>
               <TouchableOpacity onPress={() => setShowDateFilter(false)}>
-                <Icon name="close" size={24} color={colors.text} />
+                <Icon name="close" size={iconSize.md} color={colors.text} />
               </TouchableOpacity>
             </View>
             <LazyCalendar
@@ -557,7 +558,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, marginTop: 16 },
   addBtn: {
     marginTop: 16,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   topBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   filterChip: {
@@ -588,7 +589,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 16,
+    borderRadius: radius.pill,
     gap: 4,
   },
   filterChipText: { fontSize: 12, fontWeight: '500' },
@@ -641,19 +642,19 @@ const styles = StyleSheet.create({
   modalBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
   renameCard: {
     marginHorizontal: 32,
-    borderRadius: 16,
+    borderRadius: radius.md,
     padding: 24,
     elevation: 8,
   },
   renameInput: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 12,
     fontSize: 16,
   },

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native'
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
+import { radius, iconSize } from '../tokens'
 
 type Props = {
   visible: boolean
@@ -36,7 +37,7 @@ export default function DateRangePicker({
               Seleccionar año
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Icon name="close" size={24} color={colors.text} />
+              <Icon name="close" size={iconSize.md} color={colors.text} />
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.yearList}>
@@ -69,7 +70,7 @@ export default function DateRangePicker({
                   {selected && (
                     <Icon
                       name="check"
-                      size={20}
+                      size={iconSize.md}
                       color={colors.primary}
                     />
                   )}
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     marginBottom: 4,
   },
   yearText: { fontSize: 16 },

@@ -56,6 +56,7 @@ import type { Photo, ListItem } from './utils'
 import { flattenWithHeaders, dateRange } from './utils'
 import { PhotoGridItem } from './PhotoGridItem'
 import { HomeEmptyState } from './HomeEmptyState'
+import { iconSize } from '../../tokens'
 
 type HomeStackParamList = {
   Main: undefined
@@ -769,7 +770,7 @@ export function HomeScreen({ navigation }: Props) {
             </Text>
             <Icon
               name={daySelected ? 'check-circle' : 'radiobox-blank'}
-              size={18}
+              size={iconSize.sm}
               color={daySelected ? colors.primary : colors.textTertiary}
             />
           </TouchableOpacity>

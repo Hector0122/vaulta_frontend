@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native'
 import { NitroImage } from 'react-native-nitro-image'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../../theme'
+import { radius, iconSize } from '../../tokens'
 
 type PhotoGridItemPhoto = {
   uri: string
@@ -66,26 +67,26 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
             <View style={styles.videoOverlay}>
               <Icon
                 name="play-circle"
-                size={48}
+                size={iconSize.xl}
                 color="rgba(255,255,255,0.7)"
               />
             </View>
           )}
           {isBlurry && (
             <View style={styles.blurryBadge}>
-              <Icon name="blur-off" size={16} color={colors.danger} />
+              <Icon name="blur-off" size={iconSize.sm} color={colors.danger} />
             </View>
           )}
           {isPrivate && (
             <View style={styles.privateBadge}>
-              <Icon name="eye-off-outline" size={16} color="#ffa726" />
+              <Icon name="eye-off-outline" size={iconSize.sm} color="#ffa726" />
             </View>
           )}
           {isOffline && (
             <View style={styles.offlineBadge}>
               <Icon
                 name="cloud-outline"
-                size={16}
+                size={iconSize.sm}
                 color={colors.offline}
               />
             </View>
@@ -94,7 +95,7 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
             <View style={styles.favBadge}>
               <Icon
                 name="heart"
-                size={18}
+                size={iconSize.sm}
                 color={colors.favorite}
               />
             </View>
@@ -107,7 +108,7 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
                 { backgroundColor: colors.overlay },
               ]}
             >
-              <Icon name="check-circle" size={28} color="#fff" />
+              <Icon name="check-circle" size={iconSize.lg} color="#fff" />
             </View>
           )}
         </View>
@@ -119,7 +120,7 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
 const styles = StyleSheet.create({
   gridItem: { padding: 3, flex: 1 },
   cardInner: {
-    borderRadius: 6,
+    borderRadius: radius.xs,
     overflow: 'hidden',
   },
   image: { width: '100%', height: 250 },

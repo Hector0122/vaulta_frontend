@@ -9,6 +9,7 @@ import {
 import { StyleSheet } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import type { ThemeColors } from '../theme'
+import { radius, iconSize } from '../tokens'
 
 type Recuerdo = {
   year: number
@@ -59,7 +60,7 @@ const RecuerdoCard = React.memo(function RecuerdoCard({
               },
             ]}
           >
-            <Icon name="image-outline" size={28} color={colors.textTertiary} />
+            <Icon name="image-outline" size={iconSize.lg} color={colors.textTertiary} />
           </View>
         ) : (
           <Image
@@ -102,7 +103,7 @@ export default React.memo(function RecuerdosSection({
     <View style={[styles.container, { backgroundColor: colors.surfaceAlt }]}>
       <View style={styles.header}>
         <View style={[styles.iconCircle, { backgroundColor: colors.primary + '20' }]}>
-          <Icon name="history" size={16} color={colors.primary} />
+          <Icon name="history" size={iconSize.sm} color={colors.primary} />
         </View>
         <Text style={[styles.title, { color: colors.text }]}>Recuerdos</Text>
       </View>
@@ -141,13 +142,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
     width: 120,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 6,
   },
   thumbWrap: {
     width: 120,
     height: 140,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     overflow: 'hidden',
     position: 'relative',
   },

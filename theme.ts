@@ -1,8 +1,13 @@
 import { useThemeMode } from './context/ThemeContext'
+import { createAppTheme, brands } from './tokens'
 
-// VAULTA brand palette
-// Primary teal: #2BD4CE  |  Purple accent: #7B6BF5
-// Dark bg: #0F0F0F       |  Surface: #1A1A1A
+// Colores derivados de arcd_kit/tokens.ts en vez de hex a mano — antes este
+// archivo duplicaba primary/accent (coincidían por casualidad) pero
+// success/danger/overlay/fondos eran propios y habían divergido del resto
+// del sistema. `offline` y `tabBarInactive` no tienen equivalente en
+// arcd_kit (no son parte del esquema compartido) y se quedan como colores
+// propios de Vaulta.
+const { light: base, dark: baseDark } = createAppTheme(brands.vaulta)
 
 export type ThemeColors = {
   background: string
@@ -29,51 +34,51 @@ export type ThemeColors = {
 }
 
 const light: ThemeColors = {
-  background: '#fff',
-  surface: '#f8f8f8',
-  surfaceAlt: '#f5f5f5',
-  text: '#222',
-  textSecondary: '#666',
-  textTertiary: '#999',
-  border: '#ddd',
-  borderLight: '#eee',
-  primary: '#2BD4CE',
-  accent: '#7B6BF5',
-  danger: '#ff5252',
-  favorite: '#7B6BF5',
+  background: base.background,
+  surface: base.surface,
+  surfaceAlt: base.surfaceAlt,
+  text: base.text,
+  textSecondary: base.textSecondary,
+  textTertiary: base.textTertiary,
+  border: base.border,
+  borderLight: base.borderLight,
+  primary: base.primary,
+  accent: base.accent,
+  danger: base.danger,
+  favorite: base.accent,
   offline: '#4fc3f7',
-  success: '#4CAF50',
-  tabBarBg: '#fff',
-  tabBarActive: '#2BD4CE',
+  success: base.success,
+  tabBarBg: base.background,
+  tabBarActive: base.primary,
   tabBarInactive: 'gray',
-  overlay: 'rgba(43,212,206,0.25)',
-  cardBg: '#f8f8f8',
-  inputBg: '#fff',
-  skeleton: '#e0e0e0',
+  overlay: base.overlay,
+  cardBg: base.cardBg,
+  inputBg: base.inputBg,
+  skeleton: base.skeleton,
 }
 
 const dark: ThemeColors = {
-  background: '#0F0F0F',
-  surface: '#1A1A1A',
-  surfaceAlt: '#252525',
-  text: '#FFFFFF',
-  textSecondary: '#AAAAAA',
-  textTertiary: '#777777',
-  border: '#2E2E2E',
-  borderLight: '#1E1E1E',
-  primary: '#2BD4CE',
-  accent: '#7B6BF5',
-  danger: '#ff5252',
-  favorite: '#7B6BF5',
+  background: baseDark.background,
+  surface: baseDark.surface,
+  surfaceAlt: baseDark.surfaceAlt,
+  text: baseDark.text,
+  textSecondary: baseDark.textSecondary,
+  textTertiary: baseDark.textTertiary,
+  border: baseDark.border,
+  borderLight: baseDark.borderLight,
+  primary: baseDark.primary,
+  accent: baseDark.accent,
+  danger: baseDark.danger,
+  favorite: baseDark.accent,
   offline: '#4fc3f7',
-  success: '#4CAF50',
-  tabBarBg: '#1A1A1A',
-  tabBarActive: '#2BD4CE',
+  success: baseDark.success,
+  tabBarBg: baseDark.surface,
+  tabBarActive: baseDark.primary,
   tabBarInactive: '#555555',
-  overlay: 'rgba(43,212,206,0.25)',
-  cardBg: '#1A1A1A',
-  inputBg: '#252525',
-  skeleton: '#252525',
+  overlay: baseDark.overlay,
+  cardBg: baseDark.cardBg,
+  inputBg: baseDark.inputBg,
+  skeleton: baseDark.skeleton,
 }
 
 export function useTheme() {

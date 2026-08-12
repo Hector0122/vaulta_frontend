@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import NetInfo from '@react-native-community/netinfo'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../theme'
+import { iconSize } from '../tokens'
 
 export default function ConnectionBanner() {
   const { colors } = useTheme()
@@ -19,7 +20,7 @@ export default function ConnectionBanner() {
 
   return (
     <View style={[styles.banner, { backgroundColor: colors.danger }]}>
-      <Icon name="wifi-off" size={16} color="#fff" />
+      <Icon name="wifi-off" size={iconSize.sm} color="#fff" />
       <Text style={styles.text}>Sin conexión a internet</Text>
     </View>
   )
