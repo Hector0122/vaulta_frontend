@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/logo/vaulta-icon.png" width="72" alt="Vaulta" /></p>
+
 # Vaulta
 
 App de fotos privadas para Android: tu propia nube de fotos, con búsqueda por rostro y sin depender de Google Fotos o iCloud.
