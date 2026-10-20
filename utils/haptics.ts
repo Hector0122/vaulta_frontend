@@ -19,21 +19,6 @@ export function impactLight() {
   else Vibration.vibrate(30)
 }
 
-export function impactMedium() {
-  if (triggerHaptic) triggerHaptic('impactMedium', options)
-  else Vibration.vibrate(50)
-}
-
-export function impactHeavy() {
-  if (triggerHaptic) triggerHaptic('impactHeavy', options)
-  else Vibration.vibrate(80)
-}
-
-export function selection() {
-  if (triggerHaptic) triggerHaptic('selection', options)
-  else Vibration.vibrate(30)
-}
-
 export function success() {
   if (triggerHaptic) triggerHaptic('notificationSuccess', options)
   else Vibration.vibrate(40)

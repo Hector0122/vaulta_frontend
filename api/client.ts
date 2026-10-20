@@ -3,7 +3,6 @@ import * as Keychain from 'react-native-keychain'
 import { BASE_URL } from './server'
 import { fetchWithTimeout } from './fetchWithTimeout'
 
-const PRESIGN_EXPIRY = 604800
 
 const TOKEN_KEY = '@vaulta_token'
 const REFRESH_TOKEN_KEY = '@vaulta_refresh_token'
@@ -304,21 +303,6 @@ export async function bulkDeletePhotos(
   return authenticatedDelete<{ deleted: number }>('photos/bulk', { ids })
 }
 
-export async function getShareLink(
-  photoId: string,
-  expiresIn: number = PRESIGN_EXPIRY,
-): Promise<string> {
-  return autoRetry(async () => {
-    const headers = await authHeaders()
-    const res = await fetchWithTimeout(
-      `${BASE_URL}/photos/${photoId}/share?expiresIn=${expiresIn}`,
-      { headers },
-    )
-    const data = await handleJsonResponse<{ url: string }>(res)
-    return data.url
-  })
-}
-
 export async function toggleFavorite(photoId: string): Promise<boolean> {
   return autoRetry(async () => {
     const headers = await authHeaders()
@@ -369,10 +353,6 @@ export async function updateAlbum(
   body: { name?: string; coverPhotoId?: string | null },
 ): Promise<any> {
   return authenticatedPatch(`albums/${albumId}`, body)
-}
-
-export async function exportAllPhotos(): Promise<{ exportId: string }> {
-  return authenticatedPost('photos/export', {})
 }
 
 export async function exportAlbum(
@@ -484,10 +464,6 @@ export async function createAlbum(
   return authenticatedPost('albums', { name, vault })
 }
 
-export async function migrateVault(): Promise<{ moved: number }> {
-  return authenticatedPost('photos/migrate-vault', {})
-}
-
 export async function removeTag(
   photoId: string,
   tag: string,
@@ -501,27 +477,6 @@ export async function removeTag(
     })
     const data = await handleJsonResponse<{ tags: string[] }>(res)
     return data.tags
-  })
-}
-
-export function fetchPhotosPageRaw(url: string) {
-  return autoRetry(async () => {
-    const headers = await authHeaders()
-    const res = await fetchWithTimeout(`${BASE_URL}${url}`, { headers })
-    return handleJsonResponse<{
-      photos: {
-        uri: string
-        fullUri: string
-        date: string
-        id: string
-        favorite: boolean
-        tags: string[]
-        blurred: boolean
-        private: boolean
-        mimeType: string
-      }[]
-      nextToken: string | null
-    }>(res)
   })
 }
 
@@ -555,10 +510,6 @@ export async function updateFace(
   return authenticatedPatch(`faces/${faceId}`, data)
 }
 
-export async function deleteFace(faceId: string): Promise<void> {
-  await authenticatedDelete(`faces/${faceId}`)
-}
-
 export async function removeFaceFromPhoto(
   photoId: string,
   personName: string,
@@ -566,18 +517,6 @@ export async function removeFaceFromPhoto(
   return authenticatedDelete(
     `faces/by-photo/${photoId}?person=${encodeURIComponent(personName)}`,
   )
-}
-
-export async function detectFaces(
-  photoId: string,
-): Promise<{ facesFound: number }> {
-  return authenticatedPost(`faces/detect/${photoId}`, {})
-}
-
-export async function detectBatchFaces(
-  photoIds: string[],
-): Promise<{ processed: number; facesFound: number; failed: number }> {
-  return authenticatedPost('faces/detect-batch', { photoIds })
 }
 
 export async function detectAllFaces(
@@ -613,25 +552,11 @@ export async function stopFaceDetectAll(
   return authenticatedPost('faces/detect-stop', { jobId })
 }
 
-export async function confirmAllForPerson(
-  personName: string,
-): Promise<{ confirmed: number }> {
-  return authenticatedPost('faces/confirm-all', { personName })
-}
-
 export async function mergePeople(
   fromPerson: string,
   toPerson: string,
 ): Promise<{ merged: number }> {
   return authenticatedPost('faces/merge', { fromPerson, toPerson })
-}
-
-export async function getFaceStats(): Promise<{
-  totalFaces: number
-  peopleCount: number
-  byPerson: { name: string; faceCount: number; photoCount: number }[]
-}> {
-  return authenticatedGet('faces/stats')
 }
 
 export async function findMoreFaces(

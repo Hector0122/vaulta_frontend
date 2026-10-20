@@ -36,7 +36,7 @@ import { getRunState, subscribeQueue } from '../../services/UploadQueue'
 import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
 import { getCachedIds } from '../../api/offline'
-import { updateWidgetWithRecentPhotos, addPhotosToWidget } from '../../api/widget'
+import { addPhotosToWidget } from '../../api/widget'
 import { useAuth } from '../../context/AuthContext'
 import { impactLight, success, warning } from '../../utils/haptics'
 import { requestSaveToGalleryPermission, promptOpenSettings } from '../../utils/permissions'
@@ -506,7 +506,6 @@ export function HomeScreen({ navigation }: Props) {
       }
       if (user?.id) getCachedIds(user.id).then(setOfflineIds)
       fetchRecuerdos()
-      updateWidgetWithRecentPhotos()
     }, [clearSelection, user?.id, fetchRecuerdos, loadPhotos, photos.length]),
   )
 

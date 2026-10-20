@@ -1,5 +1,5 @@
 import { getApp } from '@react-native-firebase/app'
-import { getMessaging, getToken, onMessage, requestPermission, AuthorizationStatus, onNotificationOpenedApp as onNotifOpened, getInitialNotification as getInitNotif } from '@react-native-firebase/messaging'
+import { getMessaging, getToken, onMessage, requestPermission, AuthorizationStatus } from '@react-native-firebase/messaging'
 import type { RemoteMessage } from '@react-native-firebase/messaging'
 import { authenticatedPost } from './client'
 
@@ -39,12 +39,3 @@ export function onMessageForeground(
   return onMessage(messaging, handler)
 }
 
-export function onNotificationOpenedApp(
-  handler: (message: RemoteMessage) => void,
-) {
-  return onNotifOpened(messaging, handler)
-}
-
-export async function getInitialNotification(): Promise<RemoteMessage | null> {
-  return getInitNotif(messaging)
-}

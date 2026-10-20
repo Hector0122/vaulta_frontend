@@ -34,7 +34,7 @@ import UploadQueueBanner from './components/UploadQueueBanner';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import { NetworkProvider } from './context/NetworkContext';
-import { updateWidgetWithRecentPhotos, pruneWidgetPhotos } from './api/widget';
+import { pruneWidgetPhotos } from './api/widget';
 import { registerFcmToken } from './api/notifications';
 import { runAutoSync } from './api/autoSync';
 import { checkForUpdate } from './api/updates';
@@ -136,7 +136,6 @@ function AppNavigator() {
       checkForUpdate()
       pruneWidgetPhotos()
       cleanupPrivateFaces().catch(() => {})
-      updateWidgetWithRecentPhotos()
     }
   }, [user, biometricNeeded])
 

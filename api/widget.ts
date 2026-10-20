@@ -1,20 +1,8 @@
 import { NativeModules, Platform } from 'react-native'
-import { fetchPhotosPage } from './client'
 
 const { WidgetModule } = NativeModules
 
 const WIDGET_ENABLED = Platform.OS === 'android'
-
-export async function updateWidgetWithRecentPhotos(): Promise<void> {
-  if (!WIDGET_ENABLED) return
-
-  try {
-    const data = await fetchPhotosPage({ maxKeys: 4 })
-    WidgetModule.updateWidget(data.photos ? data.photos.length : 0, [])
-  } catch {
-    // Silently fail — widget keeps previous state
-  }
-}
 
 export function pruneWidgetPhotos(): void {
   if (!WIDGET_ENABLED) return
@@ -67,9 +55,3 @@ export async function getWidgetPhotoIds(): Promise<string[]> {
   })
 }
 
-export function clearWidget(): void {
-  if (!WIDGET_ENABLED) return
-  try {
-    WidgetModule.clearWidget()
-  } catch {}
-}

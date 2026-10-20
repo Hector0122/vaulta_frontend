@@ -24,7 +24,6 @@ import {
   getPeople,
   getUnconfirmedFaces,
   updateFace,
-  deleteFace,
   findMoreFaces,
   detectAllFaces,
   getFaceDetectStatus,
@@ -165,15 +164,6 @@ export default function PeopleScreen() {
       setUnconfirmed(prev => prev.filter(f => f.id !== faceId))
     } catch {
       Alert.alert('Error', 'No se pudo descartar la cara')
-    }
-  }, [])
-
-  const handleDeleteFace = useCallback(async (faceId: string) => {
-    try {
-      await deleteFace(faceId)
-      setUnconfirmed(prev => prev.filter(f => f.id !== faceId))
-    } catch {
-      Alert.alert('Error', 'No se pudo eliminar')
     }
   }, [])
 
@@ -851,7 +841,7 @@ export default function PeopleScreen() {
                       data={rows}
                       keyExtractor={(_, i) => String(i)}
                       contentContainerStyle={styles.resultsGrid}
-                      renderItem={({ item: row, index: rowIndex }) => (
+                      renderItem={({ item: row }) => (
                         <View style={{ flexDirection: 'row' }}>
                           {row.map((item: any, itemIndex: number) => {
                             const isSelected = selectedFaces.has(item.faceId)

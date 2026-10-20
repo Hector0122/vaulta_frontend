@@ -23,8 +23,6 @@ import LazyCalendar from '../../components/LazyCalendar'
 import {
   authenticatedPatch,
   authenticatedGet,
-  authenticatedPost,
-  exportAllPhotos,
   exportByDate,
   getExportStatus,
 } from '../../api/client'
@@ -444,25 +442,6 @@ export default function ProfileScreen() {
             <Text style={[styles.actionBtnText, { color: colors.text }]}>
               Papelera
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.flex1,
-              { backgroundColor: colors.primary },
-            ]}
-            onPress={async () => {
-              try {
-                const { exportId } = await exportAllPhotos()
-                showToast({ message: 'Exportación iniciada', type: 'info' })
-                pollExport(exportId)
-              } catch {
-                showToast({ message: 'No se pudo exportar', type: 'error' })
-              }
-            }}
-          >
-            <Icon name="file-download-outline" size={iconSize.sm} color="#fff" />
-            <Text style={styles.actionBtnText}>Exportar todo</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[

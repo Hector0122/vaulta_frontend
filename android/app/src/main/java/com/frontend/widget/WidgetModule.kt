@@ -7,7 +7,6 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.bridge.ReadableArray
 import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
@@ -22,19 +21,6 @@ class WidgetModule(reactContext: ReactApplicationContext) :
     }
 
     override fun getName(): String = "WidgetModule"
-
-    @ReactMethod
-    fun updateWidget(photoCount: Int, thumbPaths: ReadableArray) {
-        // No-op: widget count is derived from actual downloaded files
-    }
-
-    @ReactMethod
-    fun clearWidget() {
-        val context: Context = reactApplicationContext
-        val prefs = PhotosWidgetProvider.getPrefs(context)
-        prefs.edit().clear().apply()
-        PhotosWidgetProvider.updateWidgetNow(context)
-    }
 
     @ReactMethod
     fun pruneWidgetPhotos() {
