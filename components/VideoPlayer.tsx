@@ -18,8 +18,6 @@ type Props = {
 }
 
 export default function VideoPlayer({ uri, headers, posterUri }: Props) {
-  const [paused, setPaused] = useState(true)
-  const [showControl, setShowControl] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -27,17 +25,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
   const ready = !!uri
 
   const handlePress = () => {
-    if (error || !ready) return
-    if (!mounted) {
-      setMounted(true)
-      setPaused(false)
-      setShowControl(false)
-    } else if (showControl) {
-      setPaused(p => !p)
-      setShowControl(false)
-    } else {
-      setShowControl(true)
-    }
+    if (!error && ready) setMounted(true)
   }
 
   if (error) {
@@ -51,7 +39,6 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
             setError(false)
             setLoading(true)
             setMounted(false)
-            setPaused(true)
           }}
         >
           <Text style={styles.retryText}>Reintentar</Text>
@@ -65,6 +52,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
       activeOpacity={1}
       style={styles.container}
       onPress={handlePress}
+      disabled={mounted}
     >
       {(!mounted || loading) && posterUri && (
         <Image
@@ -77,7 +65,7 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
         <Video
           source={{ uri, headers }}
           style={styles.video}
-          paused={paused}
+          controls
           resizeMode="contain"
           onLoad={() => {
             setLoading(false)
@@ -112,15 +100,6 @@ export default function VideoPlayer({ uri, headers, posterUri }: Props) {
         <View style={styles.playOverlay} pointerEvents="none">
           <Icon
             name="play-circle"
-            size={iconSize.xl}
-            color="rgba(255,255,255,0.8)"
-          />
-        </View>
-      )}
-      {mounted && showControl && !loading && !error && (
-        <View style={styles.playOverlay} pointerEvents="none">
-          <Icon
-            name={paused ? 'play-circle' : 'pause-circle'}
             size={iconSize.xl}
             color="rgba(255,255,255,0.8)"
           />

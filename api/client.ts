@@ -276,6 +276,8 @@ export async function getPhotoDetail(
   url: string
   largeUri: string | null
   albums: { id: string; name: string; vault: boolean }[]
+  favorite: boolean
+  private: boolean
 }> {
   return autoRetry(async () => {
     const headers = await authHeaders()
@@ -286,6 +288,8 @@ export async function getPhotoDetail(
       url: string
       largeUri: string | null
       albums: { id: string; name: string; vault: boolean }[]
+      favorite: boolean
+      private: boolean
     }>(res)
   })
 }

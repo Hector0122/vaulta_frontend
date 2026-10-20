@@ -116,6 +116,8 @@ const PhotoPage = React.memo(function PhotoPage({
   const [inWidget, setInWidget] = useState(false)
   const [imageReady, setImageReady] = useState(false)
   const loadedRef = useRef<string | null>(null)
+  const { width, height } = useWindowDimensions()
+  const isVideo = !!item.mimeType?.startsWith('video/')
 
   useEffect(() => {
     if (!isActive) {
@@ -131,9 +133,11 @@ const PhotoPage = React.memo(function PhotoPage({
     if (item.mimeType?.startsWith('video/')) {
       setThumbUri(item.uri)
       getPhotoDetail(item.id)
-        .then(({ url, albums: photoAlbums }) => {
+        .then(({ url, albums: photoAlbums, favorite, private: priv }) => {
           setFullUri(url)
           setContainingAlbums(photoAlbums)
+          setIsFav(favorite)
+          setIsPrivate(priv)
           setImageReady(true)
         })
         .catch(() => {
@@ -152,7 +156,9 @@ const PhotoPage = React.memo(function PhotoPage({
         setImageReady(true)
       }
       getPhotoDetail(item.id)
-        .then(({ url, largeUri: newLargeUri, albums: photoAlbums }) => {
+        .then(({ url, largeUri: newLargeUri, albums: photoAlbums, favorite, private: priv }) => {
+          setIsFav(favorite)
+          setIsPrivate(priv)
           if (newLargeUri) {
             setLargeUri(newLargeUri)
             setImageReady(true)
@@ -186,7 +192,6 @@ const PhotoPage = React.memo(function PhotoPage({
       return
     }
     const uri = fullUri || item.uri
-    const isVideo = item.mimeType?.startsWith('video/')
     const ext = isVideo ? 'mp4' : 'jpg'
     const dest = `${RNFS.CachesDirectoryPath}/download_${Date.now()}.${ext}`
     const needAuth = !isPresignedUrl(uri)
@@ -220,7 +225,6 @@ const PhotoPage = React.memo(function PhotoPage({
 
   const handleShare = async () => {
     const uri = fullUri || item.uri
-    const isVideo = item.mimeType?.startsWith('video/')
     const ext = isVideo ? 'mp4' : Platform.OS === 'android' ? 'jpg' : 'JPEG'
     const needAuth = !isPresignedUrl(uri)
     try {
@@ -422,7 +426,8 @@ const PhotoPage = React.memo(function PhotoPage({
           )}
         </View>
       )}
-      <View style={pageStyles.bottomBar}>
+      {width < height && (
+      <View style={isVideo ? undefined : pageStyles.bottomBar}>
         {tags.length > 0 && (
           <View style={pageStyles.tagRow}>
             {tags.map(t => (
@@ -519,6 +524,7 @@ const PhotoPage = React.memo(function PhotoPage({
         </TouchableOpacity>
         </View>
       </View>
+      )}
 
       {showAlbumPicker && (
         <View style={pageStyles.modalOverlay}>
@@ -669,6 +675,12 @@ export default function PhotoPreview() {
   const [items, setItems] = useState(initialPhotos)
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0)
   const scrollRef = useRef<FlatList<PhotoItem>>(null)
+  const activeIndexRef = useRef(activeIndex)
+  activeIndexRef.current = activeIndex
+
+  useEffect(() => {
+    scrollRef.current?.scrollToIndex({ index: activeIndexRef.current, animated: false })
+  }, [screenWidth])
 
   const dismissTranslateY = useSharedValue(0)
   const dismissAnimatedStyle = useAnimatedStyle(() => ({

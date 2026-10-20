@@ -88,6 +88,9 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    // TODO: storePassword/keyPassword de "release" están en texto plano y el repo
+    // es público. No explotable sin my-release-key.keystore (gitignored, nunca se
+    // sube), pero deberían moverse a gradle.properties gitignoreado o una env var.
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
