@@ -2596,11 +2596,6 @@
     metro-config "^0.83.3"
     metro-runtime "^0.83.3"
 
-"@react-native/new-app-screen@0.83.1":
-  version "0.83.1"
-  resolved "https://registry.npmjs.org/@react-native/new-app-screen/-/new-app-screen-0.83.1.tgz"
-  integrity sha512-xnozxb1NjjpbTYZWHPVHHFVHdmUQ3yQfO9wK29e0JKNg/uIUq4rJ7oXYwIWPsUFFxMlKsesu2lG2+VagbGwQsg==
-
 "@react-native/normalize-colors@0.83.1":
   version "0.83.1"
   resolved "https://registry.npmjs.org/@react-native/normalize-colors/-/normalize-colors-0.83.1.tgz"
@@ -2687,15 +2682,6 @@
   integrity sha512-lblhDXfS75jLc7G2K7BZGM+7cjqQXk13X/MA4fq/12r62zM+fBhhreLzYflSitrDDXFRJpSvJXy0ziiGU04Xow==
   dependencies:
     nanoid "^3.3.11"
-
-"@react-navigation/stack@^7.10.6":
-  version "7.10.6"
-  resolved "https://registry.npmjs.org/@react-navigation/stack/-/stack-7.10.6.tgz"
-  integrity sha512-LWtBSCPNi3Htnb3051wan5hVTsoORxUocBeuAjZ3VS1u6wTtfObeqOOhanz/L+uiAzvTWcAHhevQhtlGeFn/mg==
-  dependencies:
-    "@react-navigation/elements" "^2.9.26"
-    color "^4.2.3"
-    use-latest-callback "^0.2.4"
 
 "@shopify/flash-list@^2.3.1":
   version "2.3.1"
@@ -5887,7 +5873,7 @@ lodash.throttle@^4.1.1:
   resolved "https://registry.npmjs.org/lodash.throttle/-/lodash.throttle-4.1.1.tgz"
   integrity sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==
 
-lodash@^4.17.15, lodash@^4.17.21, lodash@^4.18.1:
+lodash@^4.17.15, lodash@^4.17.21:
   version "4.18.1"
   resolved "https://registry.npmjs.org/lodash/-/lodash-4.18.1.tgz"
   integrity sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==

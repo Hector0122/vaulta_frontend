@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useNavigation } from '@react-navigation/native'
-import { StackNavigationProp } from '@react-navigation/stack'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../theme'
 import { fontFamily, radius, iconSize } from '../../tokens'
@@ -51,7 +51,7 @@ function formatBytes(bytes: number): string {
 export default function ProfileScreen() {
   const navigation =
     useNavigation<
-      StackNavigationProp<{ Duplicates: undefined; Trash: undefined }>
+      NativeStackNavigationProp<{ Duplicates: undefined; Trash: undefined }>
     >()
   const {
     user,
@@ -90,17 +90,7 @@ export default function ProfileScreen() {
           clearInterval(interval)
           Alert.alert(
             'Exportación lista',
-            'Tu archivo ZIP está listo para descargar.',
-            [
-              {
-                text: 'Copiar enlace',
-                onPress: () => {
-                  // In a real app, use Clipboard.setString(status.downloadUrl)
-                  Alert.alert('Enlace copiado (mock)')
-                },
-              },
-              { text: 'OK' },
-            ],
+            'Te enviamos el enlace de descarga del ZIP por correo.',
           )
         } else if (status.status === 'error') {
           clearInterval(interval)
@@ -221,10 +211,10 @@ export default function ProfileScreen() {
         body.newPassword = newPassword
       }
       await authenticatedPatch('auth/profile', body)
-      Alert.alert(
-        'Perfil actualizado',
-        'Los cambios se aplicarán al volver a iniciar sesión',
-      )
+      showToast({
+        message: 'Perfil actualizado. Se aplica al volver a iniciar sesión',
+        type: 'success',
+      })
       setCurrentPassword('')
       setNewPassword('')
     } catch (e: any) {

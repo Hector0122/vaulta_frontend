@@ -62,27 +62,18 @@ export function SkeletonBox({
 
 export function SkeletonPhotoGrid({
   _colors,
-  count = 6,
+  count = 15,
 }: {
   _colors: ThemeColors
   count?: number
 }) {
   const { width: screenWidth } = useWindowDimensions()
-  const colWidth = (screenWidth - 16 - 6) / 2
-  const rows = Array.from({ length: Math.ceil(count / 2) })
+  const size = (screenWidth - 4) / 3
 
   return (
-    <View style={styles.photoGridRow}>
-      {[0, 1].map(col => (
-        <View key={col} style={styles.photoGridCol}>
-          {rows.map((_, i) => (
-            <SkeletonBox
-              key={`${col}-${i}`}
-              width={colWidth}
-              height={col === i % 2 ? 200 : 250}
-            />
-          ))}
-        </View>
+    <View style={styles.photoGridWrap}>
+      {Array.from({ length: count }).map((_, i) => (
+        <SkeletonBox key={i} width={size} height={size} />
       ))}
     </View>
   )
@@ -119,8 +110,7 @@ export function SkeletonAlbumList({
 }
 
 const styles = StyleSheet.create({
-  photoGridRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
-  photoGridCol: { flex: 1, gap: 6 },
+  photoGridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
   albumListPad: { padding: 16 },
   albumRow: {
     flexDirection: 'row',

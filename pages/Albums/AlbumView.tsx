@@ -212,7 +212,7 @@ export default function AlbumView() {
     try {
       await updateAlbum(albumId, { coverPhotoId: id })
       clearSelection()
-      Alert.alert('Listo', 'Portada actualizada')
+      showToast({ message: 'Portada actualizada', type: 'success' })
     } catch {
       Alert.alert('Error', 'No se pudo establecer la portada')
     }

@@ -34,6 +34,7 @@ import RNFS from 'react-native-fs'
 import Share from 'react-native-share'
 import { CameraRoll } from '@react-native-camera-roll/camera-roll'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import ZoomableImage from '../../components/ZoomableImage'
 import { requestSaveToGalleryPermission, promptOpenSettings } from '../../utils/permissions'
 import { isPresignedUrl } from '../../utils/urls'
@@ -117,6 +118,7 @@ const PhotoPage = React.memo(function PhotoPage({
   const [imageReady, setImageReady] = useState(false)
   const loadedRef = useRef<string | null>(null)
   const { width, height } = useWindowDimensions()
+  const { showToast } = useToast()
   const isVideo = !!item.mimeType?.startsWith('video/')
 
   useEffect(() => {
@@ -217,7 +219,7 @@ const PhotoPage = React.memo(function PhotoPage({
       const fileUri = Platform.OS === 'android' ? `file://${dest}` : dest
       await CameraRoll.saveAsset(fileUri, { type: isVideo ? 'video' : 'photo' })
       success()
-      Alert.alert('Descargado', 'Foto guardada en la galería')
+      showToast({ message: 'Guardada en la galería', type: 'success' })
     } catch (e: any) {
       Alert.alert('Error', `No se pudo guardar en la galería: ${e?.message || 'error desconocido'}`)
     }
@@ -383,14 +385,14 @@ const PhotoPage = React.memo(function PhotoPage({
       const res = await addPhotosToAlbum(albumId, [item.id])
       setShowAlbumPicker(false)
       if (res.alreadyInAlbum > 0 && res.added === 0) {
-        Alert.alert('Ya está', 'Esta foto ya está en el álbum')
+        showToast({ message: 'Ya está en el álbum', type: 'info' })
       } else {
-        Alert.alert('Hecho', 'Foto agregada al álbum')
+        showToast({ message: 'Agregada al álbum', type: 'success' })
       }
     } catch (e: any) {
       const msg = e?.message || ''
       if (msg.includes('Unique') || msg.includes('already')) {
-        Alert.alert('Ya está', 'Esta foto ya está en el álbum')
+        showToast({ message: 'Ya está en el álbum', type: 'info' })
       } else {
         Alert.alert('Error', 'No se pudo agregar la foto')
       }

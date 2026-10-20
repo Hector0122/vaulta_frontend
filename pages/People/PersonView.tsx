@@ -15,6 +15,7 @@ import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { useToast } from '../../context/ToastContext'
 import { authenticatedGet, mergePeople, removeFaceFromPhoto } from '../../api/client'
 import { radius, iconSize } from '../../tokens'
 import type { StackNavProp } from '../../types/navigation'
@@ -26,6 +27,7 @@ export default function PersonView() {
   const navigation = useNavigation<StackNavProp>()
   const { personName } = route.params
   const { colors } = useTheme()
+  const { showToast } = useToast()
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -69,7 +71,7 @@ export default function PersonView() {
     setMerging(true)
     try {
       await mergePeople(personName, target)
-      Alert.alert('Fusionado', `Todas las caras de "${personName}" se han fusionado en "${target}"`)
+      showToast({ message: `"${personName}" fusionado en "${target}"`, type: 'success' })
       setMergeModalVisible(false)
       setMergeTarget('')
       navigation.goBack()

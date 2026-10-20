@@ -61,7 +61,7 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
             image={{ url: uri }}
             style={styles.image}
             resizeMode="cover"
-            recyclingKey={uri}
+            recyclingKey={id}
           />
           {photo.mimeType?.startsWith('video/') && (
             <View style={styles.videoOverlay}>
@@ -118,14 +118,14 @@ export const PhotoGridItem = React.memo(function PhotoGridItem({
 })
 
 const styles = StyleSheet.create({
-  gridItem: { padding: 3, flex: 1 },
+  gridItem: { padding: 1, flex: 1 },
   cardInner: {
     borderRadius: radius.xs,
     overflow: 'hidden',
   },
-  image: { width: '100%', height: 250 },
+  image: { width: '100%', aspectRatio: 1 },
   blurryBadge: { position: 'absolute', top: 4, left: 4 },
-  privateBadge: { position: 'absolute', bottom: 24, right: 4 },
+  privateBadge: { position: 'absolute', bottom: 4, right: 4 },
   offlineBadge: { position: 'absolute', bottom: 4, left: 4 },
   favBadge: { position: 'absolute', top: 4, right: 4 },
   selectedOverlay: {

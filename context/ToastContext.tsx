@@ -6,6 +6,7 @@ type ToastConfig = {
   type: 'success' | 'error' | 'info'
   position?: 'top' | 'top-right' | 'bottom'
   duration?: number
+  action?: { label: string; onPress: () => void }
 }
 
 type ToastContextValue = {
@@ -30,6 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         type={toast?.type || 'info'}
         position={toast?.position}
         duration={toast?.duration}
+        action={toast?.action}
         onDismiss={() => setToast(null)}
       />
     </ToastContext.Provider>

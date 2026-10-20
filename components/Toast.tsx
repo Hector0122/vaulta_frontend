@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,6 +24,7 @@ type Props = {
   position?: ToastPosition
   onDismiss: () => void
   duration?: number
+  action?: { label: string; onPress: () => void }
 }
 
 const icons: Record<ToastType, string> = {
@@ -39,6 +40,7 @@ export default function Toast({
   position = 'top',
   onDismiss,
   duration = 2500,
+  action,
 }: Props) {
   const { colors } = useTheme()
   const { top: topInset } = useSafeAreaInsets()
@@ -96,6 +98,17 @@ export default function Toast({
       >
         <Icon name={icons[type]} size={iconSize.md} color="#fff" />
         <Text style={styles.text}>{message}</Text>
+        {action && (
+          <TouchableOpacity
+            onPress={() => {
+              action.onPress()
+              onDismiss()
+            }}
+            hitSlop={8}
+          >
+            <Text style={styles.action}>{action.label}</Text>
+          </TouchableOpacity>
+        )}
       </Animated.View>
     </View>
   )
@@ -137,5 +150,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
+  },
+  action: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 })

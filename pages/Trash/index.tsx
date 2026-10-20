@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { useToast } from '../../context/ToastContext'
 import { radius, iconSize } from '../../tokens'
 import {
   getTrash,
@@ -94,6 +95,7 @@ function TrashItemCard({
 
 export default function TrashScreen() {
   const { colors } = useTheme()
+  const { showToast } = useToast()
   const [items, setItems] = useState<TrashItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -165,10 +167,10 @@ export default function TrashScreen() {
             try {
               const res = await emptyTrash()
               fetchTrash()
-              Alert.alert(
-                'Hecho',
-                `Se eliminaron ${res.deleted} fotos permanentemente`,
-              )
+              showToast({
+                message: `${res.deleted} fotos eliminadas permanentemente`,
+                type: 'success',
+              })
             } catch (e: unknown) {
               const msg =
                 e instanceof Error ? e.message : 'Error desconocido'

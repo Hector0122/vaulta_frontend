@@ -1,4 +1,4 @@
-import { StackNavigationProp } from '@react-navigation/stack'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RouteProp } from '@react-navigation/native'
 
 export type TabParamList = {
@@ -23,6 +23,6 @@ export type StackParamList = {
   PersonView: { personName: string }
 }
 
-export type StackNavProp = StackNavigationProp<StackParamList>
+export type StackNavProp = NativeStackNavigationProp<StackParamList>
 export type AlbumViewRouteProp = RouteProp<StackParamList, 'AlbumView'>
 export type UploadRouteProp = RouteProp<StackParamList, 'Upload'>

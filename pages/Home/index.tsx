@@ -15,7 +15,7 @@ import type { FlashListRef } from '@shopify/flash-list'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
 import '../../utils/calendarLocales'
-import { StackNavigationProp } from '@react-navigation/stack'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useFocusEffect } from '@react-navigation/native'
 import RNFS from 'react-native-fs'
 import Share from 'react-native-share'
@@ -29,7 +29,9 @@ import {
   bulkSetPrivate,
   getToken,
   fetchVaultAlbums,
+  restorePhoto,
 } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
 import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
 import { getCachedIds } from '../../api/offline'
@@ -69,12 +71,13 @@ type HomeStackParamList = {
   People: undefined
 }
 
-type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList, 'Main'>
+type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Main'>
 type Props = { navigation: HomeScreenNavigationProp }
 
 export function HomeScreen({ navigation }: Props) {
   const { colors, isDark } = useTheme()
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -231,21 +234,30 @@ export function HomeScreen({ navigation }: Props) {
     [selecting],
   )
 
-  const handleBatchDelete = useCallback(() => {
+  const handleBatchDelete = useCallback(async () => {
     warning()
-    Alert.alert(`Eliminar ${selectedIds.size} foto(s)`, '¿Estás seguro?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          await bulkDeletePhotos(Array.from(selectedIds))
-          setPhotos(prev => prev.filter(p => !selectedIds.has(p.id)))
-          clearSelection()
+    const ids = Array.from(selectedIds)
+    try {
+      await bulkDeletePhotos(ids)
+    } catch {
+      showToast({ message: 'No se pudieron eliminar las fotos', type: 'error' })
+      return
+    }
+    setPhotos(prev => prev.filter(p => !selectedIds.has(p.id)))
+    clearSelection()
+    showToast({
+      message: `${ids.length} movida(s) a la papelera`,
+      type: 'info',
+      position: 'bottom',
+      duration: 5000,
+      action: {
+        label: 'Deshacer',
+        onPress: () => {
+          Promise.allSettled(ids.map(restorePhoto)).then(() => loadPhotosRef.current())
         },
       },
-    ])
-  }, [selectedIds, clearSelection])
+    })
+  }, [selectedIds, clearSelection, showToast])
 
   const handleBatchMakePrivate = useCallback(() => {
     warning()
@@ -277,7 +289,8 @@ export function HomeScreen({ navigation }: Props) {
     const results = await Promise.allSettled(
       selectedPhotos.map(async (photo, i) => {
         const full = photo.fullUri || photo.uri
-        const dest = `${RNFS.CachesDirectoryPath}/download_${timestamp}_${i}.jpg`
+        const isVideo = photo.mimeType?.startsWith('video/')
+        const dest = `${RNFS.CachesDirectoryPath}/download_${timestamp}_${i}.${isVideo ? 'mp4' : 'jpg'}`
         const needAuth = !isPresignedUrl(full)
         const headers = needAuth && token ? { Authorization: `Bearer ${token}` } : undefined
         const result = await RNFS.downloadFile({ fromUrl: full, toFile: dest, headers }).promise
@@ -285,19 +298,18 @@ export function HomeScreen({ navigation }: Props) {
         const info = await RNFS.stat(dest)
         if (info.size === 0) throw new Error('Archivo vacío')
         const fileUri = Platform.OS === 'android' ? `file://${dest}` : dest
-        await CameraRoll.saveAsset(fileUri, { type: 'photo' })
+        await CameraRoll.saveAsset(fileUri, { type: isVideo ? 'video' : 'photo' })
       }),
     )
     const ok = results.filter(r => r.status === 'fulfilled').length
     const fail = results.length - ok
-    Alert.alert(
-      'Descargadas',
+    showToast(
       fail > 0
-        ? `${ok} de ${selectedIds.size} foto(s) guardada(s). ${fail} fallaron.`
-        : `${ok} de ${selectedIds.size} foto(s) guardada(s) en la galería`,
+        ? { message: `${ok} guardada(s), ${fail} fallaron`, type: 'error' }
+        : { message: `${ok} guardada(s) en la galería`, type: 'success' },
     )
     clearSelection()
-  }, [selectedPhotos, selectedIds, clearSelection])
+  }, [selectedPhotos, clearSelection, showToast])
 
   const handleBatchShare = useCallback(async () => {
     try {
@@ -316,12 +328,12 @@ export function HomeScreen({ navigation }: Props) {
     const added = await addPhotosToWidget(widgetPhotos)
     if (added > 0) {
       success()
-      Alert.alert('Widget', `${added} foto(s) agregada(s) al widget`)
+      showToast({ message: `${added} agregada(s) al widget`, type: 'success' })
     } else {
-      Alert.alert('Widget', 'Las fotos ya estaban en el widget')
+      showToast({ message: 'Ya estaban en el widget', type: 'info' })
     }
     clearSelection()
-  }, [selectedPhotos, clearSelection])
+  }, [selectedPhotos, clearSelection, showToast])
 
   const loadPhotos = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -432,17 +444,17 @@ export function HomeScreen({ navigation }: Props) {
         })
         setShowSelectRangeModal(false)
         if (collected.length === 0) {
-          Alert.alert('Sin fotos', 'No hay fotos en ese rango de fechas')
+          showToast({ message: 'No hay fotos en ese rango de fechas', type: 'info' })
         } else {
           success()
         }
       } catch {
-        Alert.alert('Error', 'No se pudieron cargar las fotos de ese rango')
+        showToast({ message: 'No se pudieron cargar las fotos de ese rango', type: 'error' })
       } finally {
         setRangeSelectLoading(false)
       }
     },
-    [],
+    [showToast],
   )
 
   const fetchRecuerdos = useCallback(async () => {
@@ -536,7 +548,7 @@ export function HomeScreen({ navigation }: Props) {
               searchAbortRef.current = null
             }
           })
-        }, 800)
+        }, 300)
       }
     },
     [loadPhotos],
@@ -562,21 +574,20 @@ export function HomeScreen({ navigation }: Props) {
         const res = await addPhotosToAlbum(album.id, Array.from(selectedIds))
         setShowAlbumPicker(false)
         clearSelection()
-        if (res.alreadyInAlbum > 0 && res.added === 0) {
-          Alert.alert('Ya están', 'Todas las fotos ya estaban en el álbum')
-        } else if (res.alreadyInAlbum > 0) {
-          Alert.alert(
-            'Hecho',
-            `${res.added} agregada(s) (${res.alreadyInAlbum} ya estaban)`,
-          )
-        } else {
-          Alert.alert('Hecho', 'Agregadas al álbum')
-        }
+        showToast({
+          message:
+            res.added === 0
+              ? 'Ya estaban en el álbum'
+              : res.alreadyInAlbum > 0
+              ? `${res.added} agregada(s) (${res.alreadyInAlbum} ya estaban)`
+              : `${res.added} agregada(s) al álbum`,
+          type: res.added === 0 ? 'info' : 'success',
+        })
       } catch {
-        Alert.alert('Error', 'No se pudieron agregar las fotos')
+        showToast({ message: 'No se pudieron agregar las fotos', type: 'error' })
       }
     },
-    [selectedIds, clearSelection],
+    [selectedIds, clearSelection, showToast],
   )
 
   const handleOpenAlbumPicker = useCallback(async () => {
@@ -701,7 +712,7 @@ export function HomeScreen({ navigation }: Props) {
 
   const overrideItemLayout = useCallback((layout: { span?: number }, item: ListItem) => {
     if (item.type === 'header') {
-      layout.span = 2
+      layout.span = 3
     }
   }, [])
 
@@ -762,7 +773,7 @@ export function HomeScreen({ navigation }: Props) {
             }}
           >
             <Text style={[styles.dateLabel, { color: colors.text }]}>
-              {new Date(item.date).toLocaleDateString('es-ES', {
+              {new Date(`${item.date}T12:00:00`).toLocaleDateString('es-ES', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
@@ -780,7 +791,7 @@ export function HomeScreen({ navigation }: Props) {
         const photo = item.photo
         const selected = selectedIds.has(photo.id)
         const isFav = !selected && photo.favorite
-        const isOffline = !selected && !isFav && offlineSet.has(photo.id)
+        const isOffline = !selected && offlineSet.has(photo.id)
         const isBlurry = !selected && photo.blurred
         const isPrivate = !selected && photo.private
         return (
@@ -872,7 +883,7 @@ export function HomeScreen({ navigation }: Props) {
           style={styles.flashList}
           data={listData}
           keyExtractor={keyExtractor}
-          numColumns={2}
+          numColumns={3}
           scrollEventThrottle={16}
           onScroll={onScroll}
           renderItem={renderItem}

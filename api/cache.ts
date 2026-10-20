@@ -2,7 +2,7 @@ import { storage } from './storage';
 
 export type CachedPhoto = { uri: string; fullUri: string; date: string; id: string; mimeType: string; favorite: boolean; tags: string[]; blurred: boolean; private: boolean };
 
-const CACHE_TTL_MS = 50 * 60 * 1000;
+const CACHE_TTL_MS = 20 * 60 * 60 * 1000;
 
 function cacheKey(userId: string): string {
   return `@vaulta_photos_${userId}`;

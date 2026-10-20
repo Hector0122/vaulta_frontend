@@ -17,6 +17,7 @@ import { NitroImage } from 'react-native-nitro-image'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../../theme'
+import { useToast } from '../../context/ToastContext'
 import { radius, iconSize } from '../../tokens'
 import {
   addTag,
@@ -36,6 +37,7 @@ import type { Person, UnconfirmedFace } from '../../api/client'
 export default function PeopleScreen() {
   const navigation = useNavigation<StackNavProp>()
   const { colors } = useTheme()
+  const { showToast } = useToast()
   const [people, setPeople] = useState<Person[]>([])
   const [unconfirmed, setUnconfirmed] = useState<UnconfirmedFace[]>([])
   const [loading, setLoading] = useState(true)
@@ -246,12 +248,10 @@ export default function PeopleScreen() {
             .filter(r => selectedFaces.has(r.faceId))
             .map(r => updateFace(r.faceId, { personName, confirmed: true })),
         )
-        Alert.alert(
-          'Hecho',
-          `${count} ${
-            count === 1 ? 'foto agregada' : 'fotos agregadas'
-          } a ${personName}`,
-        )
+        showToast({
+          message: `${count} ${count === 1 ? 'foto agregada' : 'fotos agregadas'} a ${personName}`,
+          type: 'success',
+        })
         setSearchResults(null)
         setSelectedFaces(new Set())
         fetchData()
@@ -259,7 +259,7 @@ export default function PeopleScreen() {
         Alert.alert('Error', 'No se pudieron confirmar las coincidencias')
       }
     },
-    [searchResults, selectedFaces, fetchData],
+    [searchResults, selectedFaces, fetchData, showToast],
   )
 
   if (loading) {
