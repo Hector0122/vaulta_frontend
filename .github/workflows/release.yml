@@ -1,0 +1,30 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: yarn install --frozen-lockfile
+      - run: echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
+      - run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/my-release-key.keystore
+      - working-directory: android
+        run: ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName=${GITHUB_REF_NAME#v}
+      - run: gh release create "$GITHUB_REF_NAME" android/app/build/outputs/apk/release/app-release.apk --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
