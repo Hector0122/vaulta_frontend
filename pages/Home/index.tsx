@@ -32,6 +32,7 @@ import {
   restorePhoto,
 } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
+import { getRunState, subscribeQueue } from '../../services/UploadQueue'
 import { launchCamera } from 'react-native-image-picker'
 import { loadCachedPhotos, saveCachedPhotos } from '../../api/cache'
 import { getCachedIds } from '../../api/offline'
@@ -126,6 +127,15 @@ export function HomeScreen({ navigation }: Props) {
       loadPhotosRef.current()
     })
     return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    let wasRunning = getRunState().running
+    return subscribeQueue(() => {
+      const { running, completed } = getRunState()
+      if (wasRunning && !running && completed > 0) loadPhotosRef.current()
+      wasRunning = running
+    })
   }, [])
 
   const hasCache = useRef(false)
@@ -458,6 +468,8 @@ export function HomeScreen({ navigation }: Props) {
   )
 
   const fetchRecuerdos = useCallback(async () => {
+    const d = new Date()
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     try {
       const data = await authenticatedGet<
         {
@@ -469,7 +481,7 @@ export function HomeScreen({ navigation }: Props) {
           count: number
           yearsAgo: number
         }[]
-      >('photos/this-day')
+      >(`photos/this-day?date=${today}`)
       setRecuerdos(data)
     } catch {}
   }, [])

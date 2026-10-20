@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  Platform,
   StyleSheet,
   ScrollView,
   useWindowDimensions,
@@ -17,10 +16,7 @@ import { useTheme } from '../../theme'
 import RNFS from 'react-native-fs'
 import { useToast } from '../../context/ToastContext'
 import { useNetwork } from '../../context/NetworkContext'
-import { getToken } from '../../api/client'
-import { BASE_URL } from '../../api/server'
-import { addToQueue } from '../../services/UploadQueue'
-import { startUploadProgress } from '../../services/UploadProgress'
+import { addToQueue, processQueue } from '../../services/UploadQueue'
 import type { StackNavProp, UploadRouteProp } from '../../types/navigation'
 import { radius, iconSize } from '../../tokens'
 
@@ -46,7 +42,6 @@ export default function UploadScreen() {
     const isVideo = videoExts.has(ext)
     return [{ uri: cameraUri, name: `capture-${Date.now()}.${isVideo ? ext : 'jpg'}`, type: isVideo ? 'video/mp4' : 'image/jpeg' }]
   })
-  const [uploading, setUploading] = useState(false)
   const { showToast } = useToast()
 
   const colCount = 3
@@ -140,105 +135,34 @@ export default function UploadScreen() {
     setImages(prev => prev.filter(i => i.uri !== uri))
   }, [])
 
-  async function uploadBatch() {
+  function uploadBatch() {
     if (images.length === 0) return
-
-    if (!isConnected) {
-      const count = addToQueue(
-        images.map(img => ({
-          uri: img.uri,
-          name: img.name,
-          type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
-        })),
-      )
-      showToast({
-        message: `${count} archivo(s) encolados para cuando tengas conexión`,
-        type: 'info',
-        position: 'top-right',
-        duration: 3000,
-      })
-      navigation.goBack()
-      return
-    }
-
-    setUploading(true)
-
-    const resolved = await Promise.all(
-      images.map(async img => {
-        let uri = img.uri
-        if (Platform.OS === 'android' && uri.startsWith('content://')) {
-          const ext = img.name.split('.').pop() || 'jpg'
-          const tmp = `${RNFS.CachesDirectoryPath}/upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-          try {
-            await RNFS.copyFile(uri, tmp)
-            uri = tmp
-          } catch {}
-        } else if (Platform.OS !== 'android') {
-          uri = uri.replace('file://', '')
-        }
-        return { ...img, uri }
-      }),
-    )
-
-    const formData = new FormData()
-    for (const img of resolved) {
-      formData.append('files', {
+    const count = addToQueue(
+      images.map(img => ({
         uri: img.uri,
-        type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
         name: img.name,
-      })
-    }
-
+        type: img.type?.includes('/')
+          ? img.type
+          : img.type?.startsWith('video')
+          ? 'video/mp4'
+          : 'image/jpeg',
+      })),
+    )
+    if (isConnected) processQueue()
     showToast({
-      message: 'Subiendo archivos…',
+      message: isConnected
+        ? `Subiendo ${count} archivo(s)…`
+        : `${count} archivo(s) encolados para cuando tengas conexión`,
       type: 'info',
       position: 'top-right',
-      duration: 2000,
+      duration: 2500,
     })
     navigation.goBack()
-
-    try {
-      const token = await getToken()
-      const res = await fetch(`${BASE_URL}/photos/upload-batch`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const text = await res.text()
-        console.error(`Upload failed (${res.status}): ${text}`)
-        showToast({
-          message: 'Error al iniciar la subida',
-          type: 'error',
-          position: 'top-right',
-          duration: 3000,
-        })
-      } else {
-        const { batchId } = await res.json()
-        startUploadProgress(batchId, resolved.length)
-      }
-    } catch (e) {
-      console.error('Upload network error:', e)
-      const count = addToQueue(
-        resolved.map(img => ({
-          uri: img.uri,
-          name: img.name,
-          type: img.type?.startsWith('video') ? 'video/mp4' : 'image/jpeg',
-        })),
-      )
-      showToast({
-        message: `Error de red: ${count} archivo(s) encolados`,
-        type: 'error',
-        position: 'top-right',
-        duration: 3000,
-      })
-    }
   }
 
   const rows: ({ uri: string; name: string; type?: string } | null)[][] = []
   if (images.length > 0 && !cameraUri) {
-    const allItems = !uploading ? [...images, null] : images
+    const allItems = [...images, null]
     for (let i = 0; i < allItems.length; i += colCount) {
       rows.push(allItems.slice(i, i + colCount))
     }
@@ -295,14 +219,12 @@ export default function UploadScreen() {
                           style={styles.thumb}
                           resizeMode="cover"
                         />
-                        {!uploading && (
-                          <TouchableOpacity
-                            style={styles.removeBtn}
-                            onPress={() => removeImage(item.uri)}
-                          >
-                            <Icon name="close" size={iconSize.sm} color="#fff" />
-                          </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                          style={styles.removeBtn}
+                          onPress={() => removeImage(item.uri)}
+                        >
+                          <Icon name="close" size={iconSize.sm} color="#fff" />
+                        </TouchableOpacity>
                       </View>
                     )
                   })}
@@ -321,14 +243,7 @@ export default function UploadScreen() {
       )}
 
       <View style={[styles.bottomBar, { backgroundColor: colors.surface }]}>
-        {uploading ? (
-          <View style={styles.uploadingInfo}>
-            <Icon name="cloud-upload-outline" size={iconSize.md} color={colors.primary} />
-            <Text style={[styles.uploadCount, { color: colors.textSecondary }]}>
-              Subiendo {images.length} foto(s)…
-            </Text>
-          </View>
-        ) : images.length > 0 ? (
+        {images.length > 0 ? (
           <View style={styles.actionRow}>
             <Text style={[styles.countText, { color: colors.textSecondary }]}>
               {images.length} foto{images.length !== 1 ? 's' : ''}
@@ -477,11 +392,4 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   uploadBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  uploadingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  uploadCount: { fontSize: 14, fontWeight: '500' },
 })
