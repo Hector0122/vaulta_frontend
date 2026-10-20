@@ -17,6 +17,7 @@ import Animated, {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '../theme'
 import { useNetwork } from '../context/NetworkContext'
+import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { motion, radius, iconSize } from '../tokens'
 import {
@@ -42,6 +43,7 @@ const STATUS_LABEL: Record<QueueItem['status'], string> = {
 export default function UploadQueueBanner() {
   const { colors } = useTheme()
   const { isConnected } = useNetwork()
+  const { user } = useAuth()
   const { showToast } = useToast()
   const [pending, setPending] = useState(getPendingCount)
   const [run, setRun] = useState(getRunState)
@@ -76,6 +78,12 @@ export default function UploadQueueBanner() {
           },
     )
   }, [showToast])
+
+  // Resume whatever was left in the queue when the app was closed.
+  useEffect(() => {
+    if (user && isConnected && getPendingCount() > 0) handleProcess()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   useEffect(() => {
     if (!wasOffline.current && !isConnected) {

@@ -1,4 +1,5 @@
 import { Platform, PermissionsAndroid } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { storage } from './storage';
 import {
   addToQueue,
@@ -114,11 +115,13 @@ export function cancelAutoSync(): void {
  * Scans the device gallery for new photos since the last sync, enqueues them
  * and starts uploading.
  * Returns the number of new photos enqueued, or -1 if permission was denied, or -2 if cancelled.
- * Pass force=true to bypass the enabled-flag check (e.g. manual "Sync ahora" button).
+ * Automatic runs only happen on Wi-Fi; force=true (manual "Sync ahora" button)
+ * bypasses that and the enabled flag.
  */
 export async function runAutoSync(force = false): Promise<number> {
   _cancelRequested = false;
   if (!force && !isAutoSyncEnabled()) return 0;
+  if (!force && (await NetInfo.fetch()).type !== 'wifi') return 0;
 
   const granted = await requestGalleryPermission();
   if (!granted) return -1;

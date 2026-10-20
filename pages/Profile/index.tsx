@@ -330,7 +330,7 @@ export default function ProfileScreen() {
             <Text
               style={[styles.syncLabel, { color: colors.text }]}
             >
-              Sincronización automática
+              Sincronización automática (solo Wi-Fi)
             </Text>
             <Text
               style={[styles.syncSubLabel, { color: colors.textSecondary }]}
