@@ -36,6 +36,7 @@ import { NetworkProvider } from './context/NetworkContext';
 import { updateWidgetWithRecentPhotos, pruneWidgetPhotos } from './api/widget';
 import { registerFcmToken } from './api/notifications';
 import { runAutoSync } from './api/autoSync';
+import { checkForUpdate } from './api/updates';
 import { cleanupPrivateFaces } from './api/client';
 import type { TabParamList, StackParamList } from './types/navigation';
 
@@ -131,6 +132,7 @@ function AppNavigator() {
   useEffect(() => {
     if (user && !biometricNeeded) {
       registerFcmToken()
+      checkForUpdate()
       pruneWidgetPhotos()
       cleanupPrivateFaces().catch(() => {})
       updateWidgetWithRecentPhotos()

@@ -21,7 +21,7 @@ jobs:
           distribution: temurin
           java-version: 17
       - run: yarn install --frozen-lockfile
-      - run: echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
+      - run: printf 'BASE_URL=%s\nAPP_VERSION=%s\n' "${{ secrets.BASE_URL }}" "${GITHUB_REF_NAME#v}" > .env
       - run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/my-release-key.keystore
       - working-directory: android
         run: ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName=${GITHUB_REF_NAME#v}
