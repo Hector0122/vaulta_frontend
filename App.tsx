@@ -136,6 +136,7 @@ function AppNavigator() {
       checkForUpdate()
       pruneWidgetPhotos()
       cleanupPrivateFaces().catch(() => {})
+      runAutoSync().catch(() => {})
     }
   }, [user, biometricNeeded])
 

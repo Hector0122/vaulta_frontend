@@ -369,7 +369,7 @@ export async function exportByDate(
 }
 
 export interface ExportProgress {
-  status: 'pending' | 'processing' | 'done' | 'error'
+  status: 'pending' | 'processing' | 'done' | 'error' | 'not_found'
   total: number
   completed: number
   message: string
@@ -380,6 +380,38 @@ export async function getExportStatus(
   exportId: string,
 ): Promise<ExportProgress> {
   return authenticatedGet(`exports/${exportId}`)
+}
+
+// Polls until the export ends. 'not_found' means the server restarted and the
+// in-memory job is gone, so the user has to request it again.
+export function watchExport(
+  exportId: string,
+  onEnd: (title: string, message: string) => void,
+) {
+  const started = Date.now()
+  const interval = setInterval(async () => {
+    try {
+      const { status, message } = await getExportStatus(exportId)
+      if (status === 'done') {
+        onEnd(
+          'Exportación lista',
+          'Te enviamos el enlace de descarga del ZIP por correo.',
+        )
+      } else if (status === 'error') {
+        onEnd('Error', message || 'La exportación falló')
+      } else if (status === 'not_found') {
+        onEnd(
+          'Exportación interrumpida',
+          'El servidor se reinició antes de terminar. Vuelve a pedirla.',
+        )
+      } else if (Date.now() - started < 60 * 60 * 1000) {
+        return
+      }
+    } catch {
+      return
+    }
+    clearInterval(interval)
+  }, 5000)
 }
 
 export async function getTrash(): Promise<
@@ -519,37 +551,12 @@ export async function removeFaceFromPhoto(
   )
 }
 
-export async function detectAllFaces(
-  limit?: number,
-): Promise<{ jobId: string; total: number; status: string }> {
-  const params = limit ? `?limit=${limit}` : ''
-  return authenticatedPost(`faces/detect-all${params}`, {})
-}
-
 export async function getFaceDetectStatus(): Promise<{
   total: number
   pending: number
   detected: number
 }> {
   return authenticatedGet('faces/detect-status')
-}
-
-export async function getFaceDetectProgress(
-  jobId: string,
-): Promise<{
-  status: string
-  total: number
-  processed: number
-  facesFound: number
-  failed: number
-}> {
-  return authenticatedGet(`faces/detect-progress/${jobId}`)
-}
-
-export async function stopFaceDetectAll(
-  jobId: string,
-): Promise<{ stopped: boolean }> {
-  return authenticatedPost('faces/detect-stop', { jobId })
 }
 
 export async function mergePeople(

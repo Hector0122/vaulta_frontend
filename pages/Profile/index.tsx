@@ -24,9 +24,10 @@ import {
   authenticatedPatch,
   authenticatedGet,
   exportByDate,
-  getExportStatus,
+  watchExport,
 } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
+import { getDeviceUsage, clearDeviceCache } from '../../api/offline'
 import { promptBiometrics } from '../../services/biometrics'
 import {
   isAutoSyncEnabled,
@@ -36,7 +37,6 @@ import {
   runAutoSync,
   getLastSyncTimeFormatted,
 } from '../../api/autoSync'
-import { processQueue } from '../../services/UploadQueue'
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -44,6 +44,10 @@ function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   const val = bytes / Math.pow(1024, i)
   return `${val.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+function formatMB(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(0)} MB`
 }
 
 export default function ProfileScreen() {
@@ -77,30 +81,6 @@ export default function ProfileScreen() {
   } | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
 
-  async function pollExport(exportId: string) {
-    let attempts = 0
-    const maxAttempts = 120 // 10 minutes at 5s intervals
-    const interval = setInterval(async () => {
-      attempts++
-      try {
-        const status = await getExportStatus(exportId)
-        if (status.status === 'done') {
-          clearInterval(interval)
-          Alert.alert(
-            'Exportación lista',
-            'Te enviamos el enlace de descarga del ZIP por correo.',
-          )
-        } else if (status.status === 'error') {
-          clearInterval(interval)
-          Alert.alert('Error', status.message || 'La exportación falló')
-        } else if (attempts >= maxAttempts) {
-          clearInterval(interval)
-        }
-      } catch {
-        if (attempts >= maxAttempts) clearInterval(interval)
-      }
-    }, 5000)
-  }
   const [dateFrom, setDateFrom] = useState<string | null>(null)
   const [dateTo, setDateTo] = useState<string | null>(null)
   const [selectingEnd, setSelectingEnd] = useState(false)
@@ -109,10 +89,27 @@ export default function ProfileScreen() {
   const [syncing, setSyncing] = useState(false)
   const [lastSyncLabel, setLastSyncLabel] = useState<string | null>(null)
 
+  const [usage, setUsage] = useState<{ cache: number; offline: number } | null>(
+    null,
+  )
+
   useEffect(() => {
     setAutoSyncEnabledState(isAutoSyncEnabled())
     setLastSyncLabel(getLastSyncTimeFormatted())
   }, [])
+
+  useEffect(() => {
+    if (user?.id) getDeviceUsage(user.id).then(setUsage).catch(() => {})
+  }, [user?.id])
+
+  const handleClearCache = async () => {
+    if (!(await clearDeviceCache())) {
+      showToast({ message: 'Espera a que termine la subida', type: 'info' })
+      return
+    }
+    if (user?.id) setUsage(await getDeviceUsage(user.id))
+    showToast({ message: 'Caché limpiada', type: 'success' })
+  }
 
   const handleAutoSyncToggle = (value: boolean) => {
     setAutoSyncEnabled(value)
@@ -123,11 +120,13 @@ export default function ProfileScreen() {
     cancelAutoSync()
   }
 
-  const handleFullResync = async () => {
+  const handleSyncNow = async (full = false) => {
     setSyncing(true)
     try {
-      clearLastSyncTime()
-      setLastSyncLabel(null)
+      if (full) {
+        clearLastSyncTime()
+        setLastSyncLabel(null)
+      }
       const count: number = await runAutoSync(true)
       setLastSyncLabel(getLastSyncTimeFormatted())
       if (count === -2) {
@@ -144,41 +143,10 @@ export default function ProfileScreen() {
           message: `${count} foto(s) en cola de subida`,
           type: 'success',
         })
-        processQueue()
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error('[AutoSync] handleFullResync error:', msg)
-      Alert.alert('Error al sincronizar', msg)
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  const handleSyncNow = async () => {
-    setSyncing(true)
-    try {
-      const count: number = await runAutoSync(true)
-      setLastSyncLabel(getLastSyncTimeFormatted())
-      if (count === -2) {
-        showToast({ message: 'Sincronización cancelada', type: 'info' })
-      } else if (count === -1) {
-        Alert.alert(
-          'Sin permiso',
-          'Otorga permiso de galería en Ajustes del sistema.',
-        )
-      } else if (count === 0) {
-        showToast({ message: 'No hay fotos nuevas', type: 'info' })
-      } else {
-        showToast({
-          message: `${count} foto(s) en cola de subida`,
-          type: 'success',
-        })
-        processQueue()
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error('[AutoSync] handleSyncNow error:', msg)
+      console.error('[AutoSync] sync error:', msg)
       Alert.alert('Error al sincronizar', msg)
     } finally {
       setSyncing(false)
@@ -397,7 +365,7 @@ export default function ProfileScreen() {
                     styles.flex1,
                     { backgroundColor: colors.primary },
                   ]}
-                  onPress={handleSyncNow}
+                  onPress={() => handleSyncNow()}
                 >
                   <Icon name="sync" size={iconSize.sm} color="#fff" />
                   <Text style={styles.actionBtnText}>Sync ahora</Text>
@@ -412,7 +380,7 @@ export default function ProfileScreen() {
                       borderColor: colors.primary,
                     },
                   ]}
-                  onPress={handleFullResync}
+                  onPress={() => handleSyncNow(true)}
                 >
                   <Icon name="refresh" size={iconSize.sm} color={colors.primary} />
                   <Text
@@ -425,6 +393,42 @@ export default function ProfileScreen() {
             )}
           </View>
         )}
+
+        <View
+          style={[
+            styles.statsCard,
+            styles.statsCardTop,
+            { backgroundColor: colors.cardBg },
+          ]}
+        >
+          <View style={styles.flex1}>
+            <Text style={[styles.syncLabel, { color: colors.text }]}>
+              Espacio en el teléfono
+            </Text>
+            <Text
+              style={[styles.syncSubLabel, { color: colors.textSecondary }]}
+            >
+              {usage
+                ? `Caché ${formatMB(usage.cache)} · Sin conexión ${formatMB(usage.offline)}`
+                : 'Calculando…'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              styles.border1,
+              {
+                backgroundColor: colors.surfaceAlt,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={handleClearCache}
+          >
+            <Text style={[styles.actionBtnText, { color: colors.text }]}>
+              Limpiar caché
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={[styles.analysisRow, styles.analysisRowGapTop]}>
           <TouchableOpacity
@@ -597,7 +601,7 @@ export default function ProfileScreen() {
                         message: 'Exportación iniciada',
                         type: 'info',
                       })
-                      pollExport(exportId)
+                      watchExport(exportId, Alert.alert)
                     } catch {
                       showToast({
                         message: 'No se pudieron exportar las fotos',

@@ -20,6 +20,7 @@ import { radius, iconSize } from '../../tokens'
 import {
   authenticatedGet,
   exportAlbum,
+  watchExport,
   removePhotosFromAlbum,
   updateAlbum,
 } from '../../api/client'
@@ -282,7 +283,8 @@ export default function AlbumView() {
             style={[styles.topBtn, { backgroundColor: colors.primary }]}
             onPress={async () => {
               try {
-                await exportAlbum(albumId)
+                const { exportId } = await exportAlbum(albumId)
+                watchExport(exportId, Alert.alert)
                 showToast({ message: 'Exportación iniciada', type: 'info' })
               } catch {
                 showToast({ message: 'No se pudo exportar', type: 'error' })

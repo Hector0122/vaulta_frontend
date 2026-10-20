@@ -25,10 +25,7 @@ import {
   getUnconfirmedFaces,
   updateFace,
   findMoreFaces,
-  detectAllFaces,
   getFaceDetectStatus,
-  getFaceDetectProgress,
-  stopFaceDetectAll,
 } from '../../api/client'
 import type { StackNavProp } from '../../types/navigation'
 import type { Person, UnconfirmedFace } from '../../api/client'
@@ -53,16 +50,6 @@ export default function PeopleScreen() {
     pending: number
     detected: number
   } | null>(null)
-  const [scanJob, setScanJob] = useState<{
-    jobId: string
-    total: number
-  } | null>(null)
-  const [scanProgress, setScanProgress] = useState<{
-    processed: number
-    facesFound: number
-    status: string
-  } | null>(null)
-  const [isScanning, setIsScanning] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -86,26 +73,7 @@ export default function PeopleScreen() {
     useCallback(() => {
       setLoading(true)
       fetchData()
-
-      const interval = setInterval(async () => {
-        if (isScanning && scanJob) {
-          try {
-            const p = await getFaceDetectProgress(scanJob.jobId)
-            setScanProgress(p)
-            if (p.status === 'completed') {
-              setIsScanning(false)
-              setScanJob(null)
-              fetchData()
-            } else if (p.status === 'stopped') {
-              setIsScanning(false)
-              setScanJob(null)
-            }
-          } catch {}
-        }
-      }, 3000)
-
-      return () => clearInterval(interval)
-    }, [fetchData, isScanning, scanJob]),
+    }, [fetchData]),
   )
 
   const handleConfirmSuggestion = useCallback(
@@ -192,42 +160,6 @@ export default function PeopleScreen() {
     }
   }, [])
 
-  const [startingScan, setStartingScan] = useState(false)
-
-  const handleStartScan = useCallback(async (limit: number) => {
-    if (startingScan) return
-    setStartingScan(true)
-    try {
-      const result = await detectAllFaces(limit)
-      if (result.status === 'nothing_to_scan') {
-        Alert.alert('Listo', 'No hay fotos pendientes de escanear')
-        return
-      }
-      if (result.status === 'already_running') {
-        Alert.alert('Escaneo en curso', 'Ya hay un escaneo activo. Esperá a que termine.')
-        return
-      }
-      setScanJob({ jobId: result.jobId, total: result.total })
-      setScanProgress({ processed: 0, facesFound: 0, status: 'running' })
-      setIsScanning(true)
-    } catch {
-      Alert.alert('Error', 'No se pudo iniciar el escaneo')
-    } finally {
-      setStartingScan(false)
-    }
-  }, [startingScan])
-
-  const handleStopScan = useCallback(async () => {
-    if (!scanJob) return
-    try {
-      await stopFaceDetectAll(scanJob.jobId)
-      setIsScanning(false)
-      setScanJob(null)
-    } catch {
-      /* ignore */
-    }
-  }, [scanJob])
-
   const handleConfirmMatches = useCallback(
     async (personName: string) => {
       if (!searchResults || selectedFaces.size === 0) return
@@ -274,109 +206,11 @@ export default function PeopleScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
-            {scanStatus && scanStatus.pending > 0 && !isScanning && (
-              <>
-                <TouchableOpacity
-                  style={[styles.scanBtn, { backgroundColor: colors.primary }]}
-                  onPress={() =>
-                    handleStartScan(Math.min(scanStatus.pending, 15))
-                  }
-                >
-                  <Icon name="face-recognition" size={iconSize.sm} color="#fff" />
-                  <Text style={styles.scanBtnText}>
-                    Escanear {Math.min(scanStatus.pending, 15).toLocaleString()}{' '}
-                    fotos
-                  </Text>
-                </TouchableOpacity>
-                {scanStatus.pending > 15 && (
-                  <TouchableOpacity
-                    style={[
-                      styles.scanBtn,
-                      {
-                        backgroundColor: colors.primary,
-                        marginTop: 8,
-                        opacity: 0.85,
-                      },
-                    ]}
-                    onPress={() =>
-                      handleStartScan(Math.min(scanStatus.pending, 50))
-                    }
-                  >
-                    <Icon name="face-recognition" size={iconSize.sm} color="#fff" />
-                    <Text style={styles.scanBtnText}>
-                      Escanear {Math.min(scanStatus.pending, 50).toLocaleString()} fotos
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                {scanStatus.pending > 50 && (
-                  <Text
-                    style={[styles.scanHint, { color: colors.textSecondary }]}
-                  >
-                    Hay {scanStatus.pending.toLocaleString()} fotos sin
-                    escanear. Para escanear más de 50, usá el script local en tu
-                    computadora.
-                  </Text>
-                )}
-              </>
-            )}
-            {isScanning && scanProgress && (
-              <View
-                style={[
-                  styles.progressCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.progressBar,
-                    { backgroundColor: colors.border },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        backgroundColor: colors.primary,
-                        width: `${Math.min(
-                          (scanProgress.processed / (scanJob?.total || 1)) *
-                            100,
-                          100,
-                        )}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.progressInfo}>
-                  <Text
-                    style={[
-                      styles.progressText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {scanProgress.processed.toLocaleString()} /{' '}
-                    {scanJob?.total.toLocaleString()} fotos
-                  </Text>
-                  <Text
-                    style={[
-                      styles.progressText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {scanProgress.facesFound} caras detectadas
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.stopBtn}
-                  onPress={handleStopScan}
-                >
-                  <Text style={[styles.stopBtnText, { color: colors.danger }]}>
-                    Detener
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            {scanStatus && scanStatus.pending > 0 && (
+              <Text style={[styles.scanHint, { color: colors.textSecondary }]}>
+                {scanStatus.pending.toLocaleString()} fotos sin escanear. Se
+                escanean desde la computadora con scan-local.
+              </Text>
             )}
             {unconfirmed.length > 0 && (
               <View style={styles.section}>
@@ -1105,39 +939,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
-  scanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: radius.md,
-    marginBottom: 16,
-    gap: 8,
-  },
-  scanBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   scanHint: {
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 16,
     paddingHorizontal: 8,
   },
-  progressCard: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 16,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: { height: '100%', borderRadius: 3 },
-  progressInfo: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressText: { fontSize: 13 },
-  stopBtn: { alignSelf: 'flex-end', marginTop: 4 },
-  stopBtnText: { fontSize: 13, fontWeight: '600' },
   resultsCard: {
     width: '90%',
     maxHeight: '80%',

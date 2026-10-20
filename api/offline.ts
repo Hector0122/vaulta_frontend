@@ -1,6 +1,7 @@
 import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
 import { storage } from './storage';
+import { getQueue, getRunState } from '../services/UploadQueue';
 
 const OFFLINE_DIR = `${RNFS.DocumentDirectoryPath}/offline`;
 
@@ -85,4 +86,37 @@ export async function clearAllOffline(userId: string): Promise<void> {
     if (exists) await RNFS.unlink(dir);
     storage.remove(offlineIdsKey(userId));
   } catch {}
+}
+
+async function dirSize(path: string): Promise<number> {
+  if (!(await RNFS.exists(path))) return 0;
+  let total = 0;
+  for (const item of await RNFS.readDir(path)) {
+    total += item.isDirectory() ? await dirSize(item.path) : Number(item.size);
+  }
+  return total;
+}
+
+export async function getDeviceUsage(
+  userId: string,
+): Promise<{ cache: number; offline: number }> {
+  const [cache, offline] = await Promise.all([
+    dirSize(RNFS.CachesDirectoryPath),
+    dirSize(offlineDir(userId)),
+  ]);
+  return { cache, offline };
+}
+
+/** Clears the image/temp cache, keeping files still waiting in the upload queue. */
+export async function clearDeviceCache(): Promise<boolean> {
+  if (getRunState().running) return false;
+  const keep = new Set(getQueue().map(i => i.uri.replace('file://', '')));
+  const walk = async (path: string) => {
+    for (const item of await RNFS.readDir(path)) {
+      if (item.isDirectory()) await walk(item.path);
+      else if (!keep.has(item.path)) await RNFS.unlink(item.path).catch(() => {});
+    }
+  };
+  await walk(RNFS.CachesDirectoryPath);
+  return true;
 }

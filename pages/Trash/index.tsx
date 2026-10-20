@@ -72,7 +72,7 @@ function TrashItemCard({
           {item.filename}
         </Text>
         <Text style={[styles.date, { color: colors.textTertiary }]}>
-          Eliminada: {new Date(item.deletedAt).toLocaleDateString()}
+          {daysLeftLabel(item.deletedAt)}
         </Text>
       </View>
       <View style={styles.actions}>
@@ -91,6 +91,16 @@ function TrashItemCard({
       </View>
     </View>
   )
+}
+
+// Matches cleanExpiredTrash in the backend's photos.service.ts.
+const TRASH_DAYS = 30
+
+function daysLeftLabel(deletedAt: string): string {
+  const days = Math.ceil(
+    TRASH_DAYS - (Date.now() - new Date(deletedAt).getTime()) / 86400000,
+  )
+  return days <= 1 ? 'Se borra hoy' : `Se borra en ${days} días`
 }
 
 export default function TrashScreen() {
@@ -224,6 +234,13 @@ export default function TrashScreen() {
             <Icon name="delete-sweep" size={iconSize.md} color="#fff" />
             <Text style={styles.emptyAllText}>Vaciar papelera</Text>
           </TouchableOpacity>
+          <Text style={[styles.summary, { color: colors.textSecondary }]}>
+            {items.length} archivo(s) ·{' '}
+            {(items.reduce((t, i) => t + (i.size || 0), 0) / 1024 / 1024).toFixed(
+              0,
+            )}{' '}
+            MB · se borran solos a los 30 días
+          </Text>
           <FlatList
             data={items}
             keyExtractor={item => item.id}
@@ -254,6 +271,7 @@ const styles = StyleSheet.create({
   list: { padding: 12 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 16, marginTop: 16 },
+  summary: { fontSize: 13, textAlign: 'center', marginBottom: 8 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

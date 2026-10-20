@@ -1,6 +1,10 @@
 import { Platform, PermissionsAndroid } from 'react-native';
 import { storage } from './storage';
-import { addToQueue, getSyncedNames } from '../services/UploadQueue';
+import {
+  addToQueue,
+  getSyncedNames,
+  processQueue,
+} from '../services/UploadQueue';
 
 const AUTO_SYNC_ENABLED_KEY = '@vaulta_auto_sync_enabled';
 const LAST_SYNC_TIME_KEY = '@vaulta_last_sync_timeÑ';
@@ -107,7 +111,8 @@ export function cancelAutoSync(): void {
 }
 
 /**
- * Scans the device gallery for new photos since the last sync and enqueues them.
+ * Scans the device gallery for new photos since the last sync, enqueues them
+ * and starts uploading.
  * Returns the number of new photos enqueued, or -1 if permission was denied, or -2 if cancelled.
  * Pass force=true to bypass the enabled-flag check (e.g. manual "Sync ahora" button).
  */
@@ -117,6 +122,8 @@ export async function runAutoSync(force = false): Promise<number> {
 
   const granted = await requestGalleryPermission();
   if (!granted) return -1;
+
+  const scanStartedAt = Date.now();
 
   const { CameraRoll } = await import('@react-native-camera-roll/camera-roll');
 
@@ -153,10 +160,8 @@ export async function runAutoSync(force = false): Promise<number> {
       const filename = node.image.filename ?? `photo_${node.timestamp}.jpg`;
       if (syncedNames.has(filename)) continue;
 
-      const normalizedUri = Platform.OS === 'ios' ? uri : uri;
-
       toEnqueue.push({
-        uri: normalizedUri,
+        uri,
         name: filename,
         type: getMimeType(filename, node.type),
       });
@@ -168,8 +173,9 @@ export async function runAutoSync(force = false): Promise<number> {
 
   if (toEnqueue.length > 0) {
     addToQueue(toEnqueue);
+    processQueue();
   }
 
-  setLastSyncTime(Date.now());
+  setLastSyncTime(scanStartedAt);
   return toEnqueue.length;
 }
