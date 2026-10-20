@@ -20,6 +20,7 @@ import { useNetwork } from '../../context/NetworkContext'
 import { getToken } from '../../api/client'
 import { BASE_URL } from '../../api/server'
 import { addToQueue } from '../../services/UploadQueue'
+import { startUploadProgress } from '../../services/UploadProgress'
 import type { StackNavProp, UploadRouteProp } from '../../types/navigation'
 import { radius, iconSize } from '../../tokens'
 
@@ -213,6 +214,9 @@ export default function UploadScreen() {
           position: 'top-right',
           duration: 3000,
         })
+      } else {
+        const { batchId } = await res.json()
+        startUploadProgress(batchId, resolved.length)
       }
     } catch (e) {
       console.error('Upload network error:', e)

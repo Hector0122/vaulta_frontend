@@ -595,6 +595,20 @@ export async function getFaceDetectStatus(): Promise<{
   return authenticatedGet('faces/detect-status')
 }
 
+export type UploadBatchStatus = {
+  status: 'pending' | 'processing' | 'done' | 'error' | 'not_found'
+  completed: number
+  failed: number
+  total: number
+  message: string
+}
+
+export async function getUploadBatchStatus(
+  batchId: string,
+): Promise<UploadBatchStatus> {
+  return authenticatedGet(`photos/upload-batch/${batchId}/status`)
+}
+
 export async function getFaceDetectProgress(
   jobId: string,
 ): Promise<{

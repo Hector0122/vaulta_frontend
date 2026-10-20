@@ -30,6 +30,7 @@ import TrashScreen from './pages/Trash';
 import PeopleScreen from './pages/People';
 import PersonView from './pages/People/PersonView';
 import ConnectionBanner from './components/ConnectionBanner';
+import UploadQueueBanner from './components/UploadQueueBanner';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import { NetworkProvider } from './context/NetworkContext';
@@ -267,6 +268,7 @@ function AppContent() {
             <NavigationContainer>
               <AppNavigator />
             </NavigationContainer>
+            <UploadQueueBanner />
           </ToastProvider>
         </AuthProvider>
       </NetworkProvider>

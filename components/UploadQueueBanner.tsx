@@ -24,6 +24,13 @@ import {
   retryFailed,
   clearQueue,
 } from '../services/UploadQueue'
+import { getUploadBatchStatus } from '../api/client'
+import {
+  clearUploadProgress,
+  getUploadProgress,
+  subscribeUploadProgress,
+  updateUploadProgress,
+} from '../services/UploadProgress'
 
 export default function UploadQueueBanner() {
   const { colors } = useTheme()
@@ -32,6 +39,7 @@ export default function UploadQueueBanner() {
   const [pending, setPending] = useState(0)
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState({ completed: 0, total: 0 })
+  const [remoteUpload, setRemoteUpload] = useState(getUploadProgress)
   const animValue = useSharedValue(0)
   const wasOffline = useRef(false)
 
@@ -87,11 +95,49 @@ export default function UploadQueueBanner() {
   }, [refresh])
 
   useEffect(() => {
+    return subscribeUploadProgress(() => setRemoteUpload(getUploadProgress()))
+  }, [])
+
+  useEffect(() => {
+    if (!remoteUpload) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const status = await getUploadBatchStatus(remoteUpload.batchId)
+        if (cancelled) return
+        updateUploadProgress(remoteUpload.batchId, status)
+        if (status.status === 'done' || status.status === 'error' || status.status === 'not_found') {
+          if (status.status === 'done') {
+            showToast({
+              message: status.failed
+                ? `${status.completed} subidos, ${status.failed} fallaron`
+                : 'Todos los archivos se subieron correctamente',
+              type: status.failed ? 'error' : 'success',
+              position: 'top-right',
+              duration: 4000,
+            })
+          }
+          clearUploadProgress()
+        }
+      } catch {
+        // The next poll retries transient network errors.
+      }
+    }
+    void poll()
+    const interval = setInterval(() => void poll(), 1500)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [remoteUpload, showToast])
+
+  useEffect(() => {
     if (!wasOffline.current && !isConnected) {
       wasOffline.current = true
     }
     if (wasOffline.current && isConnected && pending > 0 && !processing) {
       wasOffline.current = false
+      retryFailed()
       handleProcess()
     }
     if (isConnected) {
@@ -153,9 +199,13 @@ export default function UploadQueueBanner() {
     Alert.alert(`Fallos (${failed.length})`, lines, [{ text: 'Cerrar' }])
   }
 
-  if (pending === 0 && !processing) return null
+  if (pending === 0 && !processing && !remoteUpload) return null
 
   const failedCount = getQueue().filter(i => i.status === 'failed').length
+  const remoteStatus = remoteUpload?.status
+  const remoteTotal = remoteStatus?.total || remoteUpload?.total || 0
+  const remoteCompleted = remoteStatus?.completed || 0
+  const remoteFailed = remoteStatus?.failed || 0
 
   return (
     <Animated.View
@@ -167,12 +217,14 @@ export default function UploadQueueBanner() {
     >
       <View style={styles.content}>
         <Icon
-          name={processing ? 'cloud-upload-outline' : 'cloud-outline'}
+          name={processing || remoteUpload ? 'cloud-upload-outline' : 'cloud-outline'}
           size={iconSize.sm}
           color="#fff"
         />
         <Text style={styles.text}>
-          {processing
+          {remoteUpload
+            ? `Subiendo ${remoteCompleted}/${remoteTotal}${remoteFailed ? ` · ${remoteFailed} fallaron` : ''}…`
+            : processing
             ? `Subiendo ${progress.completed}/${progress.total}…`
             : `${pending} archivo(s) pendiente(s) de subir`}
         </Text>
