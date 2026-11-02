@@ -414,16 +414,18 @@ export function watchExport(
   }, 5000)
 }
 
-export async function getTrash(): Promise<
-  {
+export async function getTrash(pageToken?: string): Promise<{
+  photos: {
     id: string
     uri: string
     filename: string
     deletedAt: string
     size: number
   }[]
-> {
-  return authenticatedGet('photos/trash')
+  nextToken: string | null
+}> {
+  const qs = pageToken ? `?pageToken=${encodeURIComponent(pageToken)}` : ''
+  return authenticatedGet(`photos/trash${qs}`)
 }
 
 export async function restorePhoto(photoId: string): Promise<void> {

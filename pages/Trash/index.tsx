@@ -108,18 +108,36 @@ export default function TrashScreen() {
   const { showToast } = useToast()
   const [items, setItems] = useState<TrashItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [nextToken, setNextToken] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const fetchTrash = useCallback(async () => {
     setLoading(true)
     try {
       const data = await getTrash()
-      setItems(data)
+      setItems(data.photos ?? [])
+      setNextToken(data.nextToken ?? null)
     } catch {
       setItems([])
+      setNextToken(null)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const loadMore = useCallback(async () => {
+    if (!nextToken || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const data = await getTrash(nextToken)
+      setItems(prev => [...prev, ...(data.photos ?? [])])
+      setNextToken(data.nextToken ?? null)
+    } catch {
+      // keep what we have; user can retry by scrolling again
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [nextToken, loadingMore])
 
   useFocusEffect(
     useCallback(() => {
@@ -235,7 +253,8 @@ export default function TrashScreen() {
             <Text style={styles.emptyAllText}>Vaciar papelera</Text>
           </TouchableOpacity>
           <Text style={[styles.summary, { color: colors.textSecondary }]}>
-            {items.length} archivo(s) ·{' '}
+            {items.length}
+            {nextToken ? '+' : ''} archivo(s) ·{' '}
             {(items.reduce((t, i) => t + (i.size || 0), 0) / 1024 / 1024).toFixed(
               0,
             )}{' '}
@@ -246,6 +265,13 @@ export default function TrashScreen() {
             keyExtractor={item => item.id}
             contentContainerStyle={styles.list}
             renderItem={renderItem}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <ActivityIndicator color={colors.primary} style={styles.footer} />
+              ) : null
+            }
           />
         </View>
       )}
@@ -286,4 +312,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 4 },
   actionBtn: { padding: 6 },
   fill: { flex: 1 },
+  footer: { marginVertical: 16 },
 })
