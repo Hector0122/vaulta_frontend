@@ -52,6 +52,7 @@ import {
   onMessage as onFCMessage,
 } from '@react-native-firebase/messaging'
 import SelectionBar from '../../components/SelectionBar'
+import { createDraft, MAX_CAROUSEL } from '../../api/estudio'
 import FABMenu from '../../components/FABMenu'
 import AlbumPickerModal from '../../components/AlbumPickerModal'
 import SelectDateRangeModal from '../../components/SelectDateRangeModal'
@@ -70,6 +71,7 @@ type HomeStackParamList = {
   }
   Profile: undefined
   People: undefined
+  EstudioDraft: { draftId: string }
 }
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Main'>
@@ -328,6 +330,24 @@ export function HomeScreen({ navigation }: Props) {
     } catch {}
     clearSelection()
   }, [selectedPhotos, clearSelection])
+
+  const handleBatchEstudio = useCallback(() => {
+    const images = selectedPhotos.filter(p => !p.mimeType?.startsWith('video/'))
+    if (images.length === 0) {
+      showToast({ message: 'Estudio solo acepta fotos por ahora', type: 'info' })
+      return
+    }
+    if (images.length > MAX_CAROUSEL) {
+      showToast({ message: `Instagram permite hasta ${MAX_CAROUSEL} fotos por publicación`, type: 'error' })
+      return
+    }
+    const draft = createDraft(images.map(p => p.id), images[0].uri)
+    if (images.length < selectedPhotos.length) {
+      showToast({ message: 'Los videos se omitieron', type: 'info' })
+    }
+    clearSelection()
+    navigation.navigate('EstudioDraft', { draftId: draft.id })
+  }, [selectedPhotos, clearSelection, showToast, navigation])
 
   const handleBatchAddToWidget = useCallback(async () => {
     const widgetPhotos = selectedPhotos.map(p => ({
@@ -922,6 +942,7 @@ export function HomeScreen({ navigation }: Props) {
         onShare={handleBatchShare}
         onAddToAlbum={handleOpenAlbumPicker}
         onAddToWidget={handleBatchAddToWidget}
+        onEstudio={handleBatchEstudio}
         onMakePrivate={handleBatchMakePrivate}
         onDelete={handleBatchDelete}
       />

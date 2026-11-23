@@ -4,6 +4,7 @@ import { RouteProp } from '@react-navigation/native'
 export type TabParamList = {
   Timeline: undefined
   Albums: undefined
+  Estudio: undefined
 }
 
 export type StackParamList = {
@@ -21,6 +22,7 @@ export type StackParamList = {
   Trash: undefined
   People: undefined
   PersonView: { personName: string }
+  EstudioDraft: { draftId: string }
 }
 
 export type StackNavProp = NativeStackNavigationProp<StackParamList>

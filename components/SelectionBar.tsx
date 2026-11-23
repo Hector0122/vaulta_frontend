@@ -13,6 +13,7 @@ type Props = {
   onShare: () => void
   onAddToAlbum: () => void
   onAddToWidget: () => void
+  onEstudio: () => void
   onMakePrivate: () => void
   onDelete: () => void
 }
@@ -25,6 +26,7 @@ export default function SelectionBar({
   onShare,
   onAddToAlbum,
   onAddToWidget,
+  onEstudio,
   onMakePrivate,
   onDelete,
 }: Props) {
@@ -48,6 +50,10 @@ export default function SelectionBar({
         <Icon name="cellphone" size={iconSize.md} color="#2BD4CE" />
         <Text style={[styles.label, { color: '#2BD4CE' }]}>Widget</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.action} onPress={onEstudio}>
+        <Icon name="palette-outline" size={iconSize.md} color="#e1306c" />
+        <Text style={[styles.label, { color: '#e1306c' }]}>Estudio</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.action} onPress={onMakePrivate}>
         <Icon name="eye-off-outline" size={iconSize.md} color="#ffa726" />
         <Text style={[styles.label, { color: '#ffa726' }]}>Privada</Text>
@@ -66,8 +72,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
   },
-  action: { alignItems: 'center', padding: 6 },
-  label: { color: '#fff', fontSize: 12, marginTop: 4 },
+  // flex: 1 para que los 7 botones quepan en pantallas angostas
+  action: { flex: 1, alignItems: 'center', paddingVertical: 6 },
+  label: { color: '#fff', fontSize: 11, marginTop: 4 },
 })

@@ -29,6 +29,8 @@ import DuplicatesScreen from './pages/Duplicates';
 import TrashScreen from './pages/Trash';
 import PeopleScreen from './pages/People';
 import PersonView from './pages/People/PersonView';
+import EstudioScreen from './pages/Estudio';
+import EstudioDraftView from './pages/Estudio/DraftView';
 import ConnectionBanner from './components/ConnectionBanner';
 import UploadQueueBanner from './components/UploadQueueBanner';
 
@@ -51,6 +53,7 @@ function tabBarIcon(
   let iconName = '';
   if (routeName === 'Timeline') iconName = 'home-variant';
   if (routeName === 'Albums') iconName = 'image-multiple-outline';
+  if (routeName === 'Estudio') iconName = 'palette-outline';
   return <Icon name={iconName} size={size} color={color} />;
 }
 
@@ -86,6 +89,16 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Álbumes',
           title: 'Álbumes',
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
+        }}
+      />
+      <Tab.Screen
+        name="Estudio"
+        component={EstudioScreen}
+        options={{
+          tabBarLabel: 'Estudio',
+          title: 'Vaulta Estudio',
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,
         }}
@@ -232,6 +245,11 @@ function AppNavigator() {
         name="PersonView"
         component={PersonView}
         options={{ title: 'Persona' }}
+      />
+      <Stack.Screen
+        name="EstudioDraft"
+        component={EstudioDraftView}
+        options={{ title: 'Publicación' }}
       />
     </Stack.Navigator>
   );
