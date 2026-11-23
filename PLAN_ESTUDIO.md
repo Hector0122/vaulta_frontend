@@ -30,6 +30,23 @@ Fotos → seleccionar 1–10 → Estudio → borrador
 
 ---
 
+## Ideas para publicar ✅ Probada en emulador
+
+Tarjetas arriba de la lista de Estudio (`api/estudioIdeas.ts`). Sin tags ni IA:
+
+| Tarjeta | Fuente |
+|---|---|
+| Hace X años (#tbt) | `photos/this-day` + fotos de ese día (rango en UTC, igual que el backend) |
+| Tus favoritas | `favorites=true` |
+| Con <persona> (top 2 por nº de fotos) | `faces/people` + `person=` |
+| Esta semana | `dateFrom` = hace 7 días |
+
+Filtros (`pickForPost`): sin borrosas, privadas, videos ni fotos ya usadas en borradores;
+una foto por ráfaga (< 1 min); máximo 10. Tocar una tarjeta crea el borrador con caption
+inicial, o reabre el existente si ya hay uno con esas mismas fotos.
+
+---
+
 ## Fuera de la v1 (ideas para después)
 
 - Recorte real a 4:5 / 1:1 (hoy la vista previa solo muestra el marco; Instagram recorta al subir)

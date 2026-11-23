@@ -45,7 +45,7 @@ export function getDraft(id: string): Draft | undefined {
   return readAll().find(d => d.id === id)
 }
 
-export function createDraft(photoIds: string[], coverUri: string | null): Draft {
+export function createDraft(photoIds: string[], coverUri: string | null, caption = ''): Draft {
   if (photoIds.length === 0 || photoIds.length > MAX_CAROUSEL) {
     throw new Error(`Un borrador lleva de 1 a ${MAX_CAROUSEL} fotos`)
   }
@@ -54,7 +54,7 @@ export function createDraft(photoIds: string[], coverUri: string | null): Draft 
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
     photoIds,
     coverUri,
-    caption: '',
+    caption,
     ratio: '4:5',
     published: false,
     createdAt: now,
